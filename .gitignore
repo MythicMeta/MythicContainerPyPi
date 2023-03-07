@@ -13,6 +13,11 @@ develop-eggs/
 dist/
 downloads/
 eggs/
+my_container/
+mythic_container.egg-info/
+Venv/
+.idea/
+.DS_Store
 .eggs/
 lib/
 lib64/
