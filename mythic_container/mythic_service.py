@@ -419,7 +419,7 @@ async def test_command(payload_type_name: str,
                                 if hasattr(commandInstance, "create_go_tasking"):
                                     if not await agent_utils.verifyTaskArgs(createTasking, ""):
                                         return
-                                    createTaskingResponse = await createTasking.create_go_tasking(taskData=createTasking)
+                                    createTaskingResponse = await commandInstance.create_go_tasking(taskData=createTasking)
                                     if createTaskingResponse.Params is None:
                                         # no manual args were set, so parse them from the task.args
                                         createTaskingResponse.Params = str(task.args)

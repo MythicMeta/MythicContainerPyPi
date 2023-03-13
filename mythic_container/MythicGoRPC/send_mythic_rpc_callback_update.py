@@ -17,10 +17,10 @@ class MythicRPCCallbackUpdateMessage:
                  PID: int = None,
                  ExtraInfo: str = None,
                  SleepInfo: str = None,
-                 Ip: str = None,
+                 IP: str = None,
                  ExternalIP: str = None,
                  IntegrityLevel: int = None,
-                 Os: str = None,
+                 OS: str = None,
                  Domain: str = None,
                  Architecture: str = None,
                  Description: str = None,
@@ -36,10 +36,10 @@ class MythicRPCCallbackUpdateMessage:
         self.PID = PID
         self.ExtraInfo = ExtraInfo
         self.SleepInfo = SleepInfo
-        self.Ip = Ip
+        self.Ip = IP
         self.ExternalIP = ExternalIP
         self.IntegrityLevel = IntegrityLevel
-        self.Os = Os
+        self.Os = OS
         self.Domain = Domain
         self.Architecture = Architecture
         self.Description = Description

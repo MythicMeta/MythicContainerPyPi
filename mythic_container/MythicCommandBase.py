@@ -450,21 +450,26 @@ class TaskArguments(metaclass=ABCMeta):
         return len(self.args) == 0
 
     def add_arg(self, key: str, value, type: ParameterType = None,
-                parameter_group_info: [ParameterGroupInfo] = [ParameterGroupInfo()]):
+                parameter_group_info: [ParameterGroupInfo] = None):
         found = False
         for arg in self.args:
             if arg.name == key:
-                arg.value = value
                 if type is not None:
                     arg.type = type
+                if parameter_group_info is not None:
+                    arg.parameter_group_info = parameter_group_info
+                arg.value = value
                 found = True
         if not found:
+            newGroupInfo = [ParameterGroupInfo()]
+            if parameter_group_info is not None:
+                newGroupInfo = parameter_group_info
             if type is not None:
                 self.args.append(
-                    CommandParameter(name=key, type=type, value=value, parameter_group_info=parameter_group_info))
+                    CommandParameter(name=key, type=type, value=value, parameter_group_info=newGroupInfo))
             else:
                 self.args.append(CommandParameter(name=key, type=ParameterType.String, value=value,
-                                                  parameter_group_info=parameter_group_info))
+                                                  parameter_group_info=newGroupInfo))
 
     def set_arg(self, key: str, value):
         found = False
@@ -1095,12 +1100,13 @@ class PTTaskMessageAllData:
 
 class PTTaskCompletionFunctionMessage:
     def __init__(self,
+                 args: TaskArguments,
                  task: dict,
                  function_name: str,
                  subtask: dict = None,
                  subtask_group_name: str = None,
                  **kwargs):
-        self.TaskData = PTTaskMessageAllData(**task)
+        self.TaskData = PTTaskMessageAllData(**task, args=args)
         self.CompletionFunctionName = function_name
         self.SubtaskGroup = subtask_group_name
         if subtask is not None:
@@ -1111,9 +1117,9 @@ class PTTaskCompletionFunctionMessage:
             logger.info(f"unknown kwarg {k} with value {v}")
 class PTTaskCompletionFunctionMessageResponse:
     def __init__(self,
-                 TaskID: int,
-                 ParentTaskId: int,
-                 Success: bool,
+                 TaskID: int = 0,
+                 ParentTaskId: int = 0,
+                 Success: bool = True,
                  Error: str = None,
                  TaskStatus: str = None,
                  DisplayParams: str = None,
@@ -1155,6 +1161,20 @@ class PTTaskCompletionFunctionMessageResponse:
             "completion_function_name": self.CompletionFunctionName,
             "params": self.Params,
             "parameter_group_name": self.ParameterGroupName
+        }
+class PTTaskProcessResponseMessageResponse:
+    def __init__(self,
+                 TaskID: int,
+                 Success: bool = True,
+                 Error: str = ""):
+        self.TaskID = TaskID
+        self.Success = Success
+        self.Error = Error
+    def to_json(self):
+        return {
+            "task_id": self.TaskID,
+            "success": self.Success,
+            "error": self.Error
         }
 
 class CommandBase(metaclass=ABCMeta):
@@ -1225,7 +1245,7 @@ class CommandBase(metaclass=ABCMeta):
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         return task
 
-    async def process_response(self, response: AgentResponse) -> None:
+    async def process_response(self, task: PTTaskMessageAllData, response: any) -> PTTaskProcessResponseMessageResponse:
         pass
 
     def to_json(self):

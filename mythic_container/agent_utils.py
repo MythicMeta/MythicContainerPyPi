@@ -87,17 +87,17 @@ async def initialize_task(
         message_json: dict,
         error_routing_key: str
 ) -> MythicCommandBase.MythicTask:
-    task = MythicCommandBase.MythicTask(
-        message_json["task"],
-        args=command_class.argument_class(
-            command_line=message_json["task"]["params"],
-            tasking_location=message_json["task"]["tasking_location"],
-            raw_command_line=message_json["task"]["original_params"],
-            task_dictionary=message_json["task"],
-        ),
-        callback_info=message_json["callback"]
-    )
     try:
+        task = MythicCommandBase.MythicTask(
+            message_json["task"],
+            args=command_class.argument_class(
+                command_line=message_json["task"]["params"],
+                tasking_location=message_json["task"]["tasking_location"],
+                raw_command_line=message_json["task"]["original_params"],
+                task_dictionary=message_json["task"],
+            ),
+            callback_info=message_json["callback"]
+        )
         # if tasking came from the command_line or an unknown source, call parse_arguments to deal with unknown text
         if task.args.tasking_location == "command_line":
             await task.args.parse_arguments()
@@ -144,7 +144,7 @@ async def initialize_task(
 
 async def verifyTaskArgs(
         task: MythicCommandBase.PTTaskMessageAllData,
-        error_routing_key: str
+        error_routing_key: str = ""
 ) -> bool:
     try:
         # if tasking came from the command_line or an unknown source, call parse_arguments to deal with unknown text
@@ -207,8 +207,7 @@ async def opsecPreCheck(msg: bytes) -> None:
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["command_name"]:
-                            taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict,
-                                                                                               args=cmd.argument_class)
+                            taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict, args=cmd.argument_class)
                             if not await verifyTaskArgs(taskData,
                                                         mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE):
                                 return
@@ -260,30 +259,25 @@ async def opsecPostCheck(msg: bytes) -> None:
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["command_name"]:
-                            taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict,
-                                                                                               args=cmd.argument_class)
-                            if not await verifyTaskArgs(taskData,
-                                                        mythic_container.PT_TASK_OPSEC_POST_CHECK_RESPONSE):
+                            taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict, args=cmd.argument_class)
+                            try:
+                                response = await cmd.opsec_post(taskData=taskData)
+                                response.TaskID = taskData.Task.ID
+                                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                    queue=mythic_container.PT_TASK_OPSEC_POST_CHECK_RESPONSE,
+                                    body=response.to_json()
+                                )
                                 return
-                            else:
-                                try:
-                                    response = await cmd.opsec_post(taskData=taskData)
-                                    response.TaskID = taskData.Task.ID
-                                    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
-                                        queue=mythic_container.PT_TASK_OPSEC_POST_CHECK_RESPONSE,
-                                        body=response.to_json()
-                                    )
-                                    return
-                                except Exception as opsecError:
-                                    logger.exception(f"Failed to run opsec post check: {opsecError}")
-                                    response = MythicCommandBase.PTTTaskOPSECPostTaskMessageResponse(
-                                        TaskID=msgDict["task"]["id"], Success=False, Error=str(traceback.format_exc())
-                                    )
-                                    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
-                                        queue=mythic_container.PT_TASK_OPSEC_POST_CHECK_RESPONSE,
-                                        body=response.to_json()
-                                    )
-                                    return
+                            except Exception as opsecError:
+                                logger.exception(f"Failed to run opsec post check: {opsecError}")
+                                response = MythicCommandBase.PTTTaskOPSECPostTaskMessageResponse(
+                                    TaskID=msgDict["task"]["id"], Success=False, Error=str(traceback.format_exc())
+                                )
+                                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                    queue=mythic_container.PT_TASK_OPSEC_POST_CHECK_RESPONSE,
+                                    body=response.to_json()
+                                )
+                                return
         response = MythicCommandBase.PTTTaskOPSECPostTaskMessageResponse(
             TaskID=msgDict["task"]["id"], Success=True, OpsecPostBlocked=False,
             OpsecPostMessage="Payload Type or Command not found, passing by default",
@@ -390,58 +384,53 @@ async def completionFunction(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["payload_type"]:
+            if pt.name == msgDict["task"]["payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do completion function")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
-                        if cmd.cmd == msgDict["task"]["command_name"]:
-                            task = await initialize_task(cmd, msgDict,
-                                                         mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE)
-                            if task is None:
-                                # we hit an error and already sent the response, just return
-                                return
-                            else:
-                                try:
-                                    completionFunctionInput = mythic_container.MythicCommandBase.PTTaskCompletionFunctionMessage(
-                                        **msgDict)
-                                    if completionFunctionInput.CompletionFunctionName in cmd.completion_functions:
-                                        response = await cmd.completion_functions[
-                                            completionFunctionInput.CompletionFunctionName](completionFunctionInput)
-                                    else:
-                                        response = mythic_container.MythicCommandBase.PTTaskCompletionFunctionMessageResponse(
-                                            Success=False,
-                                            TaskID=0,
-                                            ParentTaskId=0,
-                                            Error=f"{completionFunctionInput.CompletionFunctionName} not in command's listed completion_functions - unable to call it"
-                                        )
-                                    if completionFunctionInput.SubtaskData is not None:
-                                        response.TaskID = completionFunctionInput.SubtaskData.Task.ID
-                                        response.ParentTaskId = completionFunctionInput.TaskData.Task.ID
-                                    else:
-                                        response.TaskID = completionFunctionInput.TaskData.Task.ID
-                                    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
-                                        queue=mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE,
-                                        body=response.to_json()
-                                    )
-                                    return
-                                except Exception as completionException:
+                        if cmd.cmd == msgDict["task"]["task"]["command_name"]:
+                            completionFunctionInput = MythicCommandBase.PTTaskCompletionFunctionMessage(args=cmd.argument_class, **msgDict)
+                            try:
+                                if completionFunctionInput.CompletionFunctionName in cmd.completion_functions:
+                                    response = await cmd.completion_functions[
+                                        completionFunctionInput.CompletionFunctionName](completionFunctionInput)
+                                else:
                                     response = mythic_container.MythicCommandBase.PTTaskCompletionFunctionMessageResponse(
                                         Success=False,
-                                        TaskID=0,
+                                        TaskID=msgDict["task"]["task"]["id"],
                                         ParentTaskId=0,
-                                        Error=f"Failed to call completion function: {traceback.format_exc()}"
+                                        Error=f"{completionFunctionInput.CompletionFunctionName} not in command's listed completion_functions - unable to call it"
                                     )
-                                    if msgDict['subtask'] is not None:
-                                        response.TaskID = msgDict['subtask']['task']['id']
-                                        response.ParentTaskId = msgDict['task']['id']
-                                    else:
-                                        response.TaskID = msgDict['task']['id']
-                                    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
-                                        queue=mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE,
-                                        body=response.to_json()
-                                    )
+                                if completionFunctionInput.SubtaskData is not None:
+                                    response.TaskID = completionFunctionInput.SubtaskData.Task.ID
+                                    response.ParentTaskId = completionFunctionInput.TaskData.Task.ID
+                                else:
+                                    response.TaskID = completionFunctionInput.TaskData.Task.ID
+                                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                    queue=mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE,
+                                    body=response.to_json()
+                                )
+                                return
+                            except Exception as completionException:
+                                response = mythic_container.MythicCommandBase.PTTaskCompletionFunctionMessageResponse(
+                                    Success=False,
+                                    TaskID=msgDict["task"]["task"]["id"],
+                                    ParentTaskId=0,
+                                    Error=f"Failed to call completion function: {traceback.format_exc()}"
+                                )
+                                if "subtask" in msgDict and msgDict['subtask'] is not None:
+                                    response.TaskID = msgDict['subtask']['task']['id']
+                                    response.ParentTaskId = msgDict['task']['task']['id']
+                                else:
+                                    response.TaskID = msgDict['task']["task"]['id']
+                                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                    queue=mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE,
+                                    body=response.to_json()
+                                )
+
     except Exception as e:
+        logger.error(f"Failed to call completion function: {traceback.format_exc()}\n{e}")
         response = mythic_container.MythicCommandBase.PTTaskCompletionFunctionMessageResponse(
             Success=False,
             TaskID=0,
@@ -455,7 +444,49 @@ async def completionFunction(msg: bytes) -> None:
 
 
 async def processResponse(msg: bytes) -> None:
-    pass
+    try:
+        msgDict = ujson.loads(msg)
+        for name, pt in PayloadBuilder.payloadTypes.items():
+            if pt.name == msgDict["task"]["payload_type"]:
+                if pt.name not in MythicCommandBase.commands:
+                    logger.error(f"[-] no commands for payload type, can't do process response")
+                else:
+                    for cmd in MythicCommandBase.commands[pt.name]:
+                        if cmd.cmd == msgDict["task"]["task"]["command_name"]:
+                            taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict["task"], args=cmd.argument_class)
+                            try:
+                                response = await cmd.process_response(task=taskData, response=msgDict["response"])
+                                response.TaskID = taskData.Task.ID
+
+                                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                    queue=mythic_container.PT_TASK_PROCESS_RESPONSE_RESPONSE,
+                                    body=response.to_json()
+                                )
+                                return
+                            except Exception as opsecError:
+                                logger.exception(f"Failed to run process response: {opsecError}")
+                                response = MythicCommandBase.PTTaskProcessResponseMessageResponse(
+                                    TaskID=msgDict["task"]["task"]["id"], Success=False, Error=str(traceback.format_exc())
+                                )
+                                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                    queue=mythic_container.PT_TASK_PROCESS_RESPONSE_RESPONSE,
+                                    body=response.to_json()
+                                )
+                                return
+        response = MythicCommandBase.PTTaskProcessResponseMessageResponse(
+            TaskID=msgDict["task"]["task"]["id"], Success=False, Error="Failed to find command"
+        )
+        await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+            queue=mythic_container.PT_TASK_PROCESS_RESPONSE_RESPONSE,
+            body=response.to_json()
+        )
+
+        return
+    except Exception as e:
+        await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+            queue=mythic_container.PT_TASK_PROCESS_RESPONSE_RESPONSE,
+            body={"status": "error", "error": f"{traceback.format_exc()}\n{e}"}
+        )
 
 
 async def dynamicQueryFunction(msg: bytes) -> bytes:
@@ -589,6 +620,7 @@ async def reSyncPayloadType(msg: bytes) -> bytes:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["payload_type"]:
+                mythic_container.MythicCommandBase.commands.pop(pt.name, None)
                 await mythic_container.mythic_service.syncPayloadData(pt)
                 return ujson.dumps({"success": True}).encode()
         return ujson.dumps({"success": False, "error": "Failed to find payload type"}).encode()
