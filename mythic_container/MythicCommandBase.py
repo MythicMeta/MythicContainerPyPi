@@ -431,6 +431,9 @@ class TaskArguments(metaclass=ABCMeta):
                 return arg.value
         return None
 
+    def set_manual_args(self, params: str):
+        self.manual_args = params
+
     def has_arg(self, key: str) -> bool:
         for arg in self.args:
             if arg.name == key:
@@ -817,7 +820,7 @@ class PTTTaskOPSECPostTaskMessageResponse:
 class PTTaskCreateTaskingMessageResponse:
     def __init__(self,
                  TaskID: int = None,
-                 Success: bool = False,
+                 Success: bool = True,
                  Error: str = "",
                  CommandName: str = None,
                  TaskStatus: str = None,

@@ -321,9 +321,12 @@ async def createTasking(msg: bytes) -> None:
                                                                     mythic_container.PT_TASK_CREATE_TASKING_RESPONSE):
                                             return
                                         createTaskingResponse = await cmd.create_go_tasking(taskData=taskData)
-                                        if createTaskingResponse.Params is None:
-                                            # no manual args were set, so parse them from the task.args
-                                            createTaskingResponse.Params = str(task.args)
+                                        createTaskingResponse.Params = str(taskData.args)
+                                        await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                            queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
+                                            body=createTaskingResponse.to_json()
+                                        )
+                                        return
                                     else:
                                         createTaskingResponse = await cmd.create_tasking(task=task)
                                         response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
@@ -340,7 +343,6 @@ async def createTasking(msg: bytes) -> None:
                                             CompletionFunctionName=createTaskingResponse.completed_callback_function,
                                             TokenID=createTaskingResponse.token
                                         )
-                                        response.TaskID = msgDict["task"]["id"]
                                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                                             queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
                                             body=response.to_json()
