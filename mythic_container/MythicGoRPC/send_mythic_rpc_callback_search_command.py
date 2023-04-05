@@ -1,6 +1,6 @@
 import mythic_container
 from mythic_container.logging import logger
-from .send_mythic_rpc_command_search import MythicRPCCommandSearchData
+from .send_mythic_rpc_command_search_ import MythicRPCCommandSearchData
 
 MYTHIC_RPC_CALLBACK_SEARCH_COMMAND = "mythic_rpc_callback_search_command"
 

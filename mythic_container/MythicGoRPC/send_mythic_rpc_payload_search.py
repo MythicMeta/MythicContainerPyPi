@@ -90,17 +90,31 @@ class MythicRPCPayloadConfiguration:
                  wrapped_payload: str = None,
                  uuid: str = None,
                  agent_file_id: str = None,
+                 build_phase: str = None,
                  **kwargs):
         self.Description = description
         self.PayloadType = payload_type
-        self.C2Profiles = c2_profiles
-        self.BuildParameters = build_parameters
+        if c2_profiles is not None:
+            if isinstance(c2_profiles, list):
+                self.C2Profiles = [MythicRPCPayloadConfigurationC2Profile(**x) for x in c2_profiles]
+            else:
+                self.C2Profiles = c2_profiles
+        else:
+            self.C2Profiles = None
+        if build_parameters is not None:
+            if isinstance(build_parameters, list):
+                self.BuildParameters = [MythicRPCPayloadConfigurationBuildParameter(**x) for x in build_parameters]
+            else:
+                self.BuildParameters = build_parameters
+        else:
+            self.BuildParameters = None
         self.Commands = commands
         self.SelectedOS = selected_os
         self.Filename = filename
         self.WrappedPayloadUUID = wrapped_payload
         self.UUID = uuid
         self.AgentFileId = agent_file_id
+        self.BuildPhase = build_phase
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -115,7 +129,8 @@ class MythicRPCPayloadConfiguration:
             "filename": self.Filename,
             "wrapped_payload": self.WrappedPayloadUUID,
             "uuid": self.UUID,
-            "agent_file_id": self.AgentFileId
+            "agent_file_id": self.AgentFileId,
+            "build_phase": self.BuildPhase
         }
 class MythicRPCPayloadSearchMessageResponse:
     Payloads: list[MythicRPCPayloadConfiguration]

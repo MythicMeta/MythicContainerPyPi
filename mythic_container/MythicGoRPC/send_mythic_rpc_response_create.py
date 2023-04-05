@@ -18,7 +18,7 @@ class MythicRPCResponseCreateMessage:
     def to_json(self):
         return {
             "task_id": self.TaskID,
-            "response": base64.b64encode(self.Response).decode()
+            "response": base64.b64encode(self.Response.encode()).decode() if isinstance(self.Response, str) else base64.b64encode(self.Response).decode()
         }
 
 

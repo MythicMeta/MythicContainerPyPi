@@ -14,7 +14,7 @@ from .send_mythic_rpc_callback_search_command import *
 from .send_mythic_rpc_callback_update import *
 from .send_mythic_rpc_callbacktoken_create import *
 from .send_mythic_rpc_callbacktoken_remove import *
-from .send_mythic_rpc_command_search import *
+from .send_mythic_rpc_command_search_ import *
 from .send_mythic_rpc_credential_create import *
 from .send_mythic_rpc_credential_search import *
 from .send_mythic_rpc_file_create import *

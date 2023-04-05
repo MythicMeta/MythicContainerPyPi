@@ -6,6 +6,7 @@ import traceback
 import mythic_container
 from .utils_mythic_file_transfer import sendFileToMythic
 import asyncio
+from mythic_container.MythicRPC import *
 
 OPSEC_ROLE_LEAD = "lead"
 OPSEC_ROLE_OPERATOR = "operator"
@@ -43,6 +44,8 @@ async def buildWrapper(msg: bytes) -> None:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["payload_type"]:
                 # go through all the data from rabbitmq to make the proper classes
+                commands = PayloadBuilder.CommandList(msgDict["commands"])
+                # go through all the data from rabbitmq to make the proper classes
                 c2info_list = []
                 for c2 in msgDict["c2profiles"]:
                     params = c2.pop("parameters", None)
@@ -51,7 +54,6 @@ async def buildWrapper(msg: bytes) -> None:
                             parameters=params, c2profile=c2
                         )
                     )
-                commands = PayloadBuilder.CommandList(msgDict["commands"])
                 agent_builder = pt.__class__(
                     uuid=msgDict["uuid"],
                     c2info=c2info_list,

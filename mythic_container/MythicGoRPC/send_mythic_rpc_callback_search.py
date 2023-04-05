@@ -7,7 +7,7 @@ MYTHIC_RPC_CALLBACK_SEARCH = "mythic_rpc_callback_search"
 
 class MythicRPCCallbackSearchMessage:
     def __init__(self,
-                 AgentCallbackID: int,
+                 AgentCallbackID: str,
                  SearchCallbackID: int = None,
                  SearchCallbackDisplayID: int = None,
                  SearchCallbackUUID: str = None,
@@ -45,7 +45,7 @@ class MythicRPCCallbackSearchMessage:
 
     def to_json(self):
         return {
-            "callback_id": self.AgentCallbackID,
+            "agent_callback_id": self.AgentCallbackID,
             "search_callback_id": self.SearchCallbackID,
             "search_callback_display_id": self.SearchCallbackDisplayID,
             "search_callback_uuid": self.SearchCallbackUUID,
@@ -80,7 +80,7 @@ class MythicRPCCallbackSearchMessageResult:
                  description: str = None,
                  operator_id: int = None,
                  active: bool = None,
-                 registered_payload_id: int = None,
+                 registered_payload_uuid: str = None,
                  integrity_level: int = None,
                  locked: bool = None,
                  locked_operator_id: int = None,
@@ -109,7 +109,7 @@ class MythicRPCCallbackSearchMessageResult:
         self.Description = description
         self.OperatorID = operator_id
         self.Active = active
-        self.RegisteredPayloadID = registered_payload_id
+        self.RegisteredPayloadUUID = registered_payload_uuid
         self.IntegrityLevel = integrity_level
         self.Locked = locked
         self.LockedOperatorID = locked_operator_id
@@ -141,7 +141,7 @@ class MythicRPCCallbackSearchMessageResult:
             "description": self.Description,
             "operator_id": self.OperatorID,
             "active": self.Active,
-            "registered_payload_id": self.RegisteredPayloadID,
+            "registered_payload_uuid": self.RegisteredPayloadUUID,
             "integrity_level": self.IntegrityLevel,
             "locked": self.Locked,
             "locked_operator_id": self.LockedOperatorID,
