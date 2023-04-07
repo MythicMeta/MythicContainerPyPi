@@ -2,7 +2,7 @@ from enum import Enum
 from abc import abstractmethod
 import base64
 from .logging import logger
-from . import MythicCommandBase
+import json
 from collections.abc import Callable, Awaitable
 import pathlib
 
@@ -29,8 +29,26 @@ class SupportedOS:
 class BuildParameterType(str, Enum):
     String = "String"
     ChooseOne = "ChooseOne"
+    Array = "Array"
+    Date = "Date"
+    Dictionary = "Dictionary"
     Boolean = "Boolean"
-    ChooseMultiple = "ChoiceMultiple"
+
+
+class DictionaryChoice:
+    def __init__(self,
+                 name: str,
+                 default_value: str = "",
+                 default_show: bool = True):
+        self.name = name
+        self.default_show = default_show
+        self.default_value = default_value
+    def to_json(self):
+        return {
+            "name": self.name,
+            "default_value": self.default_value,
+            "default_show": self.default_show
+        }
 
 
 class BuildParameter:
@@ -40,16 +58,20 @@ class BuildParameter:
             parameter_type: BuildParameterType = None,
             description: str = None,
             required: bool = None,
+            randomize: bool = None,
+            format_string: str = "",
+            crypto_type: bool = False,
             verifier_regex: str = None,
             default_value: any = None,
-            choices: [str] = None,
+            choices: list[str] = None,
+            dictionary_choices: list[DictionaryChoice] = None,
             value: any = None,
             verifier_func: callable = None,
     ):
         self.name = name
         self.verifier_func = verifier_func
         self.parameter_type = (
-            parameter_type if parameter_type is not None else MythicCommandBase.ParameterType.String
+            parameter_type if parameter_type is not None else BuildParameterType.String
         )
         self.description = description if description is not None else ""
         self.required = required if required is not None else True
@@ -60,85 +82,24 @@ class BuildParameter:
         else:
             self.value = value
         self.choices = choices
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        self._name = name
-
-    @property
-    def parameter_type(self):
-        return self._parameter_type
-
-    @parameter_type.setter
-    def parameter_type(self, parameter_type):
-        self._parameter_type = parameter_type
-
-    @property
-    def description(self):
-        return self._description
-
-    @description.setter
-    def description(self, description):
-        self._description = description
-
-    @property
-    def required(self):
-        return self._required
-
-    @required.setter
-    def required(self, required):
-        self._required = required
-
-    @property
-    def verifier_regex(self):
-        return self._verifier_regex
-
-    @verifier_regex.setter
-    def verifier_regex(self, verifier_regex):
-        self._verifier_regex = verifier_regex
-
-    @property
-    def default_value(self):
-        return self._default_value
-
-    @default_value.setter
-    def default_value(self, default_value):
-        self._default_value = default_value
-
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        if value is None:
-            self._value = value
-        else:
-            if self.verifier_func is not None:
-                self.verifier_func(value)
-                self._value = value
-            else:
-                if isinstance(value, str) and value.lower() == "false":
-                    self._value = False
-                elif isinstance(value, str) and value.lower() == "true":
-                    self._value = True
-                else:
-                    self._value = value
+        self.dictionary_choices = dictionary_choices
+        self.crypto_type = crypto_type
+        self.randomize = randomize
+        self.format_string = format_string
 
     def to_json(self):
         return {
-            "name": self._name,
-            "parameter_type": self._parameter_type.value,
-            "description": self._description,
-            "required": self._required,
-            "verifier_regex": self._verifier_regex,
-            "parameter": self._default_value,
+            "name": self.name,
+            "description": self.description,
+            "default_value": self.default_value,
+            "randomize": self.randomize,
+            "format_string": self.format_string,
+            "required": self.required,
+            "parameter_type": self.parameter_type.value,
+            "verifier_regex": self.verifier_regex,
+            "crypto_type": self.crypto_type,
             "choices": self.choices,
-            "default_value": self.default_value
+            "dictionary_choices": [x.to_json() for x in self.dictionary_choices] if self.dictionary_choices is not None else None
         }
 
 

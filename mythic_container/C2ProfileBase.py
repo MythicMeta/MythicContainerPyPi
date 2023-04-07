@@ -378,18 +378,34 @@ class ParameterType(Enum):
     Boolean = "Boolean"
 
 
+class DictionaryChoice:
+    def __init__(self,
+                 name: str,
+                 default_value: str = "",
+                 default_show: bool = True):
+        self.name = name
+        self.default_show = default_show
+        self.default_value = default_value
+    def to_json(self):
+        return {
+            "name": self.name,
+            "default_value": self.default_value,
+            "default_show": self.default_show
+        }
+
 class C2ProfileParameter:
     def __init__(
         self,
         name: str,
         description: str,
-        default_value: str = None,
+        default_value: any = None,
         randomize: bool = False,
         format_string: str = "",
         parameter_type: ParameterType = ParameterType.String,
         required: bool = True,
         verifier_regex: str = "",
-        choices: [str] = None,
+        choices: list[str] = None,
+        dictionary_choices: list[DictionaryChoice] = None,
         crypto_type: bool = False,
     ):
         self.name = name
@@ -402,7 +418,7 @@ class C2ProfileParameter:
         self.choices = choices
         self.default_value = default_value
         self.crypto_type = crypto_type
-
+        self.dictionary_choices = dictionary_choices
 
     def to_json(self):
         return {
@@ -416,6 +432,7 @@ class C2ProfileParameter:
             "verifier_regex": self.verifier_regex,
             "crypto_type": self.crypto_type,
             "choices": self.choices,
+            "dictionary_choices": [x.to_json() for x in self.dictionary_choices] if self.dictionary_choices is not None else None
         }
 
 
