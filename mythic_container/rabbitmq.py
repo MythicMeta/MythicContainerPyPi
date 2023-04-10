@@ -105,20 +105,20 @@ class rabbitmqConnectionClass:
         while True:
             try:
                 connection = await self.GetConnection()
-                chan = await connection.channel(publisher_confirms=True,
-                                                on_return_raises=True)
-                exchange = await chan.declare_exchange("mythic_exchange",
-                                                       durable=True,
-                                                       auto_delete=True)
-                message = aio_pika.Message(body=body,
-                                           content_type="application/json")
-                await exchange.publish(
-                    message=message,
-                    routing_key=queue,
-                    timeout=failedConnectRetryDelay,
-                    mandatory=True,
-                    immediate=False)
-                return
+                async with connection.channel(publisher_confirms=True,
+                                              on_return_raises=True) as chan:
+                    exchange = await chan.declare_exchange("mythic_exchange",
+                                                           durable=True,
+                                                           auto_delete=True)
+                    message = aio_pika.Message(body=body,
+                                               content_type="application/json")
+                    await exchange.publish(
+                        message=message,
+                        routing_key=queue,
+                        timeout=failedConnectRetryDelay,
+                        mandatory=True,
+                        immediate=False)
+                    return
             except Exception as e:
                 logger.exception(f"[-] failed to send message: {e}")
                 return
@@ -135,26 +135,26 @@ class rabbitmqConnectionClass:
             self.futures[correlation_id] = future
             while True:
                 connection = await self.GetConnection()
-                chan = await connection.channel(on_return_raises=True)
-                exchange = await chan.declare_exchange("mythic_exchange",
-                                                       durable=True,
-                                                       auto_delete=True)
-                callback_queue = await chan.declare_queue(name="amq.rabbitmq.reply-to",)
-                await callback_queue.consume(self.on_response,
-                                             no_ack=True)
-                message = aio_pika.Message(body=body,
-                                           content_type="application/json",
-                                           reply_to=callback_queue.name,
-                                           correlation_id=correlation_id)
-                # make sure the queue exists first before we try to send to it
-                await exchange.publish(
-                    message=message,
-                    routing_key=queue,
-                    mandatory=True,
-                    immediate=False,
-                )
-                result = await future
-                return result
+                async with connection.channel(on_return_raises=True) as chan:
+                    exchange = await chan.declare_exchange("mythic_exchange",
+                                                           durable=True,
+                                                           auto_delete=True)
+                    callback_queue = await chan.declare_queue(name="amq.rabbitmq.reply-to",)
+                    await callback_queue.consume(self.on_response,
+                                                 no_ack=True)
+                    message = aio_pika.Message(body=body,
+                                               content_type="application/json",
+                                               reply_to=callback_queue.name,
+                                               correlation_id=correlation_id)
+                    # make sure the queue exists first before we try to send to it
+                    await exchange.publish(
+                        message=message,
+                        routing_key=queue,
+                        mandatory=True,
+                        immediate=False,
+                    )
+                    result = await future
+                    return result
         except Exception as e:
             logger.error(f"[-] failed to send rpc message to {queue}: {e}")
             future.set_result({})
@@ -188,19 +188,18 @@ class rabbitmqConnectionClass:
     async def ReplyMessage(self, response: bytes, message: aio_pika.abc.AbstractIncomingMessage):
         try:
             connection = await self.GetConnection()
-            chan = await connection.channel(
-                                            on_return_raises=True)
-            exchange = chan.default_exchange
-            newMessage = aio_pika.Message(
-                body=response,
-                content_type="application/json",
-                correlation_id=message.correlation_id)
+            async with connection.channel(on_return_raises=True) as chan:
+                exchange = chan.default_exchange
+                newMessage = aio_pika.Message(
+                    body=response,
+                    content_type="application/json",
+                    correlation_id=message.correlation_id)
 
-            await exchange.publish(
-                newMessage,
-                routing_key=message.reply_to,
-                mandatory=False
-            )
+                await exchange.publish(
+                    newMessage,
+                    routing_key=message.reply_to,
+                    mandatory=False
+                )
 
         except Exception as e:
             logger.exception(f"[-] failed to send reply message: {e}")
@@ -211,33 +210,33 @@ class rabbitmqConnectionClass:
         while True:
             try:
                 connection = await self.GetConnection()
-                chan = await connection.channel()
-                exchange = await chan.declare_exchange(
-                    name="mythic_exchange",
-                    type="direct",
-                    durable=True,
-                    auto_delete=True,
-                    internal=False,
-                )
-                q = await chan.declare_queue(
-                    name=queue,
-                    durable=False,
-                    auto_delete=True,
-                    exclusive=False,
-                )
-                await q.bind(
-                    exchange=exchange,
-                    routing_key=routing_key,
-                )
-                await q.consume(
-                    callback=partial(directExchangeCallback, trueFunction=handler)
-                )
-                logger.info(f"[*] started listening for messages on {queue}")
-                try:
-                    await asyncio.Future()
-                    logger.error(f"asyncio.Future() finished in ReceiveFromMythicDirectExchange for {queue}")
-                except Exception as directException:
-                    logger.exception(f"[-] exception trying to listen for direct messages on {queue}\n{directException}")
+                async with connection.channel() as chan:
+                    exchange = await chan.declare_exchange(
+                        name="mythic_exchange",
+                        type="direct",
+                        durable=True,
+                        auto_delete=True,
+                        internal=False,
+                    )
+                    q = await chan.declare_queue(
+                        name=queue,
+                        durable=False,
+                        auto_delete=True,
+                        exclusive=False,
+                    )
+                    await q.bind(
+                        exchange=exchange,
+                        routing_key=routing_key,
+                    )
+                    await q.consume(
+                        callback=partial(directExchangeCallback, trueFunction=handler)
+                    )
+                    logger.info(f"[*] started listening for messages on {queue}")
+                    try:
+                        await asyncio.Future()
+                        logger.error(f"asyncio.Future() finished in ReceiveFromMythicDirectExchange for {queue}")
+                    except Exception as directException:
+                        logger.exception(f"[-] exception trying to listen for direct messages on {queue}\n{directException}")
             except Exception as e:
                 logger.exception(f"[-] stopped listening for messages on {queue}, {e}")
                 await asyncio.sleep(failedConnectRetryDelay)
@@ -246,33 +245,33 @@ class rabbitmqConnectionClass:
         while True:
             try:
                 connection = await self.GetConnection()
-                chan = await connection.channel()
-                exchange = await chan.declare_exchange(
-                    name="mythic_exchange",
-                    type="direct",
-                    durable=True,
-                    auto_delete=True,
-                    internal=False,
+                async with connection.channel() as chan:
+                    exchange = await chan.declare_exchange(
+                        name="mythic_exchange",
+                        type="direct",
+                        durable=True,
+                        auto_delete=True,
+                        internal=False,
 
-                )
-                q = await chan.declare_queue(
-                    name=queue,
-                    durable=False,
-                    auto_delete=True,
-                    exclusive=True,
-                )
-                await q.bind(
-                    exchange=exchange,
-                    routing_key=routing_key,
-                )
-                await q.consume(
-                    callback=partial(rpcExchangeCallback, trueFunction=handler)
-                )
-                logger.info(f"[*] started listening for messages on {queue}")
-                try:
-                    await asyncio.Future()
-                finally:
-                    logger.error(f"asyncio.Future() finished in ReceiveFromRPCQueue for queue {queue}")
+                    )
+                    q = await chan.declare_queue(
+                        name=queue,
+                        durable=False,
+                        auto_delete=True,
+                        exclusive=True,
+                    )
+                    await q.bind(
+                        exchange=exchange,
+                        routing_key=routing_key,
+                    )
+                    await q.consume(
+                        callback=partial(rpcExchangeCallback, trueFunction=handler)
+                    )
+                    logger.info(f"[*] started listening for messages on {queue}")
+                    try:
+                        await asyncio.Future()
+                    finally:
+                        logger.error(f"asyncio.Future() finished in ReceiveFromRPCQueue for queue {queue}")
             except Exception as e:
                 logger.exception(f"[-] stopped listening for messages on {queue}, {e}")
                 await asyncio.sleep(failedConnectRetryDelay)
@@ -282,33 +281,33 @@ class rabbitmqConnectionClass:
         while True:
             try:
                 connection = await self.GetConnection()
-                chan = await connection.channel()
-                exchange = await chan.declare_exchange(
-                    name="mythic_topic_exchange",
-                    type="topic",
-                    durable=True,
-                    auto_delete=True,
-                    internal=False,
-                )
-                q = await chan.declare_queue(
-                    name="",
-                    durable=False,
-                    auto_delete=True,
-                    exclusive=False,
-                )
-                await q.bind(
-                    exchange=exchange,
-                    routing_key=queue,
-                )
-                await q.consume(
-                    callback=partial(directExchangeCallback, trueFunction=handler)
-                )
-                logger.info(f"[*] started listening for messages on {queue}")
-                try:
-                    await asyncio.Future()
-                    logger.error(f"asyncio.Future() finished in ReceiveFromMythicDirectTopicExchange for {queue}")
-                except Exception as directException:
-                    logger.exception(f"[-] exception trying to listen for direct messages on {queue}\n{directException}")
+                async with connection.channel() as chan:
+                    exchange = await chan.declare_exchange(
+                        name="mythic_topic_exchange",
+                        type="topic",
+                        durable=True,
+                        auto_delete=True,
+                        internal=False,
+                    )
+                    q = await chan.declare_queue(
+                        name="",
+                        durable=False,
+                        auto_delete=True,
+                        exclusive=False,
+                    )
+                    await q.bind(
+                        exchange=exchange,
+                        routing_key=queue,
+                    )
+                    await q.consume(
+                        callback=partial(directExchangeCallback, trueFunction=handler)
+                    )
+                    logger.info(f"[*] started listening for messages on {queue}")
+                    try:
+                        await asyncio.Future()
+                        logger.error(f"asyncio.Future() finished in ReceiveFromMythicDirectTopicExchange for {queue}")
+                    except Exception as directException:
+                        logger.exception(f"[-] exception trying to listen for direct messages on {queue}\n{directException}")
             except Exception as e:
                 logger.exception(f"[-] stopped listening for messages on {queue}, {e}")
                 await asyncio.sleep(failedConnectRetryDelay)
