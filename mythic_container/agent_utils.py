@@ -322,7 +322,7 @@ async def createTasking(msg: bytes) -> None:
                                         if not await verifyTaskArgs(taskData,
                                                                     mythic_container.PT_TASK_CREATE_TASKING_RESPONSE):
                                             return
-                                        createTaskingResponse = await cmd.create_go_tasking(taskData=taskData)
+                                        createTaskingResponse = await cmd.create_go_tasking(taskData)
                                         createTaskingResponse.Params = str(taskData.args)
                                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                                             queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
@@ -395,6 +395,15 @@ async def completionFunction(msg: bytes) -> None:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["task"]["command_name"]:
                             completionFunctionInput = MythicCommandBase.PTTaskCompletionFunctionMessage(args=cmd.argument_class, **msgDict)
+                            if not await verifyTaskArgs(completionFunctionInput.TaskData, mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE):
+                                return
+                            if completionFunctionInput.SubtaskData is not None:
+                                for subcmd in MythicCommandBase.commands[pt.name]:
+                                    if subcmd.cmd == completionFunctionInput.SubtaskData.Task.CommandName:
+                                        completionFunctionInput.SubtaskData = MythicCommandBase.PTTaskMessageAllData(**msgDict["subtask"], args=subcmd.argument_class)
+                                        if not await verifyTaskArgs(completionFunctionInput.SubtaskData, mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE):
+                                            return
+                                        break
                             try:
                                 if completionFunctionInput.CompletionFunctionName in cmd.completion_functions:
                                     response = await cmd.completion_functions[

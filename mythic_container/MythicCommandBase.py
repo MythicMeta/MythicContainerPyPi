@@ -1069,6 +1069,8 @@ class PTTaskMessagePayloadData:
         for k,v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
 class PTTaskMessageAllData:
+    args: TaskArguments
+
     def __init__(self,
                  task: dict = {},
                  callback: dict = {},
@@ -1101,7 +1103,10 @@ class PTTaskMessageAllData:
                          tasking_location=self.Task.TaskingLocation,
                          raw_command_line=self.Task.OriginalParams,)
 
+
 class PTTaskCompletionFunctionMessage:
+    SubtaskData: PTTaskMessageAllData
+
     def __init__(self,
                  args: TaskArguments,
                  task: dict,

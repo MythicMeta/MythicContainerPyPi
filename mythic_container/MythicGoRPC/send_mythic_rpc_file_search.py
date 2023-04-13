@@ -39,7 +39,7 @@ class MythicRPCFileSearchMessage:
             "max_results": self.MaxResults,
             "filename": self.Filename,
             "is_screenshot": self.IsScreenshot,
-            "is_download": self.IsDownloadFromAgent,
+            "is_download_from_agent": self.IsDownloadFromAgent,
             "is_payload": self.IsPayload,
             "file_id": self.AgentFileID,
             "comment": self.Comment
