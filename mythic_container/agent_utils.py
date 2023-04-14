@@ -47,13 +47,14 @@ async def buildWrapper(msg: bytes) -> None:
                 commands = PayloadBuilder.CommandList(msgDict["commands"])
                 # go through all the data from rabbitmq to make the proper classes
                 c2info_list = []
-                for c2 in msgDict["c2profiles"]:
-                    params = c2.pop("parameters", None)
-                    c2info_list.append(
-                        PayloadBuilder.C2ProfileParameters(
-                            parameters=params, c2profile=c2
+                if msgDict["c2profiles"] is not None:
+                    for c2 in msgDict["c2profiles"]:
+                        params = c2.pop("parameters", None)
+                        c2info_list.append(
+                            PayloadBuilder.C2ProfileParameters(
+                                parameters=params, c2profile=c2
+                            )
                         )
-                    )
                 agent_builder = pt.__class__(
                     uuid=msgDict["uuid"],
                     c2info=c2info_list,
