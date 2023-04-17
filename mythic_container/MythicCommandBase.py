@@ -404,6 +404,7 @@ class TypeValidators:
 
 
 class TaskArguments(metaclass=ABCMeta):
+
     manual_args: str = None
 
     def __init__(self,
@@ -1064,7 +1065,7 @@ class PTTaskMessagePayloadData:
                  payload_type: str = "",
                  **kwargs):
         self.Os = os
-        self.UuID = uuid
+        self.UUID = uuid
         self.PayloadType = payload_type
         for k,v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
