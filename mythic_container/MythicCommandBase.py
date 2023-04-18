@@ -7,9 +7,18 @@ from pathlib import Path
 from .logging import logger
 import sys
 from collections.abc import Callable, Awaitable
-from mythic_container.MythicGoRPC.send_mythic_rpc_payload_create_from_scratch import MythicRPCPayloadConfigurationBuildParameter, MythicRPCPayloadConfigurationC2Profile
+from mythic_container.MythicGoRPC.send_mythic_rpc_payload_create_from_scratch import \
+    MythicRPCPayloadConfigurationBuildParameter, MythicRPCPayloadConfigurationC2Profile
+
 
 class SupportedOS:
+    """Supported Operating System
+
+    This OS value is selected first when generating a payload or wrapper.
+
+    If you don't want to use a listed value, supply your own with
+    SupportedOS("my os")
+    """
     Windows = "Windows"
     MacOS = "macOS"
     Linux = "Linux"
@@ -21,6 +30,7 @@ class SupportedOS:
 
     def __str__(self):
         return self.os
+
 
 class MythicStatus:
     Error = "error"
@@ -49,6 +59,18 @@ class MythicStatus:
 
 
 class ParameterType(str, Enum):
+    """Types of parameters available for Commands
+
+    File type will be a file's UUID in your parse_arguments and create_go_tasking functions.
+
+    Credential_JSON will be a dictionary of credential attributes (account, realm, credential, comment).
+
+    PayloadList will be a list of payloads to the user to select via a dropdown option, but will be passed back as a payload's UUID.
+
+    ConnectionInfo is a dictionary of Payload/C2 information to help make P2P connections easier for an agent.
+
+    LinkInfo is a dictionary of the same information as ConnectionInfo, but presented to the user as a dropdown of choices.
+    """
     String = "String"
     Boolean = "Boolean"
     File = "File"
@@ -63,6 +85,24 @@ class ParameterType(str, Enum):
 
 
 class CommandAttributes:
+    """Metadata attributes about a command
+
+    These attributes help determine which commands can be loaded in, which ones are always included, and even free-form attributes the developer wants to track.
+
+    filter_by_build_parameter is of the form {"build param name": "build param value"}
+
+    Attributes:
+        supported_os (list[SupportedOS]): Which operating systems does this command support? An empty list means all OS.
+        builtin (bool): Is this command baked into the agent permanently?
+        suggested_command (bool): If true, this command will appear on the "included" side when building your payload by default.
+        load_only (bool): If true, this command can only be loaded after you have a callback and not included in the base payload.
+        filter_by_build_parameter (dict): Specify if this command is allowed to be built into the payload or not based on build parameters the user specifies.
+        additional_items (dict): Additional, developer-supplied, key-value pairs
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self,
                  spawn_and_injectable: bool = False,
                  supported_os: [SupportedOS] = None,
@@ -98,8 +138,24 @@ class CommandAttributes:
         r = {**r, **self.additional_items}
         return r
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 class ParameterGroupInfo:
+    """Information about a group of parameters for a command.
+
+    ParameterGroups allow conditional parameters displayed to the user.
+
+    Attributes:
+        required (bool): In this parameter group, is this parameter required?
+        group_name (str): The name of the parameter group? If one isn't provided, the default is `Default`
+        ui_position (int): For this parameter group, which order should the parameters appear in the UI?
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(
             self,
             required: bool = True,
@@ -115,14 +171,27 @@ class ParameterGroupInfo:
             self.additional_info[k] = v
 
     def to_json(self):
-        r = {}
-        r["required"] = self.required
-        r["group_name"] = self.group_name
-        r["ui_position"] = self.ui_position
+        r = {"required": self.required, "group_name": self.group_name, "ui_position": self.ui_position}
         r = {**r, **self.additional_info}
         return r
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTRPCDynamicQueryFunctionMessage:
+    """Request to dynamically generate choices for a modal in the UI with a ChooseOne or ChooseMultiple parameter type.
+
+    Attributes:
+        Command (str): Name of the command
+        ParameterName (str): Name of the parameter
+        PayloadType (str): Name of the PayloadType
+        Callback (int): ID of the Callback where this function is called. This can be used for PRC calls to Mythic
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self,
                  command: str,
                  parameter_name: str,
@@ -132,6 +201,7 @@ class PTRPCDynamicQueryFunctionMessage:
         self.ParameterName = parameter_name
         self.PayloadType = payload_type
         self.Callback = callback
+
     def to_json(self):
         return {
             "command": self.Command,
@@ -139,7 +209,23 @@ class PTRPCDynamicQueryFunctionMessage:
             "payload_type": self.PayloadType,
             "callback": self.Callback
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTRPCDynamicQueryFunctionMessageResponse:
+    """Results of performing a dynamic query for a command
+
+    Attributes:
+        Success (bool): Did the dynamic query function successfully execute
+        Error (str): If the dynamic query function failed to run, this is the string error
+        Choices (list[str]): List of the string choices to present back to the user. If there are no valid choices, return []
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self,
                  Success: bool = False,
                  Error: str = None,
@@ -147,13 +233,41 @@ class PTRPCDynamicQueryFunctionMessageResponse:
         self.Success = Success
         self.Error = Error
         self.Choices = Choices
+
     def to_json(self):
         return {
             "success": self.Success,
             "error": self.Error,
             "choices": self.Choices
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class CommandParameter:
+    """Definition of an argument for a command
+
+    Attributes:
+        name (str): Name of the parameter. This is used for get_arg, set_arg, etc functions and used when making the final JSON string to send down to the callback
+        type (ParameterType): The type of parameter this is. This determines valid values and how things are presented to the user in the UI.
+        display_name (str): More verbose name displayed to the user in the UI
+        cli_name (str): More simplified name used when using tab-complete on the command line inside Mythic's UI
+        description (str): Description of the argument displayed when the user hovers over the name of the argument.
+        choices (list[str]): Choices for the user to select if the type is ChooseOne or ChooseMultiple
+        default_value (any): Default value to populate for the user or to select if the user didn't provide anything (such as not using the modal popup).
+        supported_agents (list[str]): When using the "Payload" Parameter Type, you can filter down which payloads are presented to the operator based on this list of supported agents.
+        supported_agent_build_parameters (dict): When using the "Payload" Parameter Type, you can filter down which payloads are presented to the operator based on specific build parameters for specific payload types.
+        choice_filter_by_command_attributes (dict): When using the ChooseOne or ChooseMultiple Parameter type along with choices_are_all_commands, you can filter down those options based on attribute values in your command's CommandAttributes field.
+        choices_are_all_commands (bool): Can be used with ChooseOne or ChooseMultiple Parameter Types to automatically populate those options in the UI with all of the commands for the payload type.
+        choices_are_loaded_commands (bool): Can be used with ChooseOne or ChooseMultiple Parameter Types to automatically populate those options in the UI with all of the currently loaded commands.
+        parameter_group_info (list[ParameterGroupInfo]): Define 0+ different parameter groups that this parameter belongs to.
+        dynamic_query_function: Provide a dynamic query function to be called when the user views that parameter option in the UI to populate choices for the ChooseOne or ChooseMultiple Parameter Types.
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(
             self,
             name: str,
@@ -170,7 +284,8 @@ class CommandParameter:
             choice_filter_by_command_attributes: dict = None,
             choices_are_all_commands: bool = False,
             choices_are_loaded_commands: bool = False,
-            dynamic_query_function: Callable[[PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]] = None,
+            dynamic_query_function: Callable[
+                [PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]] = None,
             parameter_group_info: [ParameterGroupInfo] = None
     ):
         self.name = name
@@ -264,7 +379,8 @@ class CommandParameter:
         self._supported_agent_build_parameters = supported_agent_build_parameters
 
     @property
-    def dynamic_query_func(self) -> Callable[[PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]]:
+    def dynamic_query_func(self) -> Callable[
+        [PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]]:
         return self._dynamic_query_func
 
     @dynamic_query_func.setter
@@ -329,6 +445,9 @@ class CommandParameter:
                                      self.parameter_group_info] if self.parameter_group_info is not None else [
                 ParameterGroupInfo().to_json()]
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
 class TypeValidators:
@@ -404,7 +523,49 @@ class TypeValidators:
 
 
 class TaskArguments(metaclass=ABCMeta):
+    """Definition of how to process a task's arguments (what the user supplied) into the corresponding command's parameters
 
+    Attributes:
+        command_line (str):
+            The command line (after parsing by the UI if tasked through the UI)
+        raw_command_line (str):
+            The exact thing the user typed/submitted without any parsing
+        tasking_location (str):
+            Location of where the task came from (command_line, mythic ui, modal, browser script, etc)
+        parameter_group_name (str):
+            The name of the parameter group identified for this set of arguments with values
+        args (list[CommandParameter]):
+            The running/updated set of command parameters supplied with values from the user's tasking
+
+
+    Functions:
+        get_arg:
+            Return the value for a certain command parameter (either default value or what the user supplied)
+        has_arg:
+            Check if a certain command parameter exists
+        add_arg:
+            Add/update a command parameter with the specified values, types, and parameter groups
+        set_arg:
+            Set the value for a certain command parameter explicitly
+        rename_arg:
+            Rename a command parameter's name temporarily
+        remove_arg:
+            Remove a command parameter temporarily
+        set_manual_args:
+            Explicitly set the string value that'll be passed down to the callback for this task instead of allowing Mythic to determine the JSON string
+        load_args_from_json_string:
+            Given a JSON string, parse it into a dictionary and pre-populate command parameters with those values. Any extras are ignored.
+        load_args_from_dictionary:
+            Given a dictionary, pre-populate command parameters with those values. Any extras are ignored.
+        get_parameter_group_name:
+            Get the current parameter group name based on all the set command parameter values up to this point
+        get_parameter_group_arguments:
+            Get all the command parameters that match the current parameter group name
+        verify_required_args_have_values:
+            Verify that all command parameters for the current parameter group that are required have values
+        parse_arguments:
+            Parse the string supplied by the user into the appropriate command parameters. Often this is just a call to load_args_from_json_string, but if the user typed free-form arguments, you might need to do additional parsing here on the self.command_line or self.raw_command_line fields.
+    """
     manual_args: str = None
 
     def __init__(self,
@@ -629,12 +790,19 @@ class Callback:
 
 
 class BrowserScript:
-    # if a browserscript is specified as part of a PayloadType, then it's a support script
-    # if a browserscript is specified as part of a command, then it's for that command
+    """Location and author of browser script code for a command's output
+
+    Attributes:
+        script_name (str): The name of the javascript file
+        author (str): The name (or handle) of the author of the script
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self, script_name: str, author: str = None, for_new_ui: bool = False):
         self.script_name = script_name
         self.author = author
-        self.for_new_ui = for_new_ui
 
     def to_json(self, base_path: Path):
         try:
@@ -645,11 +813,11 @@ class BrowserScript:
             if code_file.exists():
                 code = code_file.read_bytes()
                 code = base64.b64encode(code).decode()
-                return {"script": code, "name": self.script_name, "author": self.author, "for_new_ui": self.for_new_ui}
+                return {"script": code, "name": self.script_name, "author": self.author}
             elif Path(self.script_name).exists():
                 code = Path(self.script_name).read_bytes()
                 code = base64.b64encode(code).decode()
-                return {"script": code, "name": self.script_name, "author": self.author, "for_new_ui": self.for_new_ui}
+                return {"script": code, "name": self.script_name, "author": self.author}
             else:
                 raise Exception(
                     "Code for Browser Script, " + self.script_name + ", does not exist on disk at path: " + str(
@@ -657,8 +825,16 @@ class BrowserScript:
         except Exception as e:
             raise e
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 class MythicTask:
+    """Instance of Mythic Tasking used with `create_tasking`. Use `create_go_tasking` instead.
+
+    Deprecated
+    """
+
     def __init__(
             self,
             taskinfo: dict,
@@ -761,6 +937,21 @@ class AgentResponse:
 
 
 class PTTTaskOPSECPreTaskMessageResponse:
+    """Result of running an OPSEC check against a task's information before the create_go_tasking function is called
+
+    Attributes:
+        TaskID (int): The task this response is referring to
+        Success (str): Did the check happen successfully or not
+        Error (str): If the check failed to run, this Error provides the message as to why
+        OpsecPreBlocked (bool): Is this task blocked from running or not?
+        OpsecPreMessage (str): What information do you want to present back to the user as to why it was blocked or not?
+        OpsecPreBypassed (bool): Is the block bypassed? You can opt to mark the task as blocked but still allow it through.
+        OpsecPreBypassRole (str): If the task is blocked, who is allowed to bypass it? Can be 'operator', 'lead', or 'other_operator'.
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self,
                  TaskID: int = None,
                  Success: bool = False,
@@ -777,8 +968,9 @@ class PTTTaskOPSECPreTaskMessageResponse:
         self.OpsecPreMessage = OpsecPreMessage
         self.OpsecPreBypassed = OpsecPreBypassed
         self.OpsecPreBypassRole = OpsecPreBypassRole
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
     def to_json(self):
         return {
             "task_id": self.TaskID,
@@ -789,7 +981,29 @@ class PTTTaskOPSECPreTaskMessageResponse:
             "opsec_pre_bypassed": self.OpsecPreBypassed,
             "opsec_pre_bypass_role": self.OpsecPreBypassRole
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTTaskOPSECPostTaskMessageResponse:
+    """Result of running an OPSEC check against a task's information after the create_go_tasking function is called.
+
+    This can be useful in case the create_go_tasking function created additional files that you want to check for OPSEC issues first before allowing an agent to pick up the task.
+
+    Attributes:
+        TaskID (int): The task this response is referring to
+        Success (str): Did the check happen successfully or not
+        Error (str): If the check failed to run, this Error provides the message as to why
+        OpsecPostBlocked (bool): Is this task blocked from running or not?
+        OpsecPostMessage (str): What information do you want to present back to the user as to why it was blocked or not?
+        OpsecPostBypassed (bool): Is the block bypassed? You can opt to mark the task as blocked but still allow it through.
+        OpsecPostBypassRole (str): If the task is blocked, who is allowed to bypass it? Can be 'operator', 'lead', or 'other_operator'.
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self,
                  TaskID: int = None,
                  Success: bool = False,
@@ -806,8 +1020,9 @@ class PTTTaskOPSECPostTaskMessageResponse:
         self.OpsecPostMessage = OpsecPostMessage
         self.OpsecPostBypassed = OpsecPostBypassed
         self.OpsecPostBypassRole = OpsecPostBypassRole
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
     def to_json(self):
         return {
             "task_id": self.TaskID,
@@ -818,7 +1033,34 @@ class PTTTaskOPSECPostTaskMessageResponse:
             "opsec_post_bypassed": self.OpsecPostBypassed,
             "opsec_post_bypass_role": self.OpsecPostBypassRole
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskCreateTaskingMessageResponse:
+    """Result of running a command's create_go_tasking function.
+
+    Note: If you want to modify the arguments, use taskData.args, not the Params field here.
+
+    Attributes:
+        TaskID (int): The task this response is referring to
+        Success (str): Did the create_go_tasking function execute properly or was there an error somewhere?
+        Error (str): If the create_go_tasking failed to run, this Error provides the message as to why
+        CommandName (str): If you want to change the command name that gets sent down to the agent from the name of the current command, change that here. If you don't want to change it, leave it as None.
+        TaskStatus (str): If you want to set a specific status (such as 'success', 'completed', or an error status), set that here. If you want things to continue as normal, leave it as None.
+        DisplayParams (str): If you want to change what the operator sees displayed in the UI to something else, set that here. This is helpful to get rid of JSON and replace it with something easier to parse for people.
+        Stdout (str): If you want to save off some output from the `create_go_tasking` function, but don't want to display it to the user, this is a great way to save that. An example might be build information if you're compiling additional files.
+        Stderr (str): If you want to save off some error output from the `create_go_tasking` function, but don't want to display it to the user, this is a great way to save that.
+        Completed (bool): If you want to mark this task as "completed" in the UI so that the callback doesn't pick it up, set this to True.
+        TokenID (int): If you want to add/change/remove the token id associated with this task, change this value.
+        CompletionFunctionName (str): If you want to register a completion function to execute once this task is complete, provide the name here. Your command definition must have a matching dictionary entry with function name to actual function to call.
+        ParameterGroupName (str): If you want to override the automatic detection of the parameter group after the creat_go_tasking function executes, set the name here.
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self,
                  TaskID: int = None,
                  Success: bool = True,
@@ -847,8 +1089,9 @@ class PTTaskCreateTaskingMessageResponse:
         self.CompletionFunctionName = CompletionFunctionName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
     def to_json(self):
         return {
             "task_id": self.TaskID,
@@ -865,7 +1108,55 @@ class PTTaskCreateTaskingMessageResponse:
             "params": self.Params,
             "parameter_group_name": self.ParameterGroupName
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskMessageTaskData:
+    """A container for all information about a task.
+
+    Note: Lowercase names are used in the __init__ function to auto-populate from JSON, but attributes are upper case.
+
+    Attributes:
+        ID (int): The unique ID of the task within Mythic, this is used for various RPC calls.
+        DisplayID (int): The numerically increasing ID of a task that's shown to the user in the Mythic UI.
+        AgentTaskID (str): The UUID of a task that's sent down to a callback.
+        CommandName (str): The name of the command to execute within the callback.
+        Params (str): A string representation of the parameters that is sent down to the callback.
+        Timestamp (str): A string representation of the last time something about the task changed
+        CallbackID (int): The unique ID of the callback for this task
+        Status (str): The current status of this task (likely to be preprocessing in create_go_tasking)
+        OriginalParams (str): The original parameters that the user supplied (after processing by the Mythic UI)
+        DisplayParams (str): The modified parameters if any were set to be easier for operators to read (defaults to the same as OriginalParams)
+        Comment (str): The comment on the task if one exists
+        Stdout (str): Additional stdout for the task if any was set as part of the create_go_tasking function
+        Stderr (str): Additional stderr for the task if any was set as part of the create_go_tasking function
+        Completed (bool): Indicating if this task is completed or not
+        OperatorUsername (str): The name of the operator that issued this task
+        OpsecPreBlocked (bool): If this task was originally blocked in the opsec pre check
+        OpsecPreMessage (str): A message (if any) provided as part of the opsec pre check
+        OpsecPreBypassed (bool): If this task's opsec block was bypassed
+        OpsecPreBypassRole (str): Who is able to bypass this opsec block
+        OpsecPostBlocked (bool): If the task was blocked in the opsec post check
+        OpsecPostMessage (str): A message (if any) provided as part of the ospec post check
+        OpsecPostBypassed (bool): If this task's opsec block was bypassed
+        OpsecPostBypassRole (str): Who is able to bypass this opsec block
+        ParentTaskID (int): If this is a subtask of some other task, this is the ID field for that task
+        SubtaskCallbackFunction (str): If this is a subtask and the parent task wants a specific callback function to be executed when this task finishes, the name of that function is here
+        SubtaskCallbackFunctionCompleted (bool): Indication of the completion status of that subtask callback function
+        GroupCallbackFunction (str): If this is a subtask and part of a group and the parent task wants a specific callback function to be execution when this group of tasks finishes, the name of that function is here
+        GroupCallbackFunctionCompleted (bool): Indication of the completion status of that subtask group callback function
+        CompletedCallbackFunction (str): If THIS task wants a specific function to execute when it finishes, the name of that function will be here
+        CompletedCallbackFunctionCompleted (bool): Indication of the completion status of that callback function
+        SubtaskGroupName (str): If this is a subtask and part of a named group, the name of the group will be here
+        TaskingLocation (str): The location from where this tasking came (modal, parsed cli, browser script, etc)
+        ParameterGroupName (str): The name of the parameter group for this task's command parameters
+        TokenID (int): The identifier for the token associated with this task (if one was specified)
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     def __init__(self,
                  id: int = 0,
                  display_id: int = 0,
@@ -936,8 +1227,9 @@ class PTTaskMessageTaskData:
         self.TaskingLocation = tasking_location
         self.ParameterGroupName = parameter_group_name
         self.TokenID = token_id
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
     def to_json(self):
         return {
             "id": self.ID,
@@ -975,9 +1267,50 @@ class PTTaskMessageTaskData:
             "parameter_group_name": self.ParameterGroupName,
             "token_id": self.TokenID,
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskMessageCallbackData:
+    """A container for all information about a callback.
+
+    Note: Lowercase names are used in the __init__ function to auto-populate from JSON, but attributes are upper case.
+
+    Attributes:
+        ID (int): The unique ID of the callback within Mythic, this is used for various RPC calls.
+        DisplayID (int): The numerically increasing ID of a callback that's shown to the user in the Mythic UI.
+        AgentCallbackID (str): The UUID of a callback that's sent down to a callback.
+        InitCallback (str): The time of the initial callback
+        LastCheckin (str): The time of the last time the callback checked in
+        User (str): The user associated with the callback
+        Host (str): The hostname for the callback (always in all caps)
+        PID (int): The PID of the callback
+        IP (str): The string representation of the IP array for the callback
+        IPs (list[str]): An array of the IPs for the callback
+        ExternalIp (str): The external IP address (if identified) for the callback
+        ProcessName (str): The name of the process for the callback
+        Description (str): The description for the callback (by default it matches the description for the associated payload)
+        OperatorID (int): The ID of the operator that created the associated payload
+        Active (bool): Indicating if this callback is in the active callbacks table or not
+        IntegrityLevel (int): The integrity level for the callback that mirrors that of Windows (0-4) with a value of 3+ indicating a High Integrity (or root) callback
+        Locked (bool): Indicating if this callback is locked or not so that other operators can't task it
+        OperationID (int): The ID of the operation this callback belongs to
+        CryptoType (str): The type of cryptography used for this callback (typically None or aes256_hmac)
+        DecKey (bytes): The decryption key for this callback
+        EncKey (bytes): The encryption key for this callback
+        OS (str): The OS information reported back by the callback (not the same as the payload os you selected when building the agent)
+        Architecture (str): The architecture of the process where this callback is executing
+        Domain (str): The domain associated with the callback if there is one
+        ExtraInfo (str): Freeform field of extra data that can be stored and retrieved with a callback
+        SleepInfo (str): Freeform sleep information that can be stored and retrieved as part of a callback (this isn't pre-populated, the agent or command files must set it)
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     def __init__(self,
                  id: int = 0,
+                 display_id: int = 0,
                  agent_callback_id: str = "",
                  init_callback: str = "",
                  last_checkin: str = "",
@@ -985,12 +1318,12 @@ class PTTaskMessageCallbackData:
                  host: str = "",
                  pid: int = 0,
                  ip: str = "",
+                 ips: list[str] = [],
                  external_ip: str = "",
                  process_name: str = "",
                  description: str = "",
                  operator_id: int = 0,
                  active: bool = False,
-                 registered_payload_id: int = 0,
                  integrity_level: int = 0,
                  locked: bool = False,
                  operation_id: int = 0,
@@ -1004,72 +1337,121 @@ class PTTaskMessageCallbackData:
                  enc_key: str = None,
                  **kwargs):
         self.ID = id
+        self.DisplayID = display_id
         self.AgentCallbackID = agent_callback_id
         self.InitCallback = init_callback
         self.LastCheckin = last_checkin
         self.User = user
         self.Host = host
         self.PID = pid
-        self.Ip = ip
+        self.IP = ip
+        self.IPs = ips
         self.ExternalIp = external_ip
         self.ProcessName = process_name
         self.Description = description
         self.OperatorID = operator_id
         self.Active = active
-        self.RegisteredPayloadID = registered_payload_id
         self.IntegrityLevel = integrity_level
         self.Locked = locked
         self.OperationID = operation_id
         self.CryptoType = crypto_type
         self.DecKey = base64.b64decode(dec_key) if dec_key is not None else None
         self.EncKey = base64.b64decode(enc_key) if enc_key is not None else None
-        self.Os = os
+        self.OS = os
         self.Architecture = architecture
         self.Domain = domain
         self.ExtraInfo = extra_info
         self.SleepInfo = sleep_info
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
     def to_json(self):
         return {
             "id": self.ID,
-        "agent_callback_id": self.AgentCallbackID,
-        "init_callback": self.InitCallback,
-        "last_checkin": self.LastCheckin,
-        "user": self.User,
-        "host": self.Host,
-        "pid": self.PID,
-        "ip": self.Ip,
-        "external_ip": self.ExternalIp,
-        "process_name": self.ProcessName,
-        "description": self.Description,
-        "operator_id": self.OperatorID,
-        "active": self.Active,
-        "registered_payload_id": self.RegisteredPayloadID,
-        "integrity_level": self.IntegrityLevel,
-        "locked": self.Locked,
-        "operation_id": self.OperationID,
-        "crypto_type": self.CryptoType,
-        "dec_key": self.DecKey,
-        "enc_key": self.EncKey,
-        "os": self.Os,
-        "architecture": self.Architecture,
-        "domain": self.Domain,
-        "extra_info": self.ExtraInfo,
-        "sleep_info": self.SleepInfo
+            "display_id": self.DisplayID,
+            "agent_callback_id": self.AgentCallbackID,
+            "init_callback": self.InitCallback,
+            "last_checkin": self.LastCheckin,
+            "user": self.User,
+            "host": self.Host,
+            "pid": self.PID,
+            "ip": self.IP,
+            "ips": self.IPs,
+            "external_ip": self.ExternalIp,
+            "process_name": self.ProcessName,
+            "description": self.Description,
+            "operator_id": self.OperatorID,
+            "active": self.Active,
+            "integrity_level": self.IntegrityLevel,
+            "locked": self.Locked,
+            "operation_id": self.OperationID,
+            "crypto_type": self.CryptoType,
+            "dec_key": self.DecKey,
+            "enc_key": self.EncKey,
+            "os": self.Os,
+            "architecture": self.Architecture,
+            "domain": self.Domain,
+            "extra_info": self.ExtraInfo,
+            "sleep_info": self.SleepInfo
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskMessagePayloadData:
+    """A container for basic information about the payload associated with a task.
+
+    Note: Lowercase names are used in the __init__ function to auto-populate from JSON, but attributes are upper case.
+
+    Attributes:
+        OS (str): The operating system selected as the first step in generating this payload
+        UUID (str): The UUID for the payload
+        PayloadType (str): The name of the payload type associated with this payload
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     def __init__(self,
                  os: str = "",
                  uuid: str = "",
                  payload_type: str = "",
                  **kwargs):
-        self.Os = os
+        self.OS = os
         self.UUID = uuid
         self.PayloadType = payload_type
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
+    def to_json(self):
+        return {
+            "os": self.OS,
+            "uuid": self.UUID,
+            "payload_type": self.PayloadType
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskMessageAllData:
+    """A container for all information about a Task including the task, callback, build parameters, commands, etc.
+
+    Note: Lowercase names are used in the __init__ function to auto-populate from JSON, but attributes are upper case.
+
+    Attributes:
+        Task (PTTaskMessageTaskData): The information about this task
+        Callback (PTTaskMessageCallbackData): The information about this task's callback
+        Payload (PTTaskMessagePayloadData): The information about this task's associated payload
+        Commands (list[str]): The names of all the commands currently loaded into this callback
+        PayloadType (str): The name of the payload type
+        BuildParameters (list[MythicRPCPayloadConfigurationBuildParameter]): Information about the build parameters used to generate the payload for this callback
+        C2Profiles (list[MythicRPCPayloadConfigurationC2Profile]): Information about the c2 profiles associated with this callback and their values
+        args: The running instance of arguments for this task, this allows you to modify any arguments as necessary in your `create_go_tasking` function
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     args: TaskArguments
 
     def __init__(self,
@@ -1093,19 +1475,46 @@ class PTTaskMessageAllData:
             self.args = args(command_line=task["params"],
                              tasking_location=task["tasking_location"],
                              raw_command_line=task["original_params"],
-                             task_dictionary=task,)
+                             task_dictionary=task, )
         else:
             self.args = args
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
+    def to_json(self):
+        return {
+            "task": self.Task.to_json(),
+            "callback": self.Callback.to_json(),
+            "build_parameters": [x.to_json() for x in self.BuildParameters],
+            "commands": self.Commands,
+            "payload": self.Payload.to_json(),
+            "c2info": [x.to_json() for x in self.C2Profiles],
+            "payload_type": self.PayloadType
+        }
 
     def set_args(self, args: TaskArguments.__class__) -> None:
         self.args = args(command_line=self.Task.Params,
                          tasking_location=self.Task.TaskingLocation,
-                         raw_command_line=self.Task.OriginalParams,)
+                         raw_command_line=self.Task.OriginalParams, )
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
 class PTTaskCompletionFunctionMessage:
+    """A request to execute the completion function for a task or subtask
+
+    Note: Lowercase names are used in the __init__ function to auto-populate from JSON, but attributes are upper case.
+
+    Attributes:
+        TaskData (PTTaskMessageAllData): Information about this task and its callback, payload, build params, etc
+        CompletionFunctionName (str): The name of the completion function to execute
+        SubtaskGroup (str): If this task is part of a subtask group, this is the name of that group
+        SubtaskData (PTTaskMessageAllData): If this is a completion function from a subtask, then this is all the information about that subtask, not the current task.
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     SubtaskData: PTTaskMessageAllData
 
     def __init__(self,
@@ -1122,9 +1531,42 @@ class PTTaskCompletionFunctionMessage:
             self.SubtaskData = PTTaskMessageAllData(**subtask)
         else:
             self.SubtaskData = None
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
+    def to_json(self):
+        return {
+            "task": self.TaskData.to_json(),
+            "function_name": self.CompletionFunctionName,
+            "subtask": self.SubtaskData.to_json() if self.SubtaskData is not None else None,
+            "subtask_group_name": self.SubtaskGroup
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskCompletionFunctionMessageResponse:
+    """The result of executing the completion function for a task or subtask
+
+    Attributes:
+        TaskID (int): The ID of the task (auto filled in for you)
+        ParentTaskId (int): The ID of the parent task (auto filled in for you)
+        Success (bool): Did the completion function execute successfully or not
+        Error (str): If the completion function failed to execute, return an error message here
+        TaskStatus (str): If you want to update the status of the task to something other than default as a result of this execution, set the value here
+        DisplayParams (str): If you want to update the display parameters of the task, update them here
+        Stdout (str): If you want to save some output about the completion function without adding it to the normal output, save it here
+        Stderr (str): If you want to save some stderr about the completion function without adding it to the normal output, save it here
+        Completed (bool): If you want to mark the task as completed (so that the agent can't pick it up), set this to True. This is really only useful if this is a function executed as the result of a subtask completing, so you can prevent the callback from getting this task.
+        TokenID (int): If you want to add/update/remove the token id associated with this task, set that value here
+        CompletionFunctionName (str): If you want to set a completion function for this task, set the name here. Make sure it matches a corresponding entry in your command's definition.
+        Params (str): The task parameters that were sent down to the callback as part of the tasking
+        ParameterGroupName (str): The name of the parameter group associated with the arguments that were sent down to the callback
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     def __init__(self,
                  TaskID: int = 0,
                  ParentTaskId: int = 0,
@@ -1153,8 +1595,9 @@ class PTTaskCompletionFunctionMessageResponse:
         self.CompletionFunctionName = CompletionFunctionName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
+
     def to_json(self):
         return {
             "task_id": self.TaskID,
@@ -1171,7 +1614,23 @@ class PTTaskCompletionFunctionMessageResponse:
             "params": self.Params,
             "parameter_group_name": self.ParameterGroupName
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskProcessResponseMessageResponse:
+    """The result of executing the process response function for a task
+
+    Attributes:
+        TaskID (int): The ID of the task
+        Success (bool): Did the function execute successfully or not
+        Error (str): If the function failed to execute, return an error message here
+
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     def __init__(self,
                  TaskID: int,
                  Success: bool = True,
@@ -1179,6 +1638,7 @@ class PTTaskProcessResponseMessageResponse:
         self.TaskID = TaskID
         self.Success = Success
         self.Error = Error
+
     def to_json(self):
         return {
             "task_id": self.TaskID,
@@ -1186,12 +1646,49 @@ class PTTaskProcessResponseMessageResponse:
             "error": self.Error
         }
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class CommandBase(metaclass=ABCMeta):
+    """The base definition for a command that Mythic tracks for a Payload Type
+
+    Attributes:
+        cmd (str): The name of the command
+        needs_admin (bool): Indicating if the command needs elevated permissions to execute properly
+        help_cmd (str): A short help string for how to run the command
+        description (str): Description of what the command does and how it works
+        version (int): The current version of the command
+        author (str): The name or handle of the author of the command
+        attackmapping (list[str]): A list of MITRE ATT&CK Technique IDs (ex: T1033)
+        supported_ui_features (list[str]): A list of supported ui features (ex: "callback_table:exit")
+        browser_script (BrowserScript): An instance of BrowserScript if the command provides a browser script to manipluate its output
+        script_only (bool): Indicate if the command is only a script or if there's backing code within the agent
+        attributes (CommandAttributes): Additional attributes about the command such as if it's builtin, suggested, or anything else
+        completion_functions (dict): A list of completion/subtask functions by their name and function value so they can be called later
+        argument_class (TaskArguments.__class__): The class that's used to parse the future task's arguments into the command's parameters
+        agent_code_path (Path): The Path to the code for the agent (helpful for building and loading commands dynamically)
+        agent_browserscript_path (Path): The Path to where browser scripts are located for your payload type
+
+    Functions:
+        to_json:
+            return dictionary form of class
+        opsec_pre:
+            A function for checking for OPSEC issues before the command is executed
+        opsec_post:
+            A function for checking for OPSEC issues before a command is executed, but after the create_go_tasking function is executed
+        create_go_tasking:
+            The main function for doing additional processing of the task before it's ready for the agent to fetch it
+        process_response:
+            Optional additional processing of responses from the agent in any free-form format
+
+    """
     supported_ui_features: list[str] = []
     browser_script: BrowserScript = None
     script_only: bool = False
     attributes: CommandAttributes = None
-    completion_functions: dict[str, Callable[[PTTaskCompletionFunctionMessage], Awaitable[PTTaskCompletionFunctionMessageResponse]]] = {}
+    completion_functions: dict[
+        str, Callable[[PTTaskCompletionFunctionMessage], Awaitable[PTTaskCompletionFunctionMessageResponse]]] = {}
     argument_class: TaskArguments.__class__
     base_path: Path = Path(".")
     agent_code_path: Path = base_path / "agent_code"
@@ -1289,5 +1786,9 @@ class CommandBase(metaclass=ABCMeta):
             "script_only": self.script_only if self.script_only is not None else False,
             **bscript,
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 commands: dict[str, list[CommandBase]] = {}
