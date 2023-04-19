@@ -731,15 +731,22 @@ class C2OtherServiceRPCMessageResponse:
 
 
 class ParameterType(Enum):
-    """C2 Profile Parameter Types available:
+    """Types of parameters available for C2 Profiles when building payloads
 
-    String
-    ChooseOne
-    Array
-    Date
-    Dictionary
-    Boolean
-    """
+     Attributes:
+         String:
+             A string value
+         ChooseOne:
+             A list of choices for the user to select exactly one
+         Array:
+             The user can supply multiple values in an Array format
+         Date:
+             The user can select a Date in YYYY-MM-DD format
+         Dictionary:
+             The user can supply a dictionary of values
+         Boolean:
+             The user can toggle a switch for True/False
+     """
     String = "String"
     ChooseOne = "ChooseOne"
     Array = "Array"

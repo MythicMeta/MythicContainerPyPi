@@ -8,11 +8,26 @@ import pathlib
 
 
 class BuildStatus:
+    """Build Status
+
+    This can either be BuildStatus.Success or BuildStatus.Error
+
+    Attributes:
+        Success (str): Successful build
+        Error (str): Failed build
+    """
     Success = "success"
     Error = "error"
 
 
 class SupportedOS:
+    """Supported Operating System
+
+    This OS value is selected first when generating a payload or wrapper.
+
+    If you don't want to use a listed value, supply your own with
+    SupportedOS("my os")
+    """
     Windows = "Windows"
     MacOS = "macOS"
     Linux = "Linux"
@@ -27,6 +42,22 @@ class SupportedOS:
 
 
 class BuildParameterType(str, Enum):
+    """Types of parameters available for building payloads
+
+    Attributes:
+        String:
+            A string value
+        ChooseOne:
+            A list of choices for the user to select exactly one
+        Array:
+            The user can supply multiple values in an Array format
+        Date:
+            The user can select a Date in YYYY-MM-DD format
+        Dictionary:
+            The user can supply a dictionary of values
+        Boolean:
+            The user can toggle a switch for True/False
+    """
     String = "String"
     ChooseOne = "ChooseOne"
     Array = "Array"
@@ -36,6 +67,14 @@ class BuildParameterType(str, Enum):
 
 
 class DictionaryChoice:
+    """A single dictionary choice/option for the UI when select C2 Profile Parameters
+
+    Attributes:
+        name (str): Name of the choice
+        default_show (bool): Should this be pre-selected with a default value
+        default_value (str): Default value to fill in
+
+    """
     def __init__(self,
                  name: str,
                  default_value: str = "",
@@ -43,6 +82,7 @@ class DictionaryChoice:
         self.name = name
         self.default_show = default_show
         self.default_value = default_value
+
     def to_json(self):
         return {
             "name": self.name,
@@ -50,8 +90,38 @@ class DictionaryChoice:
             "default_show": self.default_show
         }
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 class BuildParameter:
+    """Build Parameter Definition for use when generating payloads
+
+    Attributes:
+        name (str):
+            Name of the parameter for scripting and for when building payloads
+        description (str):
+            Informative description displayed when building a payload
+        default_value (any):
+            Default value to pre-populate
+        randomize (bool):
+            Should this value be randomized (requires format_string)
+        format_string (str):
+            A regex used for randomizing values if randomize is true
+        parameter_type (BuildParameterType):
+            The type of parameter this is
+        required (bool):
+            Is this parameter required to have a non-empty value or not
+        verifier_regex (str):
+            Regex used to verify that the user typed something appropriate
+        choices (list[str]):
+            Choices for ChooseOne parameter type
+        dictionary_choices (list[DictionaryChoice]):
+            Configuration options for the Dictionary parameter type
+        crypto_type (bool):
+            Indicate if this value should be used to generate a crypto key or not
+
+    """
     def __init__(
             self,
             name: str,
@@ -99,11 +169,23 @@ class BuildParameter:
             "verifier_regex": self.verifier_regex,
             "crypto_type": self.crypto_type,
             "choices": self.choices,
-            "dictionary_choices": [x.to_json() for x in self.dictionary_choices] if self.dictionary_choices is not None else None
+            "dictionary_choices": [x.to_json() for x in
+                                   self.dictionary_choices] if self.dictionary_choices is not None else None
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
 class C2ProfileParameters:
+    """C2 Profile information for building a payload
+
+    Functions:
+        get_c2profile:
+            Get a dictionary with metadata about the c2 profile (name, is_p2p)
+        get_parameters_dict:
+            Get a dictionary of the parameters for the profile
+    """
     def __init__(self, c2profile: dict, parameters: dict = None):
         self.parameters = {}
         self.c2profile = c2profile
@@ -118,6 +200,18 @@ class C2ProfileParameters:
 
 
 class CommandList:
+    """List of commands that the user wants to build into an agent
+
+    This might include script_only commands that are available in the UI but not actual commands with files for your agent.
+
+    Attributes:
+        commands (list[str]):
+            The names of the commands
+
+   Functions:
+       get_commands:
+           Get a list of the command names
+   """
     def __init__(self, commands: [str] = None):
         self.commands = []
         if commands is not None:
@@ -140,6 +234,26 @@ class CommandList:
 
 
 class BuildResponse:
+    """The result of attempting to build a payload
+
+    Attributes:
+        status (BuildStatus):
+            The status of the build
+        payload (bytes):
+            The final payload bytes to send back to Mythic if any
+        build_message (str):
+            A build message to show to the user
+        build_stderr (str):
+            Any stderr messages you want to save as part of the build process (also shown to the user in case of error)
+        build_stdout (str):
+            Any stdout data you want to save as part of the build process
+        updated_command_list (list[str]):
+            An updated list of commands that are actually being built into the payload. This is handy if the user selected commandA but you aren't building it into the payload for some reason. Similarly, it's helpful if the user selected commandA but you also need commandB for that to work, so you can reflect that change back to Mythic.
+
+   Functions:
+       get_commands:
+           Get a list of the command names
+   """
     def __init__(self, status: BuildStatus, payload: bytes = None, build_message: str = None, build_stderr: str = None,
                  build_stdout: str = None, updated_command_list: [str] = None):
         self.status = status
@@ -187,7 +301,15 @@ class BuildResponse:
 
 
 class BuildStep:
+    """A tracked step in the build process for a payload type
 
+    Attributes:
+        step_name (str):
+            The name of the step to display to users
+        step_description (str):
+            The description of the step to display to users
+
+   """
     def __init__(self,
                  step_name: str,
                  step_description: str):
@@ -200,7 +322,21 @@ class BuildStep:
             "step_description": self.step_description
         }
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTOtherServiceRPCMessage:
+    """Request to call an RPC function of another C2 Profile or Payload Type
+
+    Attributes:
+        ServiceName (str): Name of the C2 Profile or Payload Type
+        ServiceRPCFunction (str): Name of the function to call
+        ServiceRPCFunctionArguments (dict): Arguments to that function
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
     def __init__(self,
                  ServiceName: str = None,
                  service_name: str = None,
@@ -220,13 +356,30 @@ class PTOtherServiceRPCMessage:
             self.ServiceRPCFunctionArguments = service_arguments
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
+
     def to_json(self):
         return {
             "service_name": self.ServiceName,
             "service_function": self.ServiceRPCFunction,
             "service_arguments": self.ServiceRPCFunctionArguments
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTOtherServiceRPCMessageResponse:
+    """Result of running an RPC call from another service
+
+    Attributes:
+        Success (bool): Did the RPC succeed or fail
+        Error (str): Error message if the RPC check failed
+        Result (dict): Result from the RPC
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
     def __init__(self,
                  success: bool = None,
                  error: str = None,
@@ -246,6 +399,7 @@ class PTOtherServiceRPCMessageResponse:
             self.Result = result
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
+
     def to_json(self):
         return {
             "success": self.Success,
@@ -253,8 +407,70 @@ class PTOtherServiceRPCMessageResponse:
             "result": self.Result
         }
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 class PayloadType:
+    """Payload Type to import and sync with Mythic
+
+    Attributes:
+        name (str):
+            Name of the payload type
+        file_extension (str):
+            Default file extension to apply to payloads
+        author (str):
+            Author of the Payload Type
+        supported_os (list[SupportedOS]):
+            List of Operating Systems that this Payload Type supports
+        wrapper (bool):
+            Is this payload type a wrapper (i.e. it takes in other payload types and wraps them up in a new format)
+        wrapped_payloads (list[str]):
+            What wrappers does this payload type support (ex: service_wrapper)
+        note (str):
+            A description of the payload type to present to users
+        supports_dynamic_loading (bool):
+            Does this payload type support dynamically choosing which commands to build in or not. If this is `False` then when building a payload for this payload type, you won't get the option to pick which commands to add to the payload - they'll all automatically get added.
+        c2_profiles (list[str]):
+            List of C2 Profile names that this Payload Type supports
+        build_parameters (list[BuildParameter]):
+            List of build parameters for this Payload Type that the user can modify when building the payload
+
+        uuid (str):
+            UUID of the payload
+        c2info (list[C2ProfileParameters]):
+            List of C2 Profiles that the user selected to build into the agent along with their parameter values
+        commands (CommandList):
+            List of commands the user selected to build into the agent
+        wrapped_payload (str):
+            If this is a wrapper payload type, this is the UUID of the payload to wrap
+        selected_os (str):
+            The OS the user selected for the first step when building this payload
+        build_steps (list[BuildStep]):
+            A list of build steps that will be taken during the build process. As you build, you can report back the status of each step so that the user knows what's going on.
+        agent_icon_path (str):
+            Path to the agent icon you want to use with Mythic. This MUST be a .svg file.
+        agent_icon_bytes (bytes):
+            If you don't want to provide the path, you can optionally provide the raw bytes to the .svg file here.
+        translation_container (str):
+            If your payload type uses a translation container, provide the name of it here
+        mythic_encrypts (bool):
+            Indicate if Mythic should handle encryption/decryption for you or if you want a translation container to do it instead. This is often useful if you want to have a separate form of encryption than what Mythic provides.
+        agent_path (Path):
+            The path to your agent's main folder. This is used to help determine paths to your code and browser scripts if they aren't provided
+        agent_code_path (Path):
+            The path to your agent's actual source code
+        agent_browserscript_path (Path):
+            The path to the folder holding your browser scripts so that they can be fetched when Syncing
+        custom_rpc_functions (dict):
+            Dictionary of RPC name to awaitable RPC function that other services can call
+
+    Functions:
+        build(self):
+            Given an instance of a bare payload and all the configuration options that the user selected (build parameters, c2 profile parameters), build the payload
+        get_parameter:
+            Get the value of a build parameter
+    """
     uuid: str = None
     c2info: [C2ProfileParameters] = None
     commands: CommandList = None
@@ -268,8 +484,8 @@ class PayloadType:
     agent_path = None
     agent_code_path = None
     agent_browserscript_path = None
-    custom_rpc_functions: dict[str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
-
+    custom_rpc_functions: dict[
+        str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
 
     def __init__(
             self,
@@ -401,5 +617,7 @@ class PayloadType:
             "agent_icon": base64.b64encode(agent_bytes).decode(),
         }
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 payloadTypes: dict[str, PayloadType] = {}

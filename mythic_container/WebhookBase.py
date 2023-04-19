@@ -7,7 +7,29 @@ import aiohttp
 from .config import settings
 import json
 
+
 class NewCallbackWebhookData:
+    """The base information about a new callback within Mythic
+
+    Attributes:
+        User (str): The user for the callback
+        Host (str): The hostname for the callback (in all caps)
+        IPs (list[str]): An array of IP addresses for the callback
+        Domain (str): The domain for the callback
+        ExternalIP (str): The external IP address for the callback (if known)
+        ProcessName (str): The name of the process executing the callback
+        PID (int): The Process Identifier for the callback
+        OS (str): The operating system information reported back by the callback (not the same as the os you selected when building the payload)
+        Architecture (str): The architecture of the process running the callback
+        PayloadType (str): The name of the Payload Type for this callback
+        Description (str): The description for the callback (defaults to the description for the associtated payload)
+        ExtraInfo (str): Freeform additional text that can be set on the callback
+        SleepInfo (str): Sleep information that can be stored as part of the callback (not implicitly set)
+        DisplayID (int): The ID that the user sees when looking at the callback in Mythic's UI
+        ID (int): The unique ID associated with this callback that can be used with RPC calls
+        IntegrityLevel (int): The integrity level of this callback (mirrors Windows integrity levels with 0-5 range and 3+ is High integrity)
+
+    """
     def __init__(self,
                  user: str = None,
                  host: str = None,
@@ -32,15 +54,16 @@ class NewCallbackWebhookData:
         self.ExternalIP = external_ip
         self.ProcessName = process_name
         self.PID = pid
-        self.Os = os
+        self.OS = os
         self.Architecture = architecture
-        self.AgentType = agent_type
+        self.PayloadType = agent_type
         self.Description = description
         self.ExtraInfo = extra_info
         self.SleepInfo = sleep_info
         self.DisplayID = display_id
         self.ID = id
         self.IntegrityLevel = integrity_level
+
     def to_json(self):
         return {
             "user": self.User,
@@ -50,16 +73,31 @@ class NewCallbackWebhookData:
             "external_ip": self.ExternalIP,
             "process_name": self.ProcessName,
             "pid": self.PID,
-            "os": self.Os,
+            "os": self.OS,
             "architecture": self.Architecture,
             "description": self.Description,
             "extra_info": self.ExtraInfo,
             "sleep_info": self.SleepInfo,
             "display_id": self.DisplayID,
             "id": self.ID,
+            "agent_type": self.PayloadType,
             "integrity_level": self.IntegrityLevel
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class NewFeedbackWebhookData:
+    """The base definition for new feedback a user is providing about Mythic
+
+    Attributes:
+        TaskID (int): The ID of the task associated with this feedback (if provided) that can be used with RPC Calls
+        Message (str): The feedback message
+        FeedbackType (str): The type of feedback
+        DisplayID (int): The display ID of the task that the user would see
+
+    """
     def __init__(self,
                  task_id: int = None,
                  display_id: int = None,
@@ -70,8 +108,9 @@ class NewFeedbackWebhookData:
         self.Message = message
         self.FeedbackType = feedback_type
         self.DisplayID = display_id
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} {v}")
+
     def to_json(self):
         return {
             "task_id": self.TaskID,
@@ -79,19 +118,48 @@ class NewFeedbackWebhookData:
             "feedback_type": self.FeedbackType,
             "display_id": self.DisplayID
         }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class NewStartupWebhookData:
+    """The base definition for a notification that Mythic started
+
+    Attributes:
+        StartupMessage (str): The message that Mythic started
+
+    """
     def __init__(self,
                  startup_message: str = None,
                  **kwargs):
         self.StartupMessage = startup_message
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} {v}")
+
     def to_json(self):
         return {
             "startup_message": self.StartupMessage
         }
-class WebookMessage:
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class WebhookMessage:
+    """The base definition for webhook message from Mythic
+
+    Attributes:
+        OperationID (int): The operation ID associated with this event
+        OperationName (str): The name of the operation associated with this event
+        OperationWebhook (str): If the operation has a configured webhook url, it's here
+        OperationChannel (str): If the operation has a configured webhook channel, it's here
+        OperatorUsername (str): The username of the operator that caused this webhook event
+        Action (str): The kind of webhook message
+        Data: The action-specific data
+    """
     Data: Union[dict | NewCallbackWebhookData | NewFeedbackWebhookData | NewStartupWebhookData | None]
+
     def __init__(self,
                  operation_id: int = None,
                  operation_name: str = None,
@@ -115,8 +183,9 @@ class WebookMessage:
             self.Data = NewStartupWebhookData(**data)
         else:
             self.Data = data
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} {v}")
+
     def to_json(self):
         return {
             "operation_id": self.OperationID,
@@ -128,16 +197,39 @@ class WebookMessage:
             "data": self.Data if isinstance(self.Data, dict) or self.Data is None else self.Data.to_json()
         }
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 class Webhook:
+    """The base definition for a webhook service to accept webhook messages from Mythic
+
+    In your functions, you can use the sendWebhookMessage function to send the webhook message.
+
+    Attributes:
+        webhook_url (str): Custom webhook url to use in case one isn't configured in Mythic
+        webhook_channel (str): Custom webhook channel to use in case one isn't configured in Mythic
+
+    Functions:
+        new_callback:
+            If you want to accept messages about new callbacks, implement this function
+        new_feedback:
+            If you want to accept messages about new feedback, implement this function
+        new_startup:
+            If you want to accept messages about Mythic starting, implement this function
+        getWebhookURL:
+            This will automatically determine the url to use by looking at the operation configuration, this class' configuration, and any env configurations
+        getWebhookChannel:
+            This will automatically determine the channel to use by look at the operation configuration, this class' configuartion, and any env configurations
+    """
     webhook_url: str = None
     webhook_channel: str = None
 
-    new_callback: Callable[ [WebookMessage], Awaitable[None] ] = None
-    new_feedback: Callable[ [WebookMessage], Awaitable[None] ] = None
-    new_startup:  Callable[ [WebookMessage], Awaitable[None] ] = None
+    new_callback: Callable[[WebhookMessage], Awaitable[None]] = None
+    new_feedback: Callable[[WebhookMessage], Awaitable[None]] = None
+    new_startup: Callable[[WebhookMessage], Awaitable[None]] = None
 
-    def getWebhookURL(self, inputMsg: WebookMessage) -> str:
+    def getWebhookURL(self, inputMsg: WebhookMessage) -> str:
         if inputMsg.OperationWebhook is not None and inputMsg.OperationWebhook != "":
             return inputMsg.OperationWebhook
         elif settings.get("webhook_default_url", None) is not None:
@@ -148,14 +240,17 @@ class Webhook:
             logger.error("")
             return ""
 
-    def getWebhookChannel(self, inputMsg: WebookMessage) -> str:
+    def getWebhookChannel(self, inputMsg: WebhookMessage) -> str:
         if inputMsg.OperationChannel is not None and inputMsg.OperationChannel != "":
             return inputMsg.OperationWebhook
-        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_CALLBACK and settings.get("webhook_default_callback_channel", None) is not None:
+        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_CALLBACK and settings.get(
+                "webhook_default_callback_channel", None) is not None:
             return settings.get("webhook_default_callback_channel")
-        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK and settings.get("webhook_default_feedback_channel", None) is not None:
+        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK and settings.get(
+                "webhook_default_feedback_channel", None) is not None:
             return settings.get("webhook_default_feedback_channel")
-        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_STARTUP and settings.get("webhook_default_startup_channel", None) is not None:
+        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_STARTUP and settings.get(
+                "webhook_default_startup_channel", None) is not None:
             return settings.get("webhook_default_startup_channel")
         elif settings.get("webhook_default_channel", None) is not None:
             return settings.get("webhook_default_channel")
@@ -166,16 +261,17 @@ class Webhook:
             return ""
 
 
-async def sendWebhookMessage(contents: dict, url: str) -> bool:
+async def sendWebhookMessage(contents: dict, url: str) -> str:
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=contents, ssl=False) as resp:
                 if resp.status == 200:
                     responseData = await resp.text()
                     logger.debug(f"webhook response data: {responseData}")
+                    return responseData
                 else:
                     logger.error(f"[-] Failed to send webhook message: {resp}")
+                    return f"[-] Failed to send webhook message: {resp}"
     except Exception as e:
         logger.exception(f"[-] Failed to send webhook: {e}")
-        return False
-
+        return f"[-] Failed to send webhook: {e}"

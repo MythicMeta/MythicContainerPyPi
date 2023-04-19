@@ -2,26 +2,53 @@ import asyncio
 from abc import abstractmethod
 from .grpc.translationContainerGRPC_pb2_grpc import TranslationContainerStub
 from .grpc.translationContainerGRPC_pb2 import TrGenerateEncryptionKeysMessage, TrGenerateEncryptionKeysMessageResponse
-from .grpc.translationContainerGRPC_pb2 import TrCustomMessageToMythicC2FormatMessage, TrCustomMessageToMythicC2FormatMessageResponse
-from .grpc.translationContainerGRPC_pb2 import TrMythicC2ToCustomMessageFormatMessage, TrMythicC2ToCustomMessageFormatMessageResponse
+from .grpc.translationContainerGRPC_pb2 import TrCustomMessageToMythicC2FormatMessage, \
+    TrCustomMessageToMythicC2FormatMessageResponse
+from .grpc.translationContainerGRPC_pb2 import TrMythicC2ToCustomMessageFormatMessage, \
+    TrMythicC2ToCustomMessageFormatMessageResponse
 import grpc.aio
 from mythic_container.logging import logger
 from .config import settings
+import json
+
 
 class TranslationContainer:
+    """The base definition for a Translation Container Service.
 
+    To have this hooked up to a Payload Type, you need to specify this service's name as the translation_container attribute in your Payload Type.
+
+    This uses gRPC to connect to port 17444 on the Mythic Server.
+
+    Attributes:
+        name (str): The name of the translation container
+        description (str): Description of the translation container to appear in Mythic's UI
+        author (str): The author of the container
+
+    Functions:
+        to_json:
+            return dictionary form of class
+        generate_keys:
+            A function for generating encryption/decryption keys based on provided C2 info
+        translate_to_c2_format:
+            A function for translating from Mythic's JSON format to a custom C2 format
+        translate_from_c2_format:
+            A function for translating from a custom C2 format to Mythic's JSON format
+
+    """
     async def generate_keys(self, inputMsg: TrGenerateEncryptionKeysMessage) -> TrGenerateEncryptionKeysMessageResponse:
         response = TrGenerateEncryptionKeysMessageResponse(Success=False)
         response.Error = f"Not Implemented:\n{inputMsg}"
 
         return response
 
-    async def translate_to_c2_format(self, inputMsg: TrMythicC2ToCustomMessageFormatMessage) -> TrMythicC2ToCustomMessageFormatMessageResponse:
+    async def translate_to_c2_format(self,
+                                     inputMsg: TrMythicC2ToCustomMessageFormatMessage) -> TrMythicC2ToCustomMessageFormatMessageResponse:
         response = TrMythicC2ToCustomMessageFormatMessageResponse(Success=False)
         response.Error = f"Not Implemented:\n{inputMsg}"
         return response
 
-    async def translate_from_c2_format(self, inputMsg: TrCustomMessageToMythicC2FormatMessage) -> TrCustomMessageToMythicC2FormatMessageResponse:
+    async def translate_from_c2_format(self,
+                                       inputMsg: TrCustomMessageToMythicC2FormatMessage) -> TrCustomMessageToMythicC2FormatMessageResponse:
         response = TrCustomMessageToMythicC2FormatMessageResponse(Success=False)
         response.Error = f"Not Implemented:\n{inputMsg}"
         return response
@@ -48,6 +75,9 @@ class TranslationContainer:
             "author": self.author,
         }
 
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 translationServices: dict[str, TranslationContainer] = {}
 
@@ -56,7 +86,8 @@ async def handleTranslationServices(tr_name: str):
     while True:
         try:
             logger.info(f"Attempting connection to gRPC for {tr_name}...")
-            channel = grpc.aio.insecure_channel(f'{settings.get("mythic_server_host", "127.0.0.1")}:{settings.get("mythic_server_grpc_port", 17444)}')
+            channel = grpc.aio.insecure_channel(
+                f'{settings.get("mythic_server_host", "127.0.0.1")}:{settings.get("mythic_server_grpc_port", 17444)}')
             await channel.channel_ready()
             client = TranslationContainerStub(channel=channel)
             genKeys = handleGenerateKeys(tr_name, client)
