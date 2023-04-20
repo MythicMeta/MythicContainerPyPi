@@ -146,6 +146,45 @@ class NewStartupWebhookData:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class NewAlertWebhookData:
+    """The base definition for a notification that there was an alert generated
+
+    Attributes:
+        OperatorID (int): The unique ID of the operator that caused this message (if not Mythic)
+        Message (str): The alert message
+        Source (str): The source of the alert message
+        Count (int): The number of times this entry has been seen
+        Timestamp (str): When this alert was generated
+
+    """
+    def __init__(self,
+                 operator_id: int = None,
+                 message: str = None,
+                 source: str = None,
+                 count: int = None,
+                 timestamp: str = None,
+                 **kwargs):
+        self.OperatorID = operator_id
+        self.Message = message
+        self.Source = source
+        self.Count = count
+        self.Timestamp = timestamp
+        for k, v in kwargs.items():
+            logger.info(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "operator_id": self.OperatorID,
+            "message": self.Message,
+            "source": self.Source,
+            "count": self.Count,
+            "timestamp": self.Timestamp
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class WebhookMessage:
     """The base definition for webhook message from Mythic
 
@@ -158,7 +197,12 @@ class WebhookMessage:
         Action (str): The kind of webhook message
         Data: The action-specific data
     """
-    Data: Union[dict | NewCallbackWebhookData | NewFeedbackWebhookData | NewStartupWebhookData | None]
+    Data: Union[dict |
+                NewCallbackWebhookData |
+                NewFeedbackWebhookData |
+                NewStartupWebhookData |
+                NewAlertWebhookData |
+                None]
 
     def __init__(self,
                  operation_id: int = None,
@@ -181,6 +225,10 @@ class WebhookMessage:
             self.Data = NewFeedbackWebhookData(**data)
         elif self.Action == mythic_container.WEBHOOK_TYPE_NEW_STARTUP:
             self.Data = NewStartupWebhookData(**data)
+        elif self.Action == mythic_container.WEBHOOK_TYPE_NEW_ALERT:
+            self.Data = NewAlertWebhookData(**data)
+        elif self.Action == mythic_container.WEBHOOK_TYPE_NEW_CUSTOM:
+            self.Data = data
         else:
             self.Data = data
         for k, v in kwargs.items():
@@ -217,6 +265,10 @@ class Webhook:
             If you want to accept messages about new feedback, implement this function
         new_startup:
             If you want to accept messages about Mythic starting, implement this function
+        new_alert:
+            If you want to accept messages about alert messages from Mythic's operation event log
+        new_custom:
+            If you want to accept messages that are custom made by scripting
         getWebhookURL:
             This will automatically determine the url to use by looking at the operation configuration, this class' configuration, and any env configurations
         getWebhookChannel:
@@ -228,6 +280,8 @@ class Webhook:
     new_callback: Callable[[WebhookMessage], Awaitable[None]] = None
     new_feedback: Callable[[WebhookMessage], Awaitable[None]] = None
     new_startup: Callable[[WebhookMessage], Awaitable[None]] = None
+    new_alert: Callable[[WebhookMessage], Awaitable[None]] = None
+    new_custom: Callable[[WebhookMessage], Awaitable[None]] = None
 
     def getWebhookURL(self, inputMsg: WebhookMessage) -> str:
         if inputMsg.OperationWebhook is not None and inputMsg.OperationWebhook != "":
@@ -252,6 +306,12 @@ class Webhook:
         elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_STARTUP and settings.get(
                 "webhook_default_startup_channel", None) is not None:
             return settings.get("webhook_default_startup_channel")
+        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_ALERT and settings.get(
+                "webhook_default_alert_channel", None) is not None:
+            return settings.get("webhook_default_alert_channel")
+        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_CUSTOM and settings.get(
+                "webhook_default_custom_channel", None) is not None:
+            return settings.get("webhook_default_custom_channel")
         elif settings.get("webhook_default_channel", None) is not None:
             return settings.get("webhook_default_channel")
         elif self.webhook_channel is not None:

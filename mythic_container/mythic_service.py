@@ -264,6 +264,18 @@ async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
             routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK),
             handler=webhook_utils.new_feedback
         )))
+    if wb.new_alert is not None and callable(wb.new_alert):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_ALERT),
+            routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_ALERT),
+            handler=webhook_utils.new_alert
+        )))
+    if wb.new_custom is not None and callable(wb.new_custom):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
+            routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
+            handler=webhook_utils.new_custom
+        )))
     logger.info(f"Successfully started webhook service")
 
 

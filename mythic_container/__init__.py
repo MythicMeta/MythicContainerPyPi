@@ -1,9 +1,9 @@
 from .rabbitmq import rabbitmqConnectionClass
 from .mythic_service import start_and_run_forever, test_command
 
-containerVersion = "v1.0.0-rc8"
+containerVersion = "v1.0.0-rc9"
 
-PyPi_version = "0.2.0-rc22"
+PyPi_version = "0.2.0-rc23"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -48,6 +48,8 @@ EMIT_WEBHOOK_ROUTING_KEY_PREFIX = "emit_webhook"
 WEBHOOK_TYPE_NEW_CALLBACK = "new_callback"
 WEBHOOK_TYPE_NEW_FEEDBACK = "new_feedback"
 WEBHOOK_TYPE_NEW_STARTUP = "new_startup"
+WEBHOOK_TYPE_NEW_ALERT = "new_alert"
+WEBHOOK_TYPE_NEW_CUSTOM = "new_custom"
 # log routes
 EMIT_LOG_ROUTING_KEY_PREFIX = "emit_log"
 LOG_TYPE_CALLBACK = "new_callback"
