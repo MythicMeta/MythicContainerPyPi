@@ -1227,8 +1227,6 @@ class PTTaskMessageTaskData:
         self.TaskingLocation = tasking_location
         self.ParameterGroupName = parameter_group_name
         self.TokenID = token_id
-        for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
 
     def to_json(self):
         return {
@@ -1335,6 +1333,7 @@ class PTTaskMessageCallbackData:
                  sleep_info: str = "",
                  dec_key: str = None,
                  enc_key: str = None,
+                 registered_payload_id: int = 0,
                  **kwargs):
         self.ID = id
         self.DisplayID = display_id
@@ -1362,6 +1361,7 @@ class PTTaskMessageCallbackData:
         self.Domain = domain
         self.ExtraInfo = extra_info
         self.SleepInfo = sleep_info
+        self.RegisteredPayloadID = registered_payload_id
         for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
 

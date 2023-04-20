@@ -10,7 +10,7 @@ async def new_startup(msg: bytes) -> None:
         for cls in webhookServices:
             webhook = cls()
             if webhook.new_startup is not None and callable(webhook.new_startup):
-                await webhook.new_startup(WebookMessage(**msgDict))
+                await webhook.new_startup(WebhookMessage(**msgDict))
             else:
                 logger.error(f"No valid function for new_startup from webhook")
     except Exception as e:
@@ -24,7 +24,7 @@ async def new_callback(msg: bytes) -> None:
         for cls in webhookServices:
             webhook = cls()
             if webhook.new_callback is not None and callable(webhook.new_callback):
-                await webhook.new_callback(WebookMessage(**msgDict))
+                await webhook.new_callback(WebhookMessage(**msgDict))
             else:
                 logger.error(f"No valid function for new_callback from webhook")
     except Exception as e:
@@ -38,7 +38,7 @@ async def new_feedback(msg: bytes) -> None:
         for cls in webhookServices:
             webhook = cls()
             if webhook.new_feedback is not None and callable(webhook.new_feedback):
-                await webhook.new_feedback(WebookMessage(**msgDict))
+                await webhook.new_feedback(WebhookMessage(**msgDict))
             else:
                 logger.error(f"No valid function for new_feedback from webhook")
     except Exception as e:

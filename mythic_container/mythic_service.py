@@ -12,7 +12,9 @@ from . import C2ProfileBase
 from . import c2_utils
 from . import TranslationBase
 from . import WebhookBase
+from . import LoggingBase
 from . import webhook_utils
+from . import logging_utils
 from .rabbitmq import failedConnectRetryDelay
 
 
@@ -37,6 +39,10 @@ def getRoutingKey(containerName: str, baseKey: str) -> str:
 
 def getWebhookRoutingKey(webhookType: str) -> str:
     return f"{mythic_container.EMIT_WEBHOOK_ROUTING_KEY_PREFIX}.{webhookType}"
+
+
+def getLoggingRoutingKey(loggingType: str) -> str:
+    return f"{mythic_container.EMIT_LOG_ROUTING_KEY_PREFIX}.{loggingType}"
 
 
 payloadQueueTasks = []
@@ -260,6 +266,53 @@ async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
         )))
     logger.info(f"Successfully started webhook service")
 
+
+async def syncLoggingData(wb: LoggingBase.Log) -> None:
+    if wb.new_callback is not None and callable(wb.new_callback):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_CALLBACK),
+            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_CALLBACK),
+            handler=logging_utils.new_callback
+        )))
+    if wb.new_credential is not None and callable(wb.new_credential):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_CREDENTIAL),
+            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_CREDENTIAL),
+            handler=logging_utils.new_credential
+        )))
+    if wb.new_keylog is not None and callable(wb.new_keylog):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_KEYLOG),
+            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_KEYLOG),
+            handler=logging_utils.new_keylog
+        )))
+    if wb.new_file is not None and callable(wb.new_file):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_FILE),
+            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_FILE),
+            handler=logging_utils.new_file
+        )))
+    if wb.new_payload is not None and callable(wb.new_payload):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_PAYLOAD),
+            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_PAYLOAD),
+            handler=logging_utils.new_payload
+        )))
+    if wb.new_artifact is not None and callable(wb.new_artifact):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_ARTIFACT),
+            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_ARTIFACT),
+            handler=logging_utils.new_artifact
+        )))
+    if wb.new_task is not None and callable(wb.new_task):
+        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_TASK),
+            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_TASK),
+            handler=logging_utils.new_task
+        )))
+
+    logger.info(f"Successfully started logging service")
+
 consumingServices = []
 async def start_services():
     initialize()
@@ -271,6 +324,12 @@ async def start_services():
         webhook = cls()
         consumingServices.append(webhook)
         await syncWebhookData(webhook)
+    logging_services = LoggingBase.Log.__subclasses__()
+    for cls in logging_services:
+        logger.info(f"[*] Processing logging services")
+        definedLog = cls()
+        consumingServices.append(definedLog)
+        await syncLoggingData(definedLog)
     payloadTypes = PayloadBuilder.PayloadType.__subclasses__()
     for cls in payloadTypes:
         payload_type = cls()
