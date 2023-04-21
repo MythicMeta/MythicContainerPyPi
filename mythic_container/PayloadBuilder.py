@@ -249,19 +249,21 @@ class BuildResponse:
             Any stdout data you want to save as part of the build process
         updated_command_list (list[str]):
             An updated list of commands that are actually being built into the payload. This is handy if the user selected commandA but you aren't building it into the payload for some reason. Similarly, it's helpful if the user selected commandA but you also need commandB for that to work, so you can reflect that change back to Mythic.
-
+        updated_filename (str):
+            An updated filename - this is useful if the user selects an option during build that changes the file type (ex: exe, dll, zip) and you want to reflect that back in the filename for easier downloading.
    Functions:
        get_commands:
            Get a list of the command names
    """
     def __init__(self, status: BuildStatus, payload: bytes = None, build_message: str = None, build_stderr: str = None,
-                 build_stdout: str = None, updated_command_list: [str] = None):
+                 build_stdout: str = None, updated_command_list: [str] = None, updated_filename: str = None):
         self.status = status
         self.payload = payload if payload is not None else b""
         self.build_message = build_message if build_message is not None else ""
         self.build_stderr = build_stderr if build_stderr is not None else ""
         self.build_stdout = build_stdout if build_stdout is not None else ""
         self.updated_command_list = updated_command_list
+        self.updated_filename = updated_filename
 
     def get_status(self) -> BuildStatus:
         return self.status
@@ -298,6 +300,12 @@ class BuildResponse:
 
     def set_updated_command_list(self, command_list):
         self.updated_command_list = command_list
+
+    def get_updated_filename(self):
+        return self.updated_filename
+
+    def set_updated_filename(self, filename: str):
+        self.updated_filename = filename
 
 
 class BuildStep:
@@ -438,6 +446,8 @@ class PayloadType:
 
         uuid (str):
             UUID of the payload
+        filename (str):
+            The original filename of the payload that the user selected
         c2info (list[C2ProfileParameters]):
             List of C2 Profiles that the user selected to build into the agent along with their parameter values
         commands (CommandList):
@@ -476,6 +486,7 @@ class PayloadType:
     commands: CommandList = None
     wrapped_payload: str = None
     selected_os: str = None
+    filename: str = None
     build_steps = []
     agent_icon_path: str = None
     agent_icon_bytes: bytes = None
@@ -490,6 +501,7 @@ class PayloadType:
     def __init__(
             self,
             uuid: str = None,
+            filename: str = "",
             c2info: [C2ProfileParameters] = None,
             selected_os: str = None,
             commands: CommandList = None,
@@ -499,6 +511,7 @@ class PayloadType:
         self.c2info = c2info
         self.selected_os = selected_os
         self.commands = commands
+        self.filename = filename
         self.wrapped_payload = wrapped_payload
         if self.agent_path is None:
             self.agent_path = pathlib.Path(".") / self.name

@@ -22,7 +22,8 @@ async def makePayloadBuildResponse(buildMessage: dict, buildResponse: PayloadBui
             "build_stderr": buildResponse.get_build_stderr(),
             "build_stdout": buildResponse.get_build_stdout(),
             "build_message": buildResponse.get_build_message(),
-            "updated_command_list": buildResponse.get_updated_command_list()
+            "updated_command_list": buildResponse.get_updated_command_list(),
+            "updated_filename": buildResponse.get_updated_filename()
         }
         if not response["success"]:
             if response["build_stderr"] == "":
@@ -58,6 +59,7 @@ async def buildWrapper(msg: bytes) -> None:
                 agent_builder = pt.__class__(
                     uuid=msgDict["uuid"],
                     c2info=c2info_list,
+                    filename=msgDict["filename"],
                     selected_os=msgDict["selected_os"],
                     commands=commands,
                     wrapped_payload=msgDict["wrapped_payload"] if "wrapped_payload" in msgDict else None,
