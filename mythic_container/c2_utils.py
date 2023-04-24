@@ -22,16 +22,20 @@ def kill(proc_pid):
 
 async def deal_with_stdout(c2_profile: str) -> str:
     output = ""
-    try:
-        line = await asyncio.wait_for(mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].stdout.readline(), timeout=3.0)
-        #async for line in mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].stdout:
-        #    output += line.decode()
-        output += line.decode()
-    except asyncio.TimeoutError:
-        pass
-    except Exception as e:
-        logger.exception(f"hit exception trying to get server output: {traceback.format_exc()}")
-
+    lines = 0
+    while True:
+        try:
+            line = await asyncio.wait_for(
+                mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].stdout.readline(), timeout=3.0)
+            output += line.decode()
+            lines += 1
+            if lines > 100:
+                break
+        except asyncio.TimeoutError:
+            break
+        except Exception as e:
+            logger.exception(f"hit exception trying to get server output: {traceback.format_exc()}")
+            return output + traceback.format_exc()
     return output
 
 
@@ -319,7 +323,7 @@ async def startServerBinary(
         cwd = c2.server_folder_path.resolve()
         os.chmod(path, mode=0o777)
         process = await asyncio.create_subprocess_shell(cmd=str(path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                                        shell=True, cwd=str(cwd))
+                                                        shell=True, cwd=str(cwd), env=os.environ.copy())
         mythic_container.C2ProfileBase.runningServers[c2.name]["process"] = process
         await asyncio.sleep(3)
         if process.returncode is not None:
@@ -417,7 +421,8 @@ async def stopServer(msg: bytes) -> bytes:
                         # now try to start it again
                         await asyncio.sleep(3)
                         response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                            Success=True, Error="", Message=f"Stopped server:\nOutput:{await deal_with_stdout(c2.name)}",
+                            Success=True, Error="",
+                            Message=f"Stopped server:\nOutput:{await deal_with_stdout(c2.name)}",
                             InternalServerRunning=False
                         )
                         mythic_container.C2ProfileBase.runningServers[c2.name]["output"] = ""
