@@ -13,7 +13,7 @@ pip install mythic-container
 
 ## How to use
 
-This container reports to mythic as version "v1.0.0" (PyPi version 0.1.18). Use it with Mythic version 3.0.0.
+Use it with Mythic version 3.0.0.
 
 For the main execution of the heartbeat and service functionality, simply import and start the service:
 ```

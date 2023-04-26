@@ -17,7 +17,6 @@ from . import webhook_utils
 from . import logging_utils
 from .rabbitmq import failedConnectRetryDelay
 
-
 # set the global hostname variable
 output = ""
 
@@ -110,8 +109,10 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
             logger.info(f"[*] Processing command {cls.cmd}")
             if pt.name not in MythicCommandBase.commands:
                 MythicCommandBase.commands[pt.name] = []
-            MythicCommandBase.commands[pt.name].append(cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
-            syncMessage["commands"].append(cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
+            MythicCommandBase.commands[pt.name].append(
+                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
+            syncMessage["commands"].append(
+                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
     while True:
         response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
             queue=mythic_container.PT_SYNC_ROUTING_KEY,
@@ -247,89 +248,105 @@ async def syncTranslatorData(tr: TranslationBase.TranslationContainer) -> None:
 
 async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
     if wb.new_startup is not None and callable(wb.new_startup):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_STARTUP),
-            routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_STARTUP),
-            handler=webhook_utils.new_startup
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_STARTUP),
+                routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_STARTUP),
+                handler=webhook_utils.new_startup
+            )))
     if wb.new_callback is not None and callable(wb.new_callback):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CALLBACK),
-            routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CALLBACK),
-            handler=webhook_utils.new_callback
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CALLBACK),
+                routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CALLBACK),
+                handler=webhook_utils.new_callback
+            )))
     if wb.new_feedback is not None and callable(wb.new_feedback):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK),
-            routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK),
-            handler=webhook_utils.new_feedback
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK),
+                routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK),
+                handler=webhook_utils.new_feedback
+            )))
     if wb.new_alert is not None and callable(wb.new_alert):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_ALERT),
-            routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_ALERT),
-            handler=webhook_utils.new_alert
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_ALERT),
+                routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_ALERT),
+                handler=webhook_utils.new_alert
+            )))
     if wb.new_custom is not None and callable(wb.new_custom):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
-            routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
-            handler=webhook_utils.new_custom
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
+                routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
+                handler=webhook_utils.new_custom
+            )))
     logger.info(f"Successfully started webhook service")
 
 
 async def syncLoggingData(wb: LoggingBase.Log) -> None:
     if wb.new_callback is not None and callable(wb.new_callback):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_CALLBACK),
-            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_CALLBACK),
-            handler=logging_utils.new_callback
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_CALLBACK),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_CALLBACK),
+                handler=logging_utils.new_callback
+            )))
     if wb.new_credential is not None and callable(wb.new_credential):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_CREDENTIAL),
-            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_CREDENTIAL),
-            handler=logging_utils.new_credential
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_CREDENTIAL),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_CREDENTIAL),
+                handler=logging_utils.new_credential
+            )))
     if wb.new_keylog is not None and callable(wb.new_keylog):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_KEYLOG),
-            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_KEYLOG),
-            handler=logging_utils.new_keylog
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_KEYLOG),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_KEYLOG),
+                handler=logging_utils.new_keylog
+            )))
     if wb.new_file is not None and callable(wb.new_file):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_FILE),
-            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_FILE),
-            handler=logging_utils.new_file
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_FILE),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_FILE),
+                handler=logging_utils.new_file
+            )))
     if wb.new_payload is not None and callable(wb.new_payload):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_PAYLOAD),
-            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_PAYLOAD),
-            handler=logging_utils.new_payload
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_PAYLOAD),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_PAYLOAD),
+                handler=logging_utils.new_payload
+            )))
     if wb.new_artifact is not None and callable(wb.new_artifact):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_ARTIFACT),
-            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_ARTIFACT),
-            handler=logging_utils.new_artifact
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_ARTIFACT),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_ARTIFACT),
+                handler=logging_utils.new_artifact
+            )))
     if wb.new_task is not None and callable(wb.new_task):
-        payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
-            queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_TASK),
-            routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_TASK),
-            handler=logging_utils.new_task
-        )))
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_TASK),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_TASK),
+                handler=logging_utils.new_task
+            )))
 
     logger.info(f"Successfully started logging service")
 
+
 consumingServices = []
+
+
 async def start_services():
     initialize()
 
-    logger.info(f"[+] Starting Services with version {mythic_container.containerVersion} and PyPi version {mythic_container.PyPi_version}\n")
+    logger.info(
+        f"[+] Starting Services with version {mythic_container.containerVersion} and PyPi version {mythic_container.PyPi_version}\n")
     webhook_services = WebhookBase.Webhook.__subclasses__()
     for cls in webhook_services:
         logger.info(f"[*] Processing webhook service")
@@ -375,8 +392,6 @@ async def start_services():
         await syncTranslatorData(translator)
         await startTranslatorRabbitMQ(translator)
 
-
-
     logger.info("[+] All services initialized!")
 
 
@@ -390,7 +405,7 @@ async def test_command(payload_type_name: str,
     logger.info(f"[*] Started testing {payload_type_name}'s {command_name} command")
     if operation_name is None or task_id is None:
         logger.info(f"[*] Specify an operation_name and task_id to get real data for testing."
-                     f"\nThis does not adjust your specified command/parameters, but allows MythicRPC calls to work properly")
+                    f"\nThis does not adjust your specified command/parameters, but allows MythicRPC calls to work properly")
     params = parameters_string
     if parameters_dictionary is not None:
         params = json.dumps(parameters_dictionary)
@@ -404,7 +419,8 @@ async def test_command(payload_type_name: str,
             for cmdcls in MythicCommandBase.CommandBase.__subclasses__():
                 if cmdcls.__module__.startswith(modulePrefix):
                     if cmdcls.cmd == command_name:
-                        commandInstance = cmdcls(payload_type.agent_path, payload_type.agent_code_path, payload_type.agent_browserscript_path)
+                        commandInstance = cmdcls(payload_type.agent_path, payload_type.agent_code_path,
+                                                 payload_type.agent_browserscript_path)
                         logger.info(f"[+] Found command: {commandInstance.cmd}")
                         opsecPre = MythicCommandBase.PTTaskMessageAllData(
                             task={
@@ -432,20 +448,23 @@ async def test_command(payload_type_name: str,
                             args=cmdcls.argument_class
                         )
                         if operation_name is None or task_id is None:
-                            logger.info(f"[*] operation_name is None, testing with fake data. Some MythicRPC functions might not work")
+                            logger.info(
+                                f"[*] operation_name is None, testing with fake data. Some MythicRPC functions might not work")
                         else:
                             logger.info(f"[*] Fetching information for task {task_id} of operation {operation_name}")
-                            fetchResp = await MythicGoRPC.SendMythicRPCTaskDisplayToRealIdSearch(MythicGoRPC.MythicRPCTaskDisplayToRealIdSearchMessage(
-                                TaskDisplayID=task_id,
-                                OperationName=operation_name
-                            ))
+                            fetchResp = await MythicGoRPC.SendMythicRPCTaskDisplayToRealIdSearch(
+                                MythicGoRPC.MythicRPCTaskDisplayToRealIdSearchMessage(
+                                    TaskDisplayID=task_id,
+                                    OperationName=operation_name
+                                ))
                             if not fetchResp.Success:
                                 logger.error(f"[-] Failed to find task: {fetchResp.Error}")
                                 sys.exit(1)
                             else:
-                                taskResp = await MythicGoRPC.SendMythicRPCTaskSearch(MythicGoRPC.MythicRPCTaskSearchMessage(
-                                    TaskID=fetchResp.TaskID,
-                                ))
+                                taskResp = await MythicGoRPC.SendMythicRPCTaskSearch(
+                                    MythicGoRPC.MythicRPCTaskSearchMessage(
+                                        TaskID=fetchResp.TaskID,
+                                    ))
                                 if not taskResp.Success:
                                     logger.error(f"[-] Failed to get task information: {taskResp.Error}")
                                     sys.exit(1)
@@ -453,17 +472,20 @@ async def test_command(payload_type_name: str,
                                     logger.error(f"[-] Failed to search for task information")
                                     sys.exit(1)
                                 else:
-                                    opsecPre.Task = MythicCommandBase.PTTaskMessageTaskData(**taskResp.Tasks[0].to_json())
+                                    opsecPre.Task = MythicCommandBase.PTTaskMessageTaskData(
+                                        **taskResp.Tasks[0].to_json())
                                     opsecPre.Task.CommandName = command_name
                                     opsecPre.Task.Params = params
                                     opsecPre.Task.OriginalParams = params
                                     opsecPre.Task.TaskingLocation = tasking_location
-                                    opsecPost.Task = MythicCommandBase.PTTaskMessageTaskData(**taskResp.Tasks[0].to_json())
+                                    opsecPost.Task = MythicCommandBase.PTTaskMessageTaskData(
+                                        **taskResp.Tasks[0].to_json())
                                     opsecPost.Task.CommandName = command_name
                                     opsecPost.Task.Params = params
                                     opsecPost.Task.OriginalParams = params
                                     opsecPost.Task.TaskingLocation = tasking_location
-                                    createTasking.Task = MythicCommandBase.PTTaskMessageTaskData(**taskResp.Tasks[0].to_json())
+                                    createTasking.Task = MythicCommandBase.PTTaskMessageTaskData(
+                                        **taskResp.Tasks[0].to_json())
                                     createTasking.Task.CommandName = command_name
                                     createTasking.Task.Params = params
                                     createTasking.Task.OriginalParams = params
@@ -479,7 +501,7 @@ async def test_command(payload_type_name: str,
                                 logger.exception(f"[*] Hit exception: {e}")
                         logger.info(f"[*] Testing Create Tasking")
                         task = await agent_utils.initialize_task(commandInstance, {
-                            "task":  createTasking.Task.to_json(),
+                            "task": createTasking.Task.to_json(),
                             "callback": createTasking.Callback.to_json()
                         }, "")
                         if task is None:
@@ -490,14 +512,17 @@ async def test_command(payload_type_name: str,
                                 if hasattr(commandInstance, "create_go_tasking"):
                                     if not await agent_utils.verifyTaskArgs(createTasking, ""):
                                         return
-                                    createTaskingResponse = await commandInstance.create_go_tasking(taskData=createTasking)
+                                    createTaskingResponse = await commandInstance.create_go_tasking(
+                                        taskData=createTasking)
                                     if createTaskingResponse.Params is None:
                                         # no manual args were set, so parse them from the task.args
                                         createTaskingResponse.Params = str(task.args)
-                                    logger.info(f"[+] Finished Create Tasking (new):\n{json.dumps(createTaskingResponse.to_json(), indent=4)}")
+                                    logger.info(
+                                        f"[+] Finished Create Tasking (new):\n{json.dumps(createTaskingResponse.to_json(), indent=4)}")
                                 else:
                                     createTaskingResponse = await commandInstance.create_tasking(task=task)
-                                    logger.info(f"[+] Finished Create Tasking (legacy):\n{json.dumps(createTaskingResponse.to_json(), indent=4)}")
+                                    logger.info(
+                                        f"[+] Finished Create Tasking (legacy):\n{json.dumps(createTaskingResponse.to_json(), indent=4)}")
                             except Exception as createTaskingException:
                                 logger.exception(f"[*] Hit exception: {createTaskingException}")
                         logger.info(f"[*] Testing OPSEC Post")

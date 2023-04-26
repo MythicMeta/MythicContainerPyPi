@@ -274,8 +274,8 @@ class Webhook:
         getWebhookChannel:
             This will automatically determine the channel to use by look at the operation configuration, this class' configuartion, and any env configurations
     """
-    webhook_url: str = None
-    webhook_channel: str = None
+    webhook_url: str = ""
+    webhook_channel: str = ""
 
     new_callback: Callable[[WebhookMessage], Awaitable[None]] = None
     new_feedback: Callable[[WebhookMessage], Awaitable[None]] = None
@@ -284,10 +284,10 @@ class Webhook:
     new_custom: Callable[[WebhookMessage], Awaitable[None]] = None
 
     def getWebhookURL(self, inputMsg: WebhookMessage) -> str:
-        if inputMsg.OperationWebhook is not None and inputMsg.OperationWebhook != "":
-            return inputMsg.OperationWebhook
-        elif settings.get("webhook_default_url", None) is not None:
+        if settings.get("webhook_default_url", "") != "":
             return settings.get("webhook_default_url")
+        elif inputMsg.OperationWebhook is not None and inputMsg.OperationWebhook != "":
+            return inputMsg.OperationWebhook
         elif self.webhook_url is not None:
             return self.webhook_url
         else:
@@ -295,25 +295,25 @@ class Webhook:
             return ""
 
     def getWebhookChannel(self, inputMsg: WebhookMessage) -> str:
-        if inputMsg.OperationChannel is not None and inputMsg.OperationChannel != "":
-            return inputMsg.OperationWebhook
-        elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_CALLBACK and settings.get(
-                "webhook_default_callback_channel", None) is not None:
+        if inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_CALLBACK and settings.get(
+                "webhook_default_callback_channel", "") != "":
             return settings.get("webhook_default_callback_channel")
         elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_FEEDBACK and settings.get(
-                "webhook_default_feedback_channel", None) is not None:
+                "webhook_default_feedback_channel", "") != "":
             return settings.get("webhook_default_feedback_channel")
         elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_STARTUP and settings.get(
-                "webhook_default_startup_channel", None) is not None:
+                "webhook_default_startup_channel", "") != "":
             return settings.get("webhook_default_startup_channel")
         elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_ALERT and settings.get(
-                "webhook_default_alert_channel", None) is not None:
+                "webhook_default_alert_channel", "") != "":
             return settings.get("webhook_default_alert_channel")
         elif inputMsg.Action == mythic_container.WEBHOOK_TYPE_NEW_CUSTOM and settings.get(
-                "webhook_default_custom_channel", None) is not None:
+                "webhook_default_custom_channel", "") != "":
             return settings.get("webhook_default_custom_channel")
-        elif settings.get("webhook_default_channel", None) is not None:
+        elif settings.get("webhook_default_channel", "") != "":
             return settings.get("webhook_default_channel")
+        elif inputMsg.OperationChannel is not None and inputMsg.OperationChannel != "":
+            return inputMsg.OperationWebhook
         elif self.webhook_channel is not None:
             return self.webhook_channel
         else:
