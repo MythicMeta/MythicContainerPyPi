@@ -24,6 +24,7 @@ class MythicRPCCallbackUpdateMessage:
                  Domain: str = None,
                  Architecture: str = None,
                  Description: str = None,
+                 ProcessName: str = None,
                  **kwargs):
         self.AgentCallbackUUID = AgentCallbackUUID
         self.CallbackID = CallbackID
@@ -43,6 +44,7 @@ class MythicRPCCallbackUpdateMessage:
         self.Domain = Domain
         self.Architecture = Architecture
         self.Description = Description
+        self.ProcessName = ProcessName
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -65,7 +67,8 @@ class MythicRPCCallbackUpdateMessage:
             "os": self.Os,
             "domain": self.Domain,
             "architecture": self.Architecture,
-            "description": self.Description
+            "description": self.Description,
+            "process_name": self.ProcessName
         }
 
 

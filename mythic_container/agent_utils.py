@@ -16,12 +16,12 @@ OPSEC_ROLE_OTHER_OPERATOR = "other_operator"
 async def makePayloadBuildResponse(buildMessage: dict, buildResponse: PayloadBuilder.BuildResponse) -> dict:
     try:
         response = {
-            "uuid": buildMessage["uuid"],
-            "agent_file_id": buildMessage["payload_file_uuid"],
+            "uuid": str(buildMessage["uuid"]),
+            "agent_file_id": str(buildMessage["payload_file_uuid"]),
             "success": True if str(buildResponse.get_status()) == "success" else False,
-            "build_stderr": buildResponse.get_build_stderr(),
-            "build_stdout": buildResponse.get_build_stdout(),
-            "build_message": buildResponse.get_build_message(),
+            "build_stderr": str(buildResponse.get_build_stderr()),
+            "build_stdout": str(buildResponse.get_build_stdout()),
+            "build_message": str(buildResponse.get_build_message()),
             "updated_command_list": buildResponse.get_updated_command_list(),
             "updated_filename": buildResponse.get_updated_filename()
         }
@@ -76,7 +76,8 @@ async def buildWrapper(msg: bytes) -> None:
                     logger.exception(f"[-] Failed to process build function for agent {pt.name}")
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                         queue=mythic_container.PT_BUILD_RESPONSE_ROUTING_KEY,
-                        body={"status": "error", "build_stderr": f"{traceback.format_exc()}\n{b}", "uuid": msgDict["uuid"]}
+                        body={"status": "error", "build_stderr": f"{traceback.format_exc()}\n{b}",
+                              "uuid": msgDict["uuid"]}
                     )
 
     except Exception as e:
@@ -172,7 +173,7 @@ async def verifyTaskArgs(
         message = {
             "task_id": task.Task.ID,
             "error": f"[-] failed to parse arguments for {task.Task.CommandName}: {pa}\n"
-                       + str(traceback.format_exc()),
+                     + str(traceback.format_exc()),
         }
         if error_routing_key == "":
             logger.exception(f"{ujson.dumps(message, indent=4)}")
@@ -188,7 +189,7 @@ async def verifyTaskArgs(
         message = {
             "task_id": task.Task.ID,
             "error": f"[-] {task.Task.CommandName} has arguments with invalid values: {va} \n"
-                       + str(traceback.format_exc()),
+                     + str(traceback.format_exc()),
         }
         if error_routing_key == "":
             logger.exception(f"{ujson.dumps(message, indent=4)}")
@@ -397,14 +398,18 @@ async def completionFunction(msg: bytes) -> None:
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["task"]["command_name"]:
-                            completionFunctionInput = MythicCommandBase.PTTaskCompletionFunctionMessage(args=cmd.argument_class, **msgDict)
-                            if not await verifyTaskArgs(completionFunctionInput.TaskData, mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE):
+                            completionFunctionInput = MythicCommandBase.PTTaskCompletionFunctionMessage(
+                                args=cmd.argument_class, **msgDict)
+                            if not await verifyTaskArgs(completionFunctionInput.TaskData,
+                                                        mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE):
                                 return
                             if completionFunctionInput.SubtaskData is not None:
                                 for subcmd in MythicCommandBase.commands[pt.name]:
                                     if subcmd.cmd == completionFunctionInput.SubtaskData.Task.CommandName:
-                                        completionFunctionInput.SubtaskData = MythicCommandBase.PTTaskMessageAllData(**msgDict["subtask"], args=subcmd.argument_class)
-                                        if not await verifyTaskArgs(completionFunctionInput.SubtaskData, mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE):
+                                        completionFunctionInput.SubtaskData = MythicCommandBase.PTTaskMessageAllData(
+                                            **msgDict["subtask"], args=subcmd.argument_class)
+                                        if not await verifyTaskArgs(completionFunctionInput.SubtaskData,
+                                                                    mythic_container.PT_TASK_COMPLETION_FUNCTION_RESPONSE):
                                             return
                                         break
                             try:
@@ -469,7 +474,8 @@ async def processResponse(msg: bytes) -> None:
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["task"]["command_name"]:
-                            taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict["task"], args=cmd.argument_class)
+                            taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict["task"],
+                                                                              args=cmd.argument_class)
                             try:
                                 response = await cmd.process_response(task=taskData, response=msgDict["response"])
                                 response.TaskID = taskData.Task.ID
@@ -482,7 +488,8 @@ async def processResponse(msg: bytes) -> None:
                             except Exception as opsecError:
                                 logger.exception(f"Failed to run process response: {opsecError}")
                                 response = MythicCommandBase.PTTaskProcessResponseMessageResponse(
-                                    TaskID=msgDict["task"]["task"]["id"], Success=False, Error=str(traceback.format_exc())
+                                    TaskID=msgDict["task"]["task"]["id"], Success=False,
+                                    Error=str(traceback.format_exc())
                                 )
                                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                                     queue=mythic_container.PT_TASK_PROCESS_RESPONSE_RESPONSE,
