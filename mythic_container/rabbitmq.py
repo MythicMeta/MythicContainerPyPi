@@ -1,4 +1,7 @@
 import concurrent.futures
+
+import aiormq.exceptions
+
 from .logging import logger
 import aio_pika
 import asyncio
@@ -152,6 +155,7 @@ class rabbitmqConnectionClass:
                         routing_key=queue,
                         mandatory=True,
                         immediate=False,
+                        timeout=20
                     )
                     result = await future
                     return result
@@ -237,6 +241,9 @@ class rabbitmqConnectionClass:
                         logger.error(f"asyncio.Future() finished in ReceiveFromMythicDirectExchange for {queue}")
                     except Exception as directException:
                         logger.exception(f"[-] exception trying to listen for direct messages on {queue}\n{directException}")
+            except aiormq.exceptions.ChannelLockedResource:
+                logger.error(f"[-] Another instance of this service, {queue.split('_')[0]}, is running, failed to start, trying again...")
+                await asyncio.sleep(failedConnectRetryDelay)
             except Exception as e:
                 logger.exception(f"[-] stopped listening for messages on {queue}, {e}")
                 await asyncio.sleep(failedConnectRetryDelay)
@@ -272,6 +279,9 @@ class rabbitmqConnectionClass:
                         await asyncio.Future()
                     finally:
                         logger.error(f"asyncio.Future() finished in ReceiveFromRPCQueue for queue {queue}")
+            except aiormq.exceptions.ChannelLockedResource:
+                logger.error(f"[-] Another instance of this service, {queue.split('_')[0]}, is running, failed to start, trying again...")
+                await asyncio.sleep(failedConnectRetryDelay)
             except Exception as e:
                 logger.exception(f"[-] stopped listening for messages on {queue}, {e}")
                 await asyncio.sleep(failedConnectRetryDelay)

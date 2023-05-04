@@ -392,7 +392,8 @@ async def start_services():
         await syncTranslatorData(translator)
         await startTranslatorRabbitMQ(translator)
 
-    logger.info("[+] All services initialized!")
+    logger.info("[+] All services synced with Mythic!")
+    logger.info("[*] Starting services to listen...")
 
 
 async def test_command(payload_type_name: str,
