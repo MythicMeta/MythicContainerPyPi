@@ -57,6 +57,8 @@ class BuildParameterType(str, Enum):
             The user can supply a dictionary of values
         Boolean:
             The user can toggle a switch for True/False
+        File:
+            The user can select a file that gets uploaded - a file UUID gets passed in during build
     """
     String = "String"
     ChooseOne = "ChooseOne"
@@ -64,6 +66,7 @@ class BuildParameterType(str, Enum):
     Date = "Date"
     Dictionary = "Dictionary"
     Boolean = "Boolean"
+    File = "File"
 
 
 class DictionaryChoice:
