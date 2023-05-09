@@ -97,7 +97,6 @@ class CommandAttributes:
         suggested_command (bool): If true, this command will appear on the "included" side when building your payload by default.
         load_only (bool): If true, this command can only be loaded after you have a callback and not included in the base payload.
         filter_by_build_parameter (dict): Specify if this command is allowed to be built into the payload or not based on build parameters the user specifies.
-        additional_items (dict): Additional, developer-supplied, key-value pairs
 
     Functions:
         to_json(self): return dictionary form of class
@@ -135,7 +134,7 @@ class CommandAttributes:
         r["suggested_command"] = self.suggested_command
         r["load_only"] = self.load_only
         r["filter_by_build_parameter"] = self.filter_by_build_parameter
-        r = {**r, **self.additional_items}
+        r["additional_items"] = self.additional_items
         return r
 
     def __str__(self):
@@ -172,7 +171,7 @@ class ParameterGroupInfo:
 
     def to_json(self):
         r = {"required": self.required, "group_name": self.group_name, "ui_position": self.ui_position}
-        r = {**r, **self.additional_info}
+        r = {"additional_info", self.additional_info}
         return r
 
     def __str__(self):

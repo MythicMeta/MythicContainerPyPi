@@ -7,7 +7,8 @@ MYTHIC_RPC_CALLBACK_SEARCH = "mythic_rpc_callback_search"
 
 class MythicRPCCallbackSearchMessage:
     def __init__(self,
-                 AgentCallbackID: str,
+                 AgentCallbackUUID: str = None,
+                 AgentCallbackID: int = None,
                  SearchCallbackID: int = None,
                  SearchCallbackDisplayID: int = None,
                  SearchCallbackUUID: str = None,
@@ -25,6 +26,7 @@ class MythicRPCCallbackSearchMessage:
                  SearchCallbackDescription: str = None,
                  **kwargs):
         self.AgentCallbackID = AgentCallbackID
+        self.AgentCallbackUUID = AgentCallbackUUID
         self.SearchCallbackID = SearchCallbackID
         self.SearchCallbackDisplayID = SearchCallbackDisplayID
         self.SearchCallbackUUID = SearchCallbackUUID
@@ -45,7 +47,8 @@ class MythicRPCCallbackSearchMessage:
 
     def to_json(self):
         return {
-            "agent_callback_id": self.AgentCallbackID,
+            "agent_callback_id": self.AgentCallbackUUID,
+            "callback_id": self.AgentCallbackID,
             "search_callback_id": self.SearchCallbackID,
             "search_callback_display_id": self.SearchCallbackDisplayID,
             "search_callback_uuid": self.SearchCallbackUUID,
