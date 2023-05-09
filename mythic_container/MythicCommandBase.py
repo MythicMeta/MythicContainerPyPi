@@ -170,8 +170,8 @@ class ParameterGroupInfo:
             self.additional_info[k] = v
 
     def to_json(self):
-        r = {"required": self.required, "group_name": self.group_name, "ui_position": self.ui_position}
-        r = {"additional_info", self.additional_info}
+        r = {"required": self.required, "group_name": self.group_name, "ui_position": self.ui_position,
+             "additional_info": self.additional_info}
         return r
 
     def __str__(self):
