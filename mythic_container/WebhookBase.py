@@ -313,7 +313,7 @@ class Webhook:
         elif settings.get("webhook_default_channel", "") != "":
             return settings.get("webhook_default_channel")
         elif inputMsg.OperationChannel is not None and inputMsg.OperationChannel != "":
-            return inputMsg.OperationWebhook
+            return inputMsg.OperationChannel
         elif self.webhook_channel is not None:
             return self.webhook_channel
         else:
