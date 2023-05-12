@@ -101,71 +101,77 @@ async def handleTranslationServices(tr_name: str):
 
 async def handleGenerateKeys(tr_name: str, client):
     try:
-        stream = client.GenerateEncryptionKeys()
-        await stream.write(TrGenerateEncryptionKeysMessageResponse(
-            Success=True,
-            TranslationContainerName=tr_name
-        ))
-        logger.debug(f"Connected to gRPC for generating encryption keys for {tr_name}")
-        async for request in stream.__aiter__():
-            try:
-                result = await translationServices[tr_name].generate_keys(request)
-                result.TranslationContainerName = tr_name
-                await stream.write(result)
-            except Exception as d:
-                logger.exception(f"Failed to process message:\n{d}")
-                await stream.write(TrGenerateEncryptionKeysMessageResponse(
-                    Success=False,
-                    TranslationContainerName=tr_name,
-                    Error=f"Failed to process message:\n{d}"
-                ))
+        while True:
+            stream = client.GenerateEncryptionKeys()
+            await stream.write(TrGenerateEncryptionKeysMessageResponse(
+                Success=True,
+                TranslationContainerName=tr_name
+            ))
+            logger.info(f"Connected to gRPC for generating encryption keys for {tr_name}")
+            async for request in stream:
+                try:
+                    result = await translationServices[tr_name].generate_keys(request)
+                    result.TranslationContainerName = tr_name
+                    await stream.write(result)
+                except Exception as d:
+                    logger.exception(f"Failed to process message:\n{d}")
+                    await stream.write(TrGenerateEncryptionKeysMessageResponse(
+                        Success=False,
+                        TranslationContainerName=tr_name,
+                        Error=f"Failed to process message:\n{d}"
+                    ))
+            logger.error(f"disconnected from gRPC for generating encryption keys for {tr_name}")
     except Exception as e:
         logger.exception(f"[-] exception in handleGenerateKeys for {tr_name}")
 
 
 async def handleCustomToMythic(tr_name: str, client):
     try:
-        stream = client.TranslateFromCustomToMythicFormat()
-        await stream.write(TrCustomMessageToMythicC2FormatMessageResponse(
-            Success=True,
-            TranslationContainerName=tr_name
-        ))
-        logger.debug(f"Connected to gRPC for handling CustomC2 to MythicC2 Translations for {tr_name}")
-        async for request in stream.__aiter__():
-            try:
-                result = await translationServices[tr_name].translate_from_c2_format(request)
-                result.TranslationContainerName = tr_name
-                await stream.write(result)
-            except Exception as d:
-                logger.exception(f"Failed to process message:\n{d}")
-                await stream.write(TrCustomMessageToMythicC2FormatMessageResponse(
-                    Success=False,
-                    TranslationContainerName=tr_name,
-                    Error=f"Failed to process message:\n{d}"
-                ))
+        while True:
+            stream = client.TranslateFromCustomToMythicFormat()
+            await stream.write(TrCustomMessageToMythicC2FormatMessageResponse(
+                Success=True,
+                TranslationContainerName=tr_name
+            ))
+            logger.info(f"Connected to gRPC for handling CustomC2 to MythicC2 Translations for {tr_name}")
+            async for request in stream:
+                try:
+                    result = await translationServices[tr_name].translate_from_c2_format(request)
+                    result.TranslationContainerName = tr_name
+                    await stream.write(result)
+                except Exception as d:
+                    logger.exception(f"Failed to process message:\n{d}")
+                    await stream.write(TrCustomMessageToMythicC2FormatMessageResponse(
+                        Success=False,
+                        TranslationContainerName=tr_name,
+                        Error=f"Failed to process message:\n{d}"
+                    ))
+            logger.error(f"disconnected from gRPC for doing custom->mythic c2 for {tr_name}")
     except Exception as e:
         logger.exception(f"[-] exception in handleCustomToMythic for {tr_name}")
 
 
 async def handleMythicToCustom(tr_name: str, client):
     try:
-        stream = client.TranslateFromMythicToCustomFormat()
-        await stream.write(TrMythicC2ToCustomMessageFormatMessageResponse(
-            Success=True,
-            TranslationContainerName=tr_name
-        ))
-        logger.debug(f"Connected to gRPC for handling MythicC2 to CustomC2 Translations for {tr_name}")
-        async for request in stream.__aiter__():
-            try:
-                result = await translationServices[tr_name].translate_to_c2_format(request)
-                result.TranslationContainerName = tr_name
-                await stream.write(result)
-            except Exception as d:
-                logger.exception(f"Failed to process message:\n{d}")
-                await stream.write(TrMythicC2ToCustomMessageFormatMessageResponse(
-                    Success=False,
-                    TranslationContainerName=tr_name,
-                    Error=f"Failed to process message:\n{d}"
-                ))
+        while True:
+            stream = client.TranslateFromMythicToCustomFormat()
+            await stream.write(TrMythicC2ToCustomMessageFormatMessageResponse(
+                Success=True,
+                TranslationContainerName=tr_name
+            ))
+            logger.info(f"Connected to gRPC for handling MythicC2 to CustomC2 Translations for {tr_name}")
+            async for request in stream:
+                try:
+                    result = await translationServices[tr_name].translate_to_c2_format(request)
+                    result.TranslationContainerName = tr_name
+                    await stream.write(result)
+                except Exception as d:
+                    logger.exception(f"Failed to process message:\n{d}")
+                    await stream.write(TrMythicC2ToCustomMessageFormatMessageResponse(
+                        Success=False,
+                        TranslationContainerName=tr_name,
+                        Error=f"Failed to process message:\n{d}"
+                    ))
+            logger.error(f"disconnected from gRPC for doing mythic->custom c2 for {tr_name}")
     except Exception as e:
         logger.exception(f"[-] exception in handleMythicToCustom for {tr_name}")
