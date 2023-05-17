@@ -22,7 +22,6 @@ class SupportedOS:
     Windows = "Windows"
     MacOS = "macOS"
     Linux = "Linux"
-    WebShell = "WebShell"
     Chrome = "Chrome"
 
     def __init__(self, os: str):

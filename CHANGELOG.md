@@ -1,3 +1,8 @@
+## [v0.2.8-rc04] - 2023-05-17
+
+### Changed
+
+- Decoded response searches back to string instead of leaving as bytes
 
 ## [v0.2.8-rc02] - 2023-05-12
 

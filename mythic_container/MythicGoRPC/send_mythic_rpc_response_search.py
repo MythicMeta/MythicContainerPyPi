@@ -29,7 +29,7 @@ class MythicRPCResponseSearchData:
                  task_id: int = None,
                  **kwargs):
         self.ResponseID = response_id
-        self.Response = base64.b64decode(response)
+        self.Response = base64.b64decode(response).decode()
         self.TaskID = task_id
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
