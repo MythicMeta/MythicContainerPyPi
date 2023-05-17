@@ -834,9 +834,7 @@ class C2ProfileParameter:
         return {
             "name": self.name,
             "description": self.description,
-            "default_value": self.default_value if self.parameter_type not in [ParameterType.Array,
-                                                                               ParameterType.Dictionary] else json.dumps(
-                self.default_value),
+            "default_value": self.default_value,
             "randomize": self.randomize,
             "format_string": self.format_string,
             "required": self.required,
