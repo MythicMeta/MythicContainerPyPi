@@ -508,7 +508,7 @@ class TypeValidators:
         "Boolean": validateBoolean,
         "File": validateFile,
         "Array": validateArray,
-        "Credential-JSON": validateCredentialJSON,
+        "CredentialJson": validateCredentialJSON,
         "ChooseOne": validatePass,
         "ChooseMultiple": validateChooseMultiple,
         "PayloadList": validatePayloadList,

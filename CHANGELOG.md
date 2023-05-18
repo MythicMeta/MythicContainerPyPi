@@ -1,3 +1,9 @@
+## [v0.2.8-rc05] - 2023-05-18
+
+### Changed
+
+- Updated the type validation keys from a typo for CredentialJson parameter types
+
 ## [v0.2.8-rc04] - 2023-05-17
 
 ### Changed
