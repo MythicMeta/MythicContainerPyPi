@@ -22,7 +22,6 @@ class SupportedOS:
     Windows = "Windows"
     MacOS = "macOS"
     Linux = "Linux"
-    WebShell = "WebShell"
     Chrome = "Chrome"
 
     def __init__(self, os: str):
@@ -509,7 +508,7 @@ class TypeValidators:
         "Boolean": validateBoolean,
         "File": validateFile,
         "Array": validateArray,
-        "Credential-JSON": validateCredentialJSON,
+        "CredentialJson": validateCredentialJSON,
         "ChooseOne": validatePass,
         "ChooseMultiple": validateChooseMultiple,
         "PayloadList": validatePayloadList,
@@ -752,6 +751,33 @@ class TaskArguments(metaclass=ABCMeta):
                     raise ValueError("Required arg {} has no value".format(arg.name))
         return True
 
+    async def get_unused_args(self) -> str:
+        if len(self.args) > 0:
+            caughtException = ""
+            try:
+                if self.manual_args is not None:
+                    groupName = ""
+                else:
+                    groupName = self.get_parameter_group_name()
+            except Exception as e:
+                logger.error(f"Failed to get group name for tasking: {e}\n")
+                caughtException = f"Failed to get group name for tasking: {e}\n"
+                groupName = "N/A"
+            temp = {}
+            for arg in self.args:
+                matched_arg = False
+                for group_info in arg.parameter_group_info:
+                    if group_info.group_name == groupName:
+                        matched_arg = True
+                if not matched_arg:
+                    if isinstance(arg.value, bytes):
+                        temp[arg.name] = base64.b64encode(arg.value).decode()
+                    else:
+                        temp[arg.name] = arg.value
+            return f"The following args aren't being used because they don't belong to the {groupName} parameter group: \n{json.dumps(temp, indent=2)}\n{caughtException}"
+        else:
+            return ""
+
     def __str__(self) -> str:
         if self.manual_args is not None:
             if isinstance(self.manual_args, dict):
@@ -772,8 +798,10 @@ class TaskArguments(metaclass=ABCMeta):
                 if matched_arg:
                     if isinstance(arg.value, bytes):
                         temp[arg.name] = base64.b64encode(arg.value).decode()
-                    else:
+                    elif arg.value is not None:
                         temp[arg.name] = arg.value
+                    else:
+                        logger.debug(f"Argument {arg.name} has a Null value, not adding it to JSON")
             return json.dumps(temp)
         else:
             return self.command_line

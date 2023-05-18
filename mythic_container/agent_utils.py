@@ -328,6 +328,10 @@ async def createTasking(msg: bytes) -> None:
                                             return
                                         createTaskingResponse = await cmd.create_go_tasking(taskData)
                                         createTaskingResponse.Params = str(taskData.args)
+                                        if createTaskingResponse.Stdout is None:
+                                            createTaskingResponse.Stdout = await taskData.args.get_unused_args()
+                                        else:
+                                            createTaskingResponse.Stdout += await taskData.args.get_unused_args()
                                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                                             queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
                                             body=createTaskingResponse.to_json()
