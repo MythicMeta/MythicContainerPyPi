@@ -100,6 +100,7 @@ async def initialize_task(
                 command_line=message_json["task"]["params"],
                 tasking_location=message_json["task"]["tasking_location"],
                 raw_command_line=message_json["task"]["original_params"],
+                initial_parameter_group=message_json["task"]["parameter_group_name"],
                 task_dictionary=message_json["task"],
             ),
             callback_info=message_json["callback"]

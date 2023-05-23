@@ -570,12 +570,14 @@ class TaskArguments(metaclass=ABCMeta):
                  command_line: str = "",
                  tasking_location: str = "command_line",
                  raw_command_line: str = "",
-                 task_dictionary: dict = {}):
+                 task_dictionary: dict = {},
+                 initial_parameter_group: str = ""):
         self.command_line = str(command_line)
         self.tasking_location = tasking_location
         self.raw_command_line = raw_command_line
         self.task_dictionary = task_dictionary
         self.parameter_group_name = None
+        self.initial_parameter_group = initial_parameter_group
 
     @property
     def args(self) -> list[CommandParameter]:
@@ -713,6 +715,8 @@ class TaskArguments(metaclass=ABCMeta):
                 raise ValueError(
                     f"Supplied Arguments, {suppliedArgNames}, match more than one parameter group, {groupNameOptions}, and all require at least one more value from the user")
             elif len(finalMatchingGroupNames) > 1:
+                if self.initial_parameter_group in finalMatchingGroupNames:
+                    return self.initial_parameter_group
                 raise ValueError(
                     f"Supplied Arguments, {suppliedArgNames}, match more than one parameter group, {finalMatchingGroupNames}")
             else:
@@ -838,12 +842,12 @@ class BrowserScript:
                     / "{}.js".format(self.script_name)
             )
             if code_file.exists():
-                code = code_file.read_bytes()
-                code = base64.b64encode(code).decode()
+                code = code_file.read_bytes().decode()
+                #code = base64.b64encode(code).decode()
                 return {"script": code, "name": self.script_name, "author": self.author}
             elif Path(self.script_name).exists():
-                code = Path(self.script_name).read_bytes()
-                code = base64.b64encode(code).decode()
+                code = Path(self.script_name).read_bytes().decode()
+                #code = base64.b64encode(code).decode()
                 return {"script": code, "name": self.script_name, "author": self.author}
             else:
                 raise Exception(
@@ -851,9 +855,6 @@ class BrowserScript:
                         code_file))
         except Exception as e:
             raise e
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
 class MythicTask:
@@ -1502,7 +1503,8 @@ class PTTaskMessageAllData:
             self.args = args(command_line=task["params"],
                              tasking_location=task["tasking_location"],
                              raw_command_line=task["original_params"],
-                             task_dictionary=task, )
+                             task_dictionary=task,
+                             initial_parameter_group=task["parameter_group_name"])
         else:
             self.args = args
         for k, v in kwargs.items():
