@@ -135,6 +135,102 @@ async def configChecks(msg: bytes) -> bytes:
         return ujson.dumps(response.to_json()).encode()
 
 
+async def getIOC(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == msgDict["c2_profile_name"]:
+                if callable(c2.get_ioc):
+                    try:
+                        result = await c2.config_check(mythic_container.C2ProfileBase.C2GetIOCMessage(**msgDict))
+                    except Exception as callEx:
+                        logger.exception(
+                            f"Failed to call get_ioc for {c2.name}")
+                        response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
+                            Success=False,
+                            Error=f"Failed to call config check function: {traceback.format_exc()}\n{callEx}"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                    if result is None:
+                        response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
+                            Success=False,
+                            Error=f"Failed to call config check function: No result returned"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                    elif isinstance(result, dict):
+                        response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(**result)
+                        return ujson.dumps(response).encode()
+                    elif isinstance(result, mythic_container.C2ProfileBase.C2GetIOCMessageResponse):
+                        return ujson.dumps(result.to_json()).encode()
+                    else:
+                        response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
+                            Success=False,
+                            Error=f"unknown result type from function: {result}"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                else:
+                    logger.error(f"get_ioc function for {c2.name} isn't callable")
+                    response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
+                        Success=False,
+                        Error=f"get ioc function for {c2.name} isn't callable"
+                    )
+                    return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call get_ioc function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
+async def sampleMessage(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == msgDict["c2_profile_name"]:
+                if callable(c2.sample_message):
+                    try:
+                        result = await c2.config_check(mythic_container.C2ProfileBase.C2SampleMessageMessage(**msgDict))
+                    except Exception as callEx:
+                        logger.exception(
+                            f"Failed to call get_ioc for {c2.name}")
+                        response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
+                            Success=False,
+                            Error=f"Failed to call sample_message function: {traceback.format_exc()}\n{callEx}"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                    if result is None:
+                        response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
+                            Success=False,
+                            Error=f"Failed to call sample message function: No result returned"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                    elif isinstance(result, dict):
+                        response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(**result)
+                        return ujson.dumps(response).encode()
+                    elif isinstance(result, mythic_container.C2ProfileBase.C2SampleMessageMessageResponse):
+                        return ujson.dumps(result.to_json()).encode()
+                    else:
+                        response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
+                            Success=False,
+                            Error=f"unknown result type from function: {result}"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                else:
+                    logger.error(f"sample_message function for {c2.name} isn't callable")
+                    response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
+                        Success=False,
+                        Error=f"sample message function for {c2.name} isn't callable"
+                    )
+                    return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call sample_message function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
 async def getDebugOutput(msg: bytes) -> bytes:
     try:
         msgDict = ujson.loads(msg)

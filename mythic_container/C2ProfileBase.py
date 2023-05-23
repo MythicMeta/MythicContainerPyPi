@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from .logging import logger
 import base64
 import sys
+from typing import List
 
 
 class C2OPSECMessage:
@@ -109,6 +110,154 @@ class C2ConfigCheckMessageResponse:
         Success (bool): Did the config check succeed or fail
         Error (str): Error message if the config check failed
         Message (str): Informative message about the config check if there was no error
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 Success: bool,
+                 Error: str = "",
+                 Message: str = "",
+                 **kwargs):
+        self.Success = Success
+        self.Error = Error
+        self.Message = Message
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+            "message": self.Message
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2GetIOCMessage:
+    """Payload's C2 Profile configuration for getting IOCs
+
+    Attributes:
+        Name (str): Name of the C2 Profile
+        Parameters (dict): Dictionary of C2 Parameter name:value
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 c2_profile_name: str,
+                 parameters: dict,
+                 **kwargs):
+        self.Name = c2_profile_name
+        self.Parameters = parameters
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "c2_profile_name": self.Name,
+            "parameters": self.Parameters
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2GetIOCMessageResponseIOC:
+    """An IOC to report back as part of a C2 Profile's get_ioc function
+
+    Attributes:
+        Type (str): The type of IOC (ex: Hash, URL)
+        IOC (str): The actual IOC value
+    """
+    def __init__(self,
+                 Type: str,
+                 IOC: str):
+        self.Type = Type
+        self.IOC = IOC
+
+    def to_json(self):
+        return {
+            "type": self.Type,
+            "ioc": self.IOC
+        }
+
+
+class C2GetIOCMessageResponse:
+    """Status of running C2 Profile's get_ioc function
+
+    Attributes:
+        Success (bool): Did the get ioc request succeed or fail
+        Error (str): Error message if the get ioc request failed
+        IOCs (List[C2GetIOCMessageResponseIOC]): List of the IOC values
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 Success: bool,
+                 Error: str = "",
+                 IOCs: List[C2GetIOCMessageResponseIOC] = [],
+                 **kwargs):
+        self.Success = Success
+        self.Error = Error
+        self.IOCs = IOCs
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+            "iocs": self.IOCs
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2SampleMessageMessage:
+    """Sample C2 message based on the Payload's configuration
+
+    Attributes:
+        Name (str): Name of the C2 Profile
+        Parameters (dict): Dictionary of C2 Parameter name:value
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 c2_profile_name: str,
+                 parameters: dict,
+                 **kwargs):
+        self.Name = c2_profile_name
+        self.Parameters = parameters
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "c2_profile_name": self.Name,
+            "parameters": self.Parameters
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2SampleMessageMessageResponse:
+    """Sample C2 Message based on the payload's configuration
+
+    Attributes:
+        Success (bool): Did the sample message generation succeed or fail
+        Error (str): Error message if the sample message generation failed
+        Message (str): Sample message to represent that C2 traffic would look like for this payload
 
     Functions:
         to_json(self): return dictionary form of class
@@ -870,6 +1019,10 @@ class C2Profile:
 
         redirect_rules
 
+        get_ioc
+
+        sample_message
+
     """
 
     async def opsec(self, inputMsg: C2OPSECMessage) -> C2OPSECMessageResponse:
@@ -901,6 +1054,27 @@ class C2Profile:
         :return: C2GetRedirectorRulesMessageResponse detailing some Apache ModRewrite rules for the payload
         """
         response = C2GetRedirectorRulesMessageResponse(Success=True)
+        response.Message = "Not Implemented"
+        response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
+        return response
+
+    async def get_ioc(self, inputMsg: C2GetIOCMessage) -> C2GetIOCMessageResponse:
+        """Generate IOCs for the network traffic associated with the specified c2 configuration
+
+        :param inputMsg: Payload's C2 Profile configuration
+        :return: C2GetIOCMessageResponse detailing some IOCs
+        """
+        response = C2GetIOCMessageResponse(Success=True)
+        response.IOCs = []
+        return response
+
+    async def sample_message(self, inputMsg: C2SampleMessageMessage) -> C2SampleMessageMessageResponse:
+        """Generate a sample message for this c2 profile based on the configuration specified
+
+        :param inputMsg: Payload's C2 Profile configuration
+        :return: C2SampleMessageMessageResponse detailing a sample message
+        """
+        response = C2SampleMessageMessageResponse(Success=True)
         response.Message = "Not Implemented"
         response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response

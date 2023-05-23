@@ -1,9 +1,9 @@
 from .rabbitmq import rabbitmqConnectionClass
 from .mythic_service import start_and_run_forever, test_command
 
-containerVersion = "v1.0.6"
+containerVersion = "v1.0.7"
 
-PyPi_version = "0.2.8"
+PyPi_version = "0.2.9"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -31,6 +31,8 @@ C2_SYNC_ROUTING_KEY = "c2_sync"
 C2_RPC_RESYNC_ROUTING_KEY = "c2_rpc_resync"
 C2_RPC_OPSEC_CHECKS_ROUTING_KEY = "c2_rpc_opsec_check"
 C2_RPC_CONFIG_CHECK_ROUTING_KEY = "c2_rpc_config_check"
+C2_RPC_GET_IOC_ROUTING_KEY = "c2_rpc_get_ioc"
+C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY = "c2_rpc_sample_message"
 C2_RPC_REDIRECTOR_RULES_ROUTING_KEY = "c2_rpc_redirector_rules"
 C2_RPC_START_SERVER_ROUTING_KEY = "c2_rpc_start_server"
 C2_RPC_STOP_SERVER_ROUTING_KEY = "c2_rpc_stop_server"

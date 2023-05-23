@@ -193,6 +193,16 @@ async def startC2RabbitMQ(c2: C2ProfileBase.C2Profile) -> None:
         routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_RESYNC_ROUTING_KEY),
         handler=c2_utils.reSyncC2Profile
     )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_GET_IOC_ROUTING_KEY),
+        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_GET_IOC_ROUTING_KEY),
+        handler=c2_utils.getIOC
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY),
+        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY),
+        handler=c2_utils.sampleMessage
+    )))
 
 
 async def syncC2ProfileData(c2: C2ProfileBase.C2Profile) -> None:
