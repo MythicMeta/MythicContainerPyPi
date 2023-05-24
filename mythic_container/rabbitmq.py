@@ -25,8 +25,9 @@ failedConnectTimeout = 1
 async def messageProcessThread(message: aio_pika.abc.AbstractIncomingMessage,
                                trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
     try:
-        await trueFunction(message.body)
+        logger.debug(f"Ack direct call to {message.routing_key}")
         await message.ack()
+        await trueFunction(message.body)
     except Exception as d:
         logger.exception(f"inner error: {d}")
 
@@ -35,11 +36,12 @@ async def directExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
                                  trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
     # run async supplied function as background thread
     logger.debug(f"Got direct call to {message.routing_key}")
-    async with message.process(ignore_processed=True) as messageContext:
+    #async with message.process(ignore_processed=True) as messageContext:
         # _thread = Thread(target=asyncio.run,
         #                 args=(messageProcessThread(message=messageContext, trueFunction=trueFunction),))
         # _thread.start()  # start thread
-        await messageProcessThread(message=messageContext, trueFunction=trueFunction)
+    #    await messageProcessThread(message=messageContext, trueFunction=trueFunction)
+    await messageProcessThread(message=message, trueFunction=trueFunction)
 
 
 async def messageProcessRPCThread(message: aio_pika.abc.AbstractIncomingMessage,
@@ -121,7 +123,8 @@ class rabbitmqConnectionClass:
                         routing_key=queue,
                         timeout=failedConnectRetryDelay,
                         mandatory=True,
-                        immediate=False)
+                        immediate=False,
+                    )
                     return
             except Exception as e:
                 logger.exception(f"[-] failed to send message: {e}")
