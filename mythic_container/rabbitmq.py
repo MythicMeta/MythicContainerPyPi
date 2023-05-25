@@ -4,7 +4,7 @@ import aiormq.exceptions
 
 from .logging import logger
 import aio_pika
-import asyncio
+import base64
 import mythic_container
 from .config import settings
 from collections.abc import Callable, Awaitable
@@ -25,6 +25,8 @@ failedConnectTimeout = 1
 async def messageProcessThread(message: aio_pika.abc.AbstractIncomingMessage,
                                trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
     try:
+        logger.debug(f"Ack direct call to {message.routing_key}")
+        await message.ack()
         await trueFunction(message.body)
     except Exception as d:
         logger.exception(f"inner error: {d}")
@@ -34,11 +36,12 @@ async def directExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
                                  trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
     # run async supplied function as background thread
     logger.debug(f"Got direct call to {message.routing_key}")
-    async with message.process() as messageContext:
+    #async with message.process(ignore_processed=True) as messageContext:
         # _thread = Thread(target=asyncio.run,
         #                 args=(messageProcessThread(message=messageContext, trueFunction=trueFunction),))
         # _thread.start()  # start thread
-        await messageProcessThread(message=messageContext, trueFunction=trueFunction)
+    #    await messageProcessThread(message=messageContext, trueFunction=trueFunction)
+    await messageProcessThread(message=message, trueFunction=trueFunction)
 
 
 async def messageProcessRPCThread(message: aio_pika.abc.AbstractIncomingMessage,
@@ -55,7 +58,7 @@ async def messageProcessRPCThread(message: aio_pika.abc.AbstractIncomingMessage,
 async def rpcExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
                               trueFunction: Callable[[bytes], Awaitable[any]]) -> None:
     # run async supplied function as background thread
-    async with message.process() as messageContext:
+    async with message.process(ignore_processed=True) as messageContext:
         # _thread = Thread(target=asyncio.run,
         #                 args=(messageProcessThread(message=messageContext, trueFunction=trueFunction),))
         # _thread.start()  # start thread
@@ -120,7 +123,8 @@ class rabbitmqConnectionClass:
                         routing_key=queue,
                         timeout=failedConnectRetryDelay,
                         mandatory=True,
-                        immediate=False)
+                        immediate=False,
+                    )
                     return
             except Exception as e:
                 logger.exception(f"[-] failed to send message: {e}")
@@ -131,12 +135,13 @@ class rabbitmqConnectionClass:
         return await self.SendMessage(queue=queue, body=ujson.dumps(body).encode())
 
     async def SendRPCMessage(self, queue: str, body: bytes) -> dict:
-        future = asyncio.get_event_loop().create_future()
-        logger.debug(f"Sending RPC message to {queue}")
+        correlation_id = str(uuid.uuid4())
+
         try:
-            correlation_id = str(uuid.uuid4())
-            self.futures[correlation_id] = future
             while True:
+                future = asyncio.get_event_loop().create_future()
+                self.futures[correlation_id] = future
+                logger.debug(f"Sending RPC message to {queue}")
                 connection = await self.GetConnection()
                 async with connection.channel(on_return_raises=True) as chan:
                     exchange = await chan.declare_exchange("mythic_exchange",
@@ -155,10 +160,17 @@ class rabbitmqConnectionClass:
                         routing_key=queue,
                         mandatory=True,
                         immediate=False,
-                        timeout=20
+                        timeout=None
                     )
-                    result = await future
-                    return result
+                    logger.debug(f"published RPC message to {queue}")
+                    try:
+                        async with asyncio.timeout(20):
+                            result = await future
+                            return result
+                    except asyncio.TimeoutError:
+                        # cancel the current future and move on to try again
+                        future.cancel()
+                        logger.error("hit timeout waiting for RPC response, retrying...")
         except Exception as e:
             logger.error(f"[-] failed to send rpc message to {queue}: {e}")
             future.set_result({})
@@ -175,6 +187,7 @@ class rabbitmqConnectionClass:
             if future:
                 try:
                     future.set_result(ujson.loads(message.body))
+                    logger.debug(f"got response for {message.routing_key}")
                 except Exception as fe:
                     logger.exception(f"Failed to process response as json: {fe}")
                     future.set_result({})
