@@ -135,12 +135,13 @@ class rabbitmqConnectionClass:
         return await self.SendMessage(queue=queue, body=ujson.dumps(body).encode())
 
     async def SendRPCMessage(self, queue: str, body: bytes) -> dict:
-        future = asyncio.get_event_loop().create_future()
-        logger.debug(f"Sending RPC message to {queue}")
+        correlation_id = str(uuid.uuid4())
+
         try:
-            correlation_id = str(uuid.uuid4())
-            self.futures[correlation_id] = future
             while True:
+                future = asyncio.get_event_loop().create_future()
+                self.futures[correlation_id] = future
+                logger.debug(f"Sending RPC message to {queue}")
                 connection = await self.GetConnection()
                 async with connection.channel(on_return_raises=True) as chan:
                     exchange = await chan.declare_exchange("mythic_exchange",
@@ -162,8 +163,14 @@ class rabbitmqConnectionClass:
                         timeout=None
                     )
                     logger.debug(f"published RPC message to {queue}")
-                    result = await future
-                    return result
+                    try:
+                        async with asyncio.timeout(20):
+                            result = await future
+                            return result
+                    except asyncio.TimeoutError:
+                        # cancel the current future and move on to try again
+                        future.cancel()
+                        logger.error("hit timeout waiting for RPC response, retrying...")
         except Exception as e:
             logger.error(f"[-] failed to send rpc message to {queue}: {e}")
             future.set_result({})
