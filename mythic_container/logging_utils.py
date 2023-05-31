@@ -99,3 +99,17 @@ async def new_task(msg: bytes) -> None:
                 logger.error(f"No valid function for new_task from logger")
     except Exception as e:
         logger.exception(f"Failed to execute new_task log: {e}")
+
+
+async def new_response(msg: bytes) -> None:
+    try:
+        msgDict = ujson.loads(msg)
+        loggingServices = Log.__subclasses__()
+        for cls in loggingServices:
+            definedLogger = cls()
+            if definedLogger.new_response is not None and callable(definedLogger.new_response):
+                await definedLogger.new_response(LoggingMessage(**msgDict))
+            else:
+                logger.error(f"No valid function for new_response from logger")
+    except Exception as e:
+        logger.exception(f"Failed to execute new_response log: {e}")

@@ -3,7 +3,7 @@ from .mythic_service import start_and_run_forever, test_command
 
 containerVersion = "v1.0.7"
 
-PyPi_version = "0.2.10"
+PyPi_version = "0.2.11-rc01"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -61,3 +61,4 @@ LOG_TYPE_ARTIFACT = "new_artifact"
 LOG_TYPE_TASK = "new_task"
 LOG_TYPE_PAYLOAD = "new_payload"
 LOG_TYPE_KEYLOG = "new_keylog"
+LOG_TYPE_RESPONSE = "new_response"

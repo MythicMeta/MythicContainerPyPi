@@ -345,6 +345,13 @@ async def syncLoggingData(wb: LoggingBase.Log) -> None:
                 routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_TASK),
                 handler=logging_utils.new_task
             )))
+    if wb.new_response is not None and callable(wb.new_response):
+        payloadQueueTasks.append(
+            asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
+                queue=getLoggingRoutingKey(mythic_container.LOG_TYPE_RESPONSE),
+                routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_RESPONSE),
+                handler=logging_utils.new_response
+            )))
 
     logger.info(f"Successfully started logging service")
 
