@@ -1,3 +1,9 @@
+## [v0.2.11-rc02] - 2023-06-01
+
+### Changed
+
+- Updated the logging/webhook listeners to use unique names so we don't round robin messages
+
 ## [v0.2.8-rc05] - 2023-05-18
 
 ### Changed

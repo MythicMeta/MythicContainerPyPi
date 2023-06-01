@@ -318,7 +318,7 @@ class rabbitmqConnectionClass:
                         internal=False,
                     )
                     q = await chan.declare_queue(
-                        name=queue,
+                        name="",
                         durable=False,
                         auto_delete=True,
                         exclusive=False,
