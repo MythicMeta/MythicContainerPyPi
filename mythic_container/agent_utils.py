@@ -105,22 +105,24 @@ async def initialize_task(
             ),
             callback_info=message_json["callback"]
         )
-        # if tasking came from the command_line or an unknown source, call parse_arguments to deal with unknown text
-        if task.args.tasking_location == "command_line":
-            await task.args.parse_arguments()
-        else:
-            # tasking didn't come from command line, so if we have a special function to parse dictionary entries,
-            # use it
-            if hasattr(task.args, "parse_dictionary") and callable(
-                    task.args.parse_dictionary
-            ):
+        if error_routing_key == mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE or \
+                error_routing_key == mythic_container.PT_TASK_CREATE_TASKING_RESPONSE:
+            # if tasking came from the command_line or an unknown source, call parse_arguments to deal with unknown text
+            if hasattr(task.args, "parse_dictionary") and callable(task.args.parse_dictionary):
                 # if we got tasking from a modal popup or from tab complete, then the task.args.command_line is a
                 # dictionary
-                await task.args.parse_dictionary(ujson.loads(message_json["task"]["params"]))
+                try:
+                    await task.args.parse_dictionary(ujson.loads(message_json["task"]["params"]))
+                except Exception as parseError:
+                    await task.args.parse_arguments()
             else:
-                # otherwise, we still just have to call the parse_arguments function
-                # this way we don't break any existing command parsing
                 await task.args.parse_arguments()
+        else:
+            try:
+                dictionary = ujson.loads(message_json["task"]["params"])
+                task.args.load_args_from_dictionary(dictionary, add_unknown_args=True)
+            except Exception as loadException:
+                pass
     except Exception as pa:
         message = {
             "task_id": message_json["task"]["id"],
@@ -133,7 +135,10 @@ async def initialize_task(
         )
         return None
     try:
-        await task.args.verify_required_args_have_values()
+        if error_routing_key == mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE or \
+                error_routing_key == mythic_container.PT_TASK_CREATE_TASKING_RESPONSE:
+            await task.args.verify_required_args_have_values()
+            task.parameter_group_name = task.args.get_parameter_group_name()
     except Exception as va:
         message = {
             "task_id": message_json["task"]["id"],
@@ -145,7 +150,6 @@ async def initialize_task(
             body=message
         )
         return None
-    task.parameter_group_name = task.args.get_parameter_group_name()
     return task
 
 
@@ -155,21 +159,22 @@ async def verifyTaskArgs(
 ) -> bool:
     try:
         # if tasking came from the command_line or an unknown source, call parse_arguments to deal with unknown text
-        if task.args.tasking_location == "command_line":
-            await task.args.parse_arguments()
-        else:
-            # tasking didn't come from command line, so if we have a special function to parse dictionary entries,
-            # use it
-            if hasattr(task.args, "parse_dictionary") and callable(
-                    task.args.parse_dictionary
-            ):
-                # if we got tasking from a modal popup or from tab complete, then the task.args.command_line is a
-                # dictionary
-                await task.args.parse_dictionary(ujson.loads(task.Task.Params))
+        if error_routing_key == mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE or \
+                error_routing_key == mythic_container.PT_TASK_CREATE_TASKING_RESPONSE:
+            if hasattr(task.args, "parse_dictionary") and callable(task.args.parse_dictionary):
+                try:
+                    await task.args.parse_dictionary(ujson.loads(task.Task.Params))
+                except Exception as parsingError:
+                    await task.args.parse_arguments()
             else:
-                # otherwise, we still just have to call the parse_arguments function
-                # this way we don't break any existing command parsing
                 await task.args.parse_arguments()
+        else:
+            try:
+                dictionary = ujson.loads(task.Task.Params)
+                task.args.load_args_from_dictionary(dictionary, add_unknown_args=True)
+            except Exception as loadException:
+                # must be looking at a task that doesn't have JSON-based parameters
+                pass
     except Exception as pa:
         message = {
             "task_id": task.Task.ID,
@@ -185,7 +190,10 @@ async def verifyTaskArgs(
             )
         return False
     try:
-        await task.args.verify_required_args_have_values()
+        if error_routing_key == mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE or \
+                error_routing_key == mythic_container.PT_TASK_CREATE_TASKING_RESPONSE:
+            await task.args.verify_required_args_have_values()
+            task.parameter_group_name = task.args.get_parameter_group_name()
     except Exception as va:
         message = {
             "task_id": task.Task.ID,
@@ -200,7 +208,7 @@ async def verifyTaskArgs(
                 body=message
             )
         return False
-    task.parameter_group_name = task.args.get_parameter_group_name()
+
     return True
 
 
@@ -267,6 +275,9 @@ async def opsecPostCheck(msg: bytes) -> None:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["command_name"]:
                             taskData = MythicCommandBase.PTTaskMessageAllData(**msgDict, args=cmd.argument_class)
+                            if not await verifyTaskArgs(taskData,
+                                                        mythic_container.PT_TASK_OPSEC_POST_CHECK_RESPONSE):
+                                return
                             try:
                                 response = await cmd.opsec_post(taskData=taskData)
                                 response.TaskID = taskData.Task.ID
@@ -315,62 +326,62 @@ async def createTasking(msg: bytes) -> None:
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["command_name"]:
-                            task = await initialize_task(cmd, msgDict, mythic_container.PT_TASK_CREATE_TASKING_RESPONSE)
-                            if task is None:
-                                # we hit an error and already sent the response, just return
-                                return
-                            else:
-                                try:
-                                    if hasattr(cmd, "create_go_tasking"):
-                                        taskData = mythic_container.MythicCommandBase.PTTaskMessageAllData(**msgDict,
-                                                                                                           args=cmd.argument_class)
-                                        if not await verifyTaskArgs(taskData,
-                                                                    mythic_container.PT_TASK_CREATE_TASKING_RESPONSE):
-                                            return
-                                        createTaskingResponse = await cmd.create_go_tasking(taskData)
-                                        createTaskingResponse.Params = str(taskData.args)
-                                        if createTaskingResponse.Stdout is None:
-                                            createTaskingResponse.Stdout = await taskData.args.get_unused_args()
-                                        else:
-                                            createTaskingResponse.Stdout += await taskData.args.get_unused_args()
-                                        await mythic_container.RabbitmqConnection.SendDictDirectMessage(
-                                            queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
-                                            body=createTaskingResponse.to_json()
-                                        )
+                            try:
+                                if hasattr(cmd, "create_go_tasking"):
+                                    taskData = mythic_container.MythicCommandBase.PTTaskMessageAllData(**msgDict,
+                                                                                                       args=cmd.argument_class)
+                                    if not await verifyTaskArgs(taskData,
+                                                                mythic_container.PT_TASK_CREATE_TASKING_RESPONSE):
                                         return
+                                    createTaskingResponse = await cmd.create_go_tasking(taskData)
+                                    createTaskingResponse.Params = str(taskData.args)
+                                    if createTaskingResponse.Stdout is None:
+                                        createTaskingResponse.Stdout = await taskData.args.get_unused_args()
                                     else:
-                                        createTaskingResponse = await cmd.create_tasking(task=task)
-                                        response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
-                                            TaskID=msgDict["task"]["id"],
-                                            Success=True,
-                                            TaskStatus=str(createTaskingResponse.status),
-                                            Params=str(createTaskingResponse.args),
-                                            DisplayParams=createTaskingResponse.display_params,
-                                            CommandName=task.command_name,
-                                            Stdout=createTaskingResponse.stdout,
-                                            Stderr=createTaskingResponse.stderr,
-                                            Completed=createTaskingResponse.completed,
-                                            ParameterGroupName=createTaskingResponse.args.get_parameter_group_name(),
-                                            CompletionFunctionName=createTaskingResponse.completed_callback_function,
-                                            TokenID=createTaskingResponse.token
-                                        )
-                                        await mythic_container.RabbitmqConnection.SendDictDirectMessage(
-                                            queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
-                                            body=response.to_json()
-                                        )
+                                        createTaskingResponse.Stdout += await taskData.args.get_unused_args()
+                                    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                        queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
+                                        body=createTaskingResponse.to_json()
+                                    )
+                                    return
+                                else:
+                                    task = await initialize_task(cmd, msgDict,
+                                                                 mythic_container.PT_TASK_CREATE_TASKING_RESPONSE)
+                                    if task is None:
+                                        # we hit an error and already sent the response, just return
                                         return
-                                except Exception as opsecError:
-                                    logger.exception(f"Failed to run create tasking: {opsecError}")
+                                    createTaskingResponse = await cmd.create_tasking(task=task)
                                     response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
                                         TaskID=msgDict["task"]["id"],
-                                        Success=False,
-                                        Error=f"{traceback.format_exc()}"
+                                        Success=True,
+                                        TaskStatus=str(createTaskingResponse.status),
+                                        Params=str(createTaskingResponse.args),
+                                        DisplayParams=createTaskingResponse.display_params,
+                                        CommandName=task.command_name,
+                                        Stdout=createTaskingResponse.stdout,
+                                        Stderr=createTaskingResponse.stderr,
+                                        Completed=createTaskingResponse.completed,
+                                        ParameterGroupName=createTaskingResponse.args.get_parameter_group_name(),
+                                        CompletionFunctionName=createTaskingResponse.completed_callback_function,
+                                        TokenID=createTaskingResponse.token
                                     )
                                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                                         queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
                                         body=response.to_json()
                                     )
                                     return
+                            except Exception as opsecError:
+                                logger.exception(f"Failed to run create tasking: {opsecError}")
+                                response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
+                                    TaskID=msgDict["task"]["id"],
+                                    Success=False,
+                                    Error=f"{traceback.format_exc()}"
+                                )
+                                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                                    queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
+                                    body=response.to_json()
+                                )
+                                return
         response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
             TaskID=msgDict["task"]["id"], Success=True,
             Error="Payload Type or Command not found, passing by default",

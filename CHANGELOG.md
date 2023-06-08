@@ -1,3 +1,12 @@
+
+## [v0.2.11-rc03] - 2023-06-08
+
+### Changed
+
+- Updated the processing of commands to only parse arguments in OPSECPre and CreateTasking
+- Updated the processing of commands to add unknown args for other stages of tasking in case CreateTasking manipulates the total arguments
+
+
 ## [v0.2.11-rc02] - 2023-06-01
 
 ### Changed

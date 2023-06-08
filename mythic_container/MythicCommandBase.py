@@ -658,18 +658,48 @@ class TaskArguments(metaclass=ABCMeta):
     def to_json(self):
         return [x.to_json() for x in self.args]
 
-    def load_args_from_json_string(self, command_line: str) -> None:
-        temp_dict = json.loads(command_line)
-        for k, v in temp_dict.items():
-            for arg in self.args:
-                if arg.name == k or arg.cli_name == k:
-                    arg.value = v
+    def load_args_from_json_string(self, command_line: str, add_unknown_args: bool = False) -> None:
+        try:
+            temp_dict = json.loads(command_line)
+            for k, v in temp_dict.items():
+                found = False
+                for arg in self.args:
+                    if arg.name == k or arg.cli_name == k:
+                        arg.value = v
+                        found = True
+                if not found and add_unknown_args:
+                    if isinstance(v, bool):
+                        self.add_arg(key=k, value=v, type=ParameterType.Boolean)
+                    elif isinstance(v, int) or isinstance(v, float):
+                        self.add_arg(key=k, value=v, type=ParameterType.Number)
+                    elif isinstance(v, dict):
+                        self.add_arg(key=k, value=v, type=ParameterType.ConnectionInfo)
+                    elif isinstance(v, list):
+                        self.add_arg(key=k, value=v, type=ParameterType.Array)
+                    else:
+                        self.add_arg(key=k, value=v, type=ParameterType.String)
+        except Exception as e:
+            logger.error("Tried parsing command line as JSON when it's not")
+            return
 
-    def load_args_from_dictionary(self, dictionary) -> None:
+    def load_args_from_dictionary(self, dictionary, add_unknown_args: bool = False) -> None:
         for k, v in dictionary.items():
+            found = False
             for arg in self.args:
                 if arg.name == k or arg.cli_name == k:
                     arg.value = v
+                    found = True
+            if not found and add_unknown_args:
+                if isinstance(v, bool):
+                    self.add_arg(key=k, value=v, type=ParameterType.Boolean)
+                elif isinstance(v, int) or isinstance(v, float):
+                    self.add_arg(key=k, value=v, type=ParameterType.Number)
+                elif isinstance(v, dict):
+                    self.add_arg(key=k, value=v, type=ParameterType.ConnectionInfo)
+                elif isinstance(v, list):
+                    self.add_arg(key=k, value=v, type=ParameterType.Array)
+                else:
+                    self.add_arg(key=k, value=v, type=ParameterType.String)
 
     def get_parameter_group_name(self) -> str:
         if self.parameter_group_name is not None:
