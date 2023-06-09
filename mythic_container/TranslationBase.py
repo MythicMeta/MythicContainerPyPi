@@ -7,6 +7,7 @@ from mythic_container.logging import logger
 from .config import settings
 import json
 from typing import List
+import sys
 
 
 class TrGenerateEncryptionKeysMessage:
@@ -281,11 +282,16 @@ translationServices: dict[str, TranslationContainer] = {}
 
 
 async def handleTranslationServices(tr_name: str):
+    maxInt = 2**31 - 1
     while True:
         try:
             logger.info(f"Attempting connection to gRPC for {tr_name}...")
             channel = grpc.aio.insecure_channel(
-                f'{settings.get("mythic_server_host", "127.0.0.1")}:{settings.get("mythic_server_grpc_port", 17444)}')
+                f'{settings.get("mythic_server_host", "127.0.0.1")}:{settings.get("mythic_server_grpc_port", 17444)}',
+                options=[
+                    ('grpc.max_send_message_length', maxInt),
+                    ('grpc.max_receive_message_length', maxInt),
+                ])
             await channel.channel_ready()
             client = TranslationContainerStub(channel=channel)
             genKeys = handleGenerateKeys(tr_name, client)
