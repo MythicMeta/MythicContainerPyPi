@@ -905,7 +905,7 @@ class MythicTask:
         self.callback = Callback(**callback_info)
         self.agent_task_id = taskinfo["agent_task_id"]
         self.token = taskinfo["token_id"]
-        if self.token <= 0:
+        if self.token is not None and self.token <= 0:
             self.token = None
         self.operator = taskinfo["operator_username"]
         self.opsec_pre_blocked = taskinfo["opsec_pre_blocked"]
@@ -1144,6 +1144,8 @@ class PTTaskCreateTaskingMessageResponse:
         self.Stderr = Stderr
         self.Completed = Completed
         self.TokenID = TokenID
+        if self.TokenID is not None and self.TokenID <= 0:
+            self.TokenID = None
         self.CompletionFunctionName = CompletionFunctionName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
@@ -1249,7 +1251,7 @@ class PTTaskMessageTaskData:
                  subtask_group_name: str = "",
                  tasking_location: str = "",
                  parameter_group_name: str = "",
-                 token_id: int = 0,
+                 token_id: int = None,
                  **kwargs):
         self.ID = id
         self.DisplayID = display_id
@@ -1285,6 +1287,8 @@ class PTTaskMessageTaskData:
         self.TaskingLocation = tasking_location
         self.ParameterGroupName = parameter_group_name
         self.TokenID = token_id
+        if self.TokenID is not None and self.TokenID <= 0:
+            self.TokenID = None
 
     def to_json(self):
         return {
@@ -1651,6 +1655,8 @@ class PTTaskCompletionFunctionMessageResponse:
         self.Stderr = Stderr
         self.Completed = Completed
         self.TokenID = TokenID
+        if self.TokenID is not None and self.TokenID <= 0:
+            self.TokenID = None
         self.CompletionFunctionName = CompletionFunctionName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName

@@ -175,6 +175,9 @@ class rabbitmqConnectionClass:
                         # cancel the current future and move on to try again
                         future.cancel()
                         logger.error("hit timeout waiting for RPC response, retrying...")
+                    except Exception as sendError:
+                        logger.error(sendError)
+
         except Exception as e:
             logger.error(f"[-] failed to send rpc message to {queue}: {e}")
             if future:

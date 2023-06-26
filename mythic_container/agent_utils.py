@@ -63,6 +63,7 @@ async def buildWrapper(msg: bytes) -> None:
                     selected_os=msgDict["selected_os"],
                     commands=commands,
                     wrapped_payload=msgDict["wrapped_payload"] if "wrapped_payload" in msgDict else None,
+                    wrapped_payload_uuid=msgDict["wrapped_payload_uuid"] if "wrapped_payload_uuid" in msgDict else None
                 )
                 try:
                     await agent_builder.set_and_validate_build_parameters(msgDict["build_parameters"])

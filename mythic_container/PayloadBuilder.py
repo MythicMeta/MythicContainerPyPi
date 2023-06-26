@@ -455,7 +455,9 @@ class PayloadType:
             List of C2 Profiles that the user selected to build into the agent along with their parameter values
         commands (CommandList):
             List of commands the user selected to build into the agent
-        wrapped_payload (str):
+        wrapped_payload (bytes):
+            If this is a wrapper payload type, this is the raw bytes of the payload to wrap
+        wrapped_payload_uuid (str):
             If this is a wrapper payload type, this is the UUID of the payload to wrap
         selected_os (str):
             The OS the user selected for the first step when building this payload
@@ -487,7 +489,8 @@ class PayloadType:
     uuid: str = None
     c2info: [C2ProfileParameters] = None
     commands: CommandList = None
-    wrapped_payload: str = None
+    wrapped_payload_uuid: str = None
+    wrapped_payload: bytes = None
     selected_os: str = None
     filename: str = None
     build_steps = []
@@ -508,7 +511,8 @@ class PayloadType:
             c2info: [C2ProfileParameters] = None,
             selected_os: str = None,
             commands: CommandList = None,
-            wrapped_payload: str = None,
+            wrapped_payload_uuid: str = None,
+            wrapped_payload: bytes = None
     ):
         self.uuid = uuid
         self.c2info = c2info
@@ -516,6 +520,7 @@ class PayloadType:
         self.commands = commands
         self.filename = filename
         self.wrapped_payload = wrapped_payload
+        self.wrapped_payload_uuid = wrapped_payload_uuid
         if self.agent_path is None:
             self.agent_path = pathlib.Path(".") / self.name
             logger.error(f"{self.name} has no agent_path set, setting to {self.agent_path}")

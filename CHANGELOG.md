@@ -6,6 +6,12 @@
 - Updated the processing of commands to only parse arguments in OPSECPre and CreateTasking
 - Updated the processing of commands to add unknown args for other stages of tasking in case CreateTasking manipulates the total arguments
 
+## [v0.2.11-rc6] - 2023-06-26
+
+### Changed
+
+- Updated to add `wrapped_payload_uuid` field for wrapper payloads to access UUID of wrapped payload during build
+- Updated token handling to always default to `None` if token id is None or 0
 
 ## [v0.2.11-rc02] - 2023-06-01
 
