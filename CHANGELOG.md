@@ -6,6 +6,12 @@
 - Updated the processing of commands to only parse arguments in OPSECPre and CreateTasking
 - Updated the processing of commands to add unknown args for other stages of tasking in case CreateTasking manipulates the total arguments
 
+## [v0.2.11-rc7] - 2023-06-29
+
+### Changed
+
+- Updated the MythicRPCTaskCreateSubtaskGroupMessageResponse response to take back a group of IDs rather than a single ID
+
 ## [v0.2.11-rc6] - 2023-06-26
 
 ### Changed

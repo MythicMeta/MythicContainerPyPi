@@ -55,11 +55,11 @@ class MythicRPCTaskCreateSubtaskGroupMessageResponse:
     def __init__(self,
                  success: bool = False,
                  error: str = "",
-                 task_id: int = None,
+                 task_ids: [int] = None,
                  **kwargs):
         self.Success = success
         self.Error = error
-        self.TaskID = task_id
+        self.TaskIDs = task_ids
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
