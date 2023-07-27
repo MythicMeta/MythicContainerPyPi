@@ -285,7 +285,12 @@ async def handleTranslationServices(tr_name: str):
         try:
             logger.info(f"Attempting connection to gRPC for {tr_name}...")
             channel = grpc.aio.insecure_channel(
-                f'{settings.get("mythic_server_host", "127.0.0.1")}:{settings.get("mythic_server_grpc_port", 17444)}')
+                f'{settings.get("mythic_server_host", "127.0.0.1")}:{settings.get("mythic_server_grpc_port", 17444)}',
+                options=[
+                    ('grpc.max_receive_message_length', 100 * 1024 * 1024),
+                    ('grpc.max_send_message_length', 100 * 1024 * 1024),
+                ]
+            )
             await channel.channel_ready()
             client = TranslationContainerStub(channel=channel)
             genKeys = handleGenerateKeys(tr_name, client)
