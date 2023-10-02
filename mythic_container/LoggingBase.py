@@ -163,17 +163,17 @@ class NewArtifactLoggingData:
 
     """
     def __init__(self,
-                 id: int,
-                 task_id: int,
-                 timestamp: str,
-                 artifact: bytes,
-                 base_artifact: str,
-                 operation_id: int,
-                 host: str,
+                 id: int = 0,
+                 task_id: int = 0,
+                 timestamp: str = "",
+                 artifact: bytes = b'',
+                 base_artifact: str = "",
+                 operation_id: int = 0,
+                 host: str = "",
                  **kwargs):
         self.ID = id
         self.TaskID = task_id
-        self.Artifact = base64.b64decode(artifact)
+        self.Artifact = base64.b64decode(artifact).decode()
         self.Timestamp = timestamp
         self.BaseArtifact = base_artifact
         self.OperationID = operation_id
@@ -185,7 +185,7 @@ class NewArtifactLoggingData:
         return {
             "id": self.ID,
             "task_id": self.TaskID,
-            "artifact": base64.b64encode(self.Artifact).decode(),
+            "artifact":self.Artifact,
             "base_artifact": self.BaseArtifact,
             "operation_id": self.OperationID,
             "host": self.Host
@@ -224,17 +224,17 @@ class NewCredentialLoggingData:
 
     """
     def __init__(self,
-                 id: int,
-                 task_id: int,
-                 timestamp: str,
-                 type: str,
-                 realm: str,
-                 operation_id: int,
-                 account: str,
-                 credential: str,
-                 operator_id: int,
-                 comment: str,
-                 deleted: bool,
+                 id: int = 0,
+                 task_id: int = 0,
+                 timestamp: str = "",
+                 type: str = "",
+                 realm: str = "",
+                 operation_id: int = 0,
+                 account: str = "",
+                 credential: str = "",
+                 operator_id: int = 0,
+                 comment: str = "",
+                 deleted: bool = False,
                  **kwargs):
         self.ID = id
         self.TaskID = task_id
@@ -318,29 +318,29 @@ class NewFileLoggingData:
             Any comment attached to the file
     """
     def __init__(self,
-                 id: int,
-                 agent_file_id: str,
-                 total_chunks: int,
-                 chunks_received: int,
-                 chunk_size: int,
-                 task_id: int,
-                 complete: bool,
-                 path: str,
-                 full_remote_path: bytes,
-                 host: str,
-                 is_payload: bool,
-                 is_screenshot: bool,
-                 is_download_from_agent: bool,
-                 mythictree_id: int,
-                 filename: bytes,
-                 delete_after_fetch: bool,
-                 operation_id: int,
-                 timestamp: str,
-                 deleted: bool,
-                 operator_id: int,
-                 md5: str,
-                 sha1: str,
-                 comment: str,
+                 id: int = 0,
+                 agent_file_id: str = "",
+                 total_chunks: int = 0,
+                 chunks_received: int = 0,
+                 chunk_size: int = 0,
+                 task_id: int = 0,
+                 complete: bool = False,
+                 path: str = "",
+                 full_remote_path: str = '',
+                 host: str = "",
+                 is_payload: bool = False,
+                 is_screenshot: bool = False,
+                 is_download_from_agent: bool = False,
+                 mythictree_id: int = 0,
+                 filename: str = '',
+                 delete_after_fetch: bool = False,
+                 operation_id: int = 0,
+                 timestamp: str = "",
+                 deleted: bool = False,
+                 operator_id: int = 0,
+                 md5: str = "",
+                 sha1: str = "",
+                 comment: str = "",
                  **kwargs):
         self.ID = id
         self.AgentFileID = agent_file_id
@@ -378,13 +378,13 @@ class NewFileLoggingData:
             "task_id": self.TaskID,
             "complete": self.Complete,
             "path": self.Path,
-            "full_remote_path": base64.b64encode(self.FullRemotePath).decode(),
+            "full_remote_path": self.FullRemotePath,
             "host": self.Host,
             "is_payload": self.IsPayload,
             "is_screenshot": self.IsScreenshot,
             "is_download_from_agent": self.IsDownloadFromAgent,
             "mythictree_id": self.MythicTreeID,
-            "filename": base64.b64encode(self.Filename).decode(),
+            "filename": self.Filename,
             "delete_after_fetch": self.DeleteAfterFetch,
             "operation_id": self.OperationID,
             "timestamp": self.Timestamp,
@@ -420,18 +420,18 @@ class NewKeylogLoggingData:
 
     """
     def __init__(self,
-                 id: int,
-                 task_id: int,
-                 timestamp: str,
-                 operation_id: int,
-                 keystrokes: bytes,
-                 window: str,
-                 user: str,
+                 id: int = 0,
+                 task_id: int = 0,
+                 timestamp: str = "",
+                 operation_id: int = 0,
+                 keystrokes: bytes = b'',
+                 window: str = "",
+                 user: str = "",
                  **kwargs):
         self.ID = id
         self.TaskID = task_id
         self.Timestamp = timestamp
-        self.Keystrokes = keystrokes
+        self.Keystrokes = keystrokes.decode()
         self.OperationID = operation_id
         self.Window = window
         self.User = user
@@ -499,26 +499,26 @@ class NewPayloadLoggingData:
 
     """
     def __init__(self,
-                 id: int,
-                 uuid: str,
-                 description: str,
-                 operator_id: int,
-                 creation_time: str,
-                 payload_type_id: int,
-                 operation_id: int,
-                 wrapped_payload_id: int,
-                 deleted: bool,
-                 build_phase: str,
-                 build_container: str,
-                 build_message: str,
-                 build_stderr: str,
-                 build_stdout: str,
-                 callback_alert: bool,
-                 auto_generated: bool,
-                 os: str,
-                 task_id: int,
-                 file_id: int,
-                 timestamp: str,
+                 id: int = 0,
+                 uuid: str = "",
+                 description: str = "",
+                 operator_id: int = 0,
+                 creation_time: str = "",
+                 payload_type_id: int = 0,
+                 operation_id: int = 0,
+                 wrapped_payload_id: int = 0,
+                 deleted: bool = False,
+                 build_phase: str = "",
+                 build_container: str = "",
+                 build_message: str = "",
+                 build_stderr: str = "",
+                 build_stdout: str = "",
+                 callback_alert: bool = False,
+                 auto_generated: bool = False,
+                 os: str = "",
+                 task_id: int = 0,
+                 file_id: int = 0,
+                 timestamp: str = "",
                  **kwargs):
         self.ID = id
         self.UUID = uuid
@@ -570,6 +570,46 @@ class NewPayloadLoggingData:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class NewResponseLoggingData:
+    """The base information about a new response within Mythic
+
+    Attributes:
+        ID (int):
+            The unique ID of the response within Mythic
+        TaskID (int):
+            The unique task ID that created this response.
+        TaskDisplayID (int):
+            The display ID for the task that created this response
+        Response (bytes):
+            The actual response for this keylog entry
+        Timestamp (str):
+            When this response was created
+    """
+    def __init__(self,
+                 id: int = 0,
+                 task_id: int = 0,
+                 task_display_id: int = 0,
+                 response: bytes = b'',
+                 timestamp: str = "",
+                 **kwargs):
+        self.ID = id
+        self.TaskID = task_id
+        self.TaskDisplayID = task_display_id
+        self.Response = base64.b64decode(response).decode()
+        self.Timestamp = timestamp
+        for k, v in kwargs.items():
+            logger.info(f"unknown kwarg {k} with value {v}")
+
+    def to_json(self):
+        return {
+            "id": self.ID,
+            "task_id": self.TaskID,
+            "task_display_id": self.TaskDisplayID,
+            "response": self.Response,
+            "timestamp": self.Timestamp
+        }
+
+
 class LoggingMessage:
     """The base information about a new logging event
 
@@ -590,6 +630,7 @@ class LoggingMessage:
                 NewCredentialLoggingData |
                 NewPayloadLoggingData |
                 PTTaskMessageTaskData |
+                NewResponseLoggingData |
                 None]
 
     def __init__(self,
@@ -619,6 +660,8 @@ class LoggingMessage:
             self.Data = NewPayloadLoggingData(**data)
         elif self.Action == mythic_container.LOG_TYPE_TASK:
             self.Data = PTTaskMessageTaskData(**data)
+        elif self.Action == mythic_container.LOG_TYPE_RESPONSE:
+            self.Data = NewResponseLoggingData(**data)
         else:
             self.Data = data
         for k, v in kwargs.items():
@@ -667,6 +710,8 @@ class Log:
             Handle new artifact log messages
         new_task(self, LoggingMessage):
             Handle new task log messages
+        new_response(self, LoggingMessage):
+            Handle new response (user_output) log messages
     """
     LogToFilePath: str
     LogLevel: str
@@ -679,3 +724,4 @@ class Log:
     new_payload: Callable[[LoggingMessage], Awaitable[None]] = None
     new_artifact: Callable[[LoggingMessage], Awaitable[None]] = None
     new_task: Callable[[LoggingMessage], Awaitable[None]] = None
+    new_response: Callable[[LoggingMessage], Awaitable[None]] = None

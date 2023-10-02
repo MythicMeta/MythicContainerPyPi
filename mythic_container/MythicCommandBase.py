@@ -69,6 +69,8 @@ class ParameterType(str, Enum):
     ConnectionInfo is a dictionary of Payload/C2 information to help make P2P connections easier for an agent.
 
     LinkInfo is a dictionary of the same information as ConnectionInfo, but presented to the user as a dropdown of choices.
+
+    TypedArray is an array of tuples that represent an element's type and its value: [ ("string", "abc"), ("int", "5") ]
     """
     String = "String"
     Boolean = "Boolean"
@@ -81,6 +83,7 @@ class ParameterType(str, Enum):
     Payload = "PayloadList"
     ConnectionInfo = "AgentConnect"
     LinkInfo = "LinkInfo"
+    TypedArray = "TypedArray"
 
 
 class CommandAttributes:
@@ -243,6 +246,75 @@ class PTRPCDynamicQueryFunctionMessageResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class PTRPCTypedArrayParseFunctionMessage:
+    """Request to parse CLI provided input for the TypedArray parameter type.
+
+    Attributes:
+        Command (str): Name of the command
+        ParameterName (str): Name of the parameter
+        PayloadType (str): Name of the PayloadType
+        Callback (int): ID of the Callback where this function is called. This can be used for PRC calls to Mythic
+        InputArray (list[str]): List of strings that the user supplied for the TypedArray parameter type
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 command: str,
+                 parameter_name: str,
+                 payload_type: str,
+                 callback: int,
+                 input_array: list[str]):
+        self.Command = command
+        self.ParameterName = parameter_name
+        self.PayloadType = payload_type
+        self.Callback = callback
+        self.InputArray = input_array
+
+    def to_json(self):
+        return {
+            "command": self.Command,
+            "parameter_name": self.ParameterName,
+            "payload_type": self.PayloadType,
+            "callback": self.Callback,
+            "input_array": self.InputArray
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class PTRPCTypedArrayParseFunctionMessageResponse:
+    """Results of parsing the user's input array into an array of tuples for the TypedArray parameter type
+
+    Attributes:
+        Success (bool): Did the dynamic query function successfully execute
+        Error (str): If the dynamic query function failed to run, this is the string error
+        TypedArray (list[tuple]): List of tuples (type, string) for the TypedArray parameter type
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 Success: bool = False,
+                 Error: str = None,
+                 TypedArray: list[tuple] = []):
+        self.Success = Success
+        self.Error = Error
+        self.TypedArray = TypedArray
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+            "typed_array": self.TypedArray
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class CommandParameter:
     """Definition of an argument for a command
 
@@ -252,7 +324,7 @@ class CommandParameter:
         display_name (str): More verbose name displayed to the user in the UI
         cli_name (str): More simplified name used when using tab-complete on the command line inside Mythic's UI
         description (str): Description of the argument displayed when the user hovers over the name of the argument.
-        choices (list[str]): Choices for the user to select if the type is ChooseOne or ChooseMultiple
+        choices (list[str]): Choices for the user to select if the type is ChooseOne, ChooseMultiple, or TypedArray
         default_value (any): Default value to populate for the user or to select if the user didn't provide anything (such as not using the modal popup).
         supported_agents (list[str]): When using the "Payload" Parameter Type, you can filter down which payloads are presented to the operator based on this list of supported agents.
         supported_agent_build_parameters (dict): When using the "Payload" Parameter Type, you can filter down which payloads are presented to the operator based on specific build parameters for specific payload types.
@@ -284,6 +356,8 @@ class CommandParameter:
             choices_are_loaded_commands: bool = False,
             dynamic_query_function: Callable[
                 [PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]] = None,
+            typedarray_parse_function: Callable[
+                [PTRPCTypedArrayParseFunctionMessage], Awaitable[PTRPCTypedArrayParseFunctionMessageResponse]] = None,
             parameter_group_info: [ParameterGroupInfo] = None
     ):
         self.name = name
@@ -316,6 +390,9 @@ class CommandParameter:
         self.dynamic_query_function = dynamic_query_function
         if not callable(dynamic_query_function) and dynamic_query_function is not None:
             raise Exception("dynamic_query_function is not callable")
+        self.typedarray_parse_function = typedarray_parse_function
+        if not callable(typedarray_parse_function) and typedarray_parse_function is not None:
+            raise Exception("typedarray_parse_function is not callable")
         self.parameter_group_info = parameter_group_info
         if self.parameter_group_info is None:
             self.parameter_group_info = [ParameterGroupInfo()]
@@ -377,13 +454,22 @@ class CommandParameter:
         self._supported_agent_build_parameters = supported_agent_build_parameters
 
     @property
-    def dynamic_query_func(self) -> Callable[
+    def dynamic_query_function(self) -> Callable[
         [PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]]:
         return self._dynamic_query_func
 
-    @dynamic_query_func.setter
-    def dynamic_query_func(self, dynamic_query_func):
+    @dynamic_query_function.setter
+    def dynamic_query_function(self, dynamic_query_func):
         self._dynamic_query_func = dynamic_query_func
+
+    @property
+    def typedarray_parse_function(self) -> Callable[
+        [PTRPCTypedArrayParseFunctionMessage], Awaitable[PTRPCTypedArrayParseFunctionMessageResponse]]:
+        return self._typedarray_parse_function
+
+    @typedarray_parse_function.setter
+    def typedarray_parse_function(self, typedarray_parse_function):
+        self._typedarray_parse_function = typedarray_parse_function
 
     @property
     def value(self):
@@ -501,6 +587,13 @@ class TypeValidators:
             return val
         else:
             raise ValueError("Not instance of dictionary")
+    def validateTypedArray(self, val):
+        if isinstance(val, list):
+            if len(val) > 0 and not isinstance(val[0], tuple):
+                raise ValueError("Value isn't a list of tuples")
+            return val
+        else:
+            raise ValueError("Value isn't a list")
 
     switch = {
         "String": validateString,
@@ -513,7 +606,8 @@ class TypeValidators:
         "ChooseMultiple": validateChooseMultiple,
         "PayloadList": validatePayloadList,
         "AgentConnect": validateAgentConnect,
-        "LinkInfo": validateAgentConnect
+        "LinkInfo": validateAgentConnect,
+        "TypedArray": validateTypedArray,
     }
 
     def validate(self, type: ParameterType, val: any):
@@ -658,18 +752,48 @@ class TaskArguments(metaclass=ABCMeta):
     def to_json(self):
         return [x.to_json() for x in self.args]
 
-    def load_args_from_json_string(self, command_line: str) -> None:
-        temp_dict = json.loads(command_line)
-        for k, v in temp_dict.items():
-            for arg in self.args:
-                if arg.name == k or arg.cli_name == k:
-                    arg.value = v
+    def load_args_from_json_string(self, command_line: str, add_unknown_args: bool = False) -> None:
+        try:
+            temp_dict = json.loads(command_line)
+            for k, v in temp_dict.items():
+                found = False
+                for arg in self.args:
+                    if arg.name == k or arg.cli_name == k:
+                        arg.value = v
+                        found = True
+                if not found and add_unknown_args:
+                    if isinstance(v, bool):
+                        self.add_arg(key=k, value=v, type=ParameterType.Boolean)
+                    elif isinstance(v, int) or isinstance(v, float):
+                        self.add_arg(key=k, value=v, type=ParameterType.Number)
+                    elif isinstance(v, dict):
+                        self.add_arg(key=k, value=v, type=ParameterType.ConnectionInfo)
+                    elif isinstance(v, list):
+                        self.add_arg(key=k, value=v, type=ParameterType.Array)
+                    else:
+                        self.add_arg(key=k, value=v, type=ParameterType.String)
+        except Exception as e:
+            logger.error("Tried parsing command line as JSON when it's not")
+            return
 
-    def load_args_from_dictionary(self, dictionary) -> None:
+    def load_args_from_dictionary(self, dictionary, add_unknown_args: bool = False) -> None:
         for k, v in dictionary.items():
+            found = False
             for arg in self.args:
                 if arg.name == k or arg.cli_name == k:
                     arg.value = v
+                    found = True
+            if not found and add_unknown_args:
+                if isinstance(v, bool):
+                    self.add_arg(key=k, value=v, type=ParameterType.Boolean)
+                elif isinstance(v, int) or isinstance(v, float):
+                    self.add_arg(key=k, value=v, type=ParameterType.Number)
+                elif isinstance(v, dict):
+                    self.add_arg(key=k, value=v, type=ParameterType.ConnectionInfo)
+                elif isinstance(v, list):
+                    self.add_arg(key=k, value=v, type=ParameterType.Array)
+                else:
+                    self.add_arg(key=k, value=v, type=ParameterType.String)
 
     def get_parameter_group_name(self) -> str:
         if self.parameter_group_name is not None:
@@ -875,7 +999,7 @@ class MythicTask:
         self.callback = Callback(**callback_info)
         self.agent_task_id = taskinfo["agent_task_id"]
         self.token = taskinfo["token_id"]
-        if self.token <= 0:
+        if self.token is not None and self.token <= 0:
             self.token = None
         self.operator = taskinfo["operator_username"]
         self.opsec_pre_blocked = taskinfo["opsec_pre_blocked"]
@@ -1114,6 +1238,8 @@ class PTTaskCreateTaskingMessageResponse:
         self.Stderr = Stderr
         self.Completed = Completed
         self.TokenID = TokenID
+        if self.TokenID is not None and self.TokenID <= 0:
+            self.TokenID = None
         self.CompletionFunctionName = CompletionFunctionName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
@@ -1219,7 +1345,7 @@ class PTTaskMessageTaskData:
                  subtask_group_name: str = "",
                  tasking_location: str = "",
                  parameter_group_name: str = "",
-                 token_id: int = 0,
+                 token_id: int = None,
                  **kwargs):
         self.ID = id
         self.DisplayID = display_id
@@ -1255,6 +1381,8 @@ class PTTaskMessageTaskData:
         self.TaskingLocation = tasking_location
         self.ParameterGroupName = parameter_group_name
         self.TokenID = token_id
+        if self.TokenID is not None and self.TokenID <= 0:
+            self.TokenID = None
 
     def to_json(self):
         return {
@@ -1621,6 +1749,8 @@ class PTTaskCompletionFunctionMessageResponse:
         self.Stderr = Stderr
         self.Completed = Completed
         self.TokenID = TokenID
+        if self.TokenID is not None and self.TokenID <= 0:
+            self.TokenID = None
         self.CompletionFunctionName = CompletionFunctionName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName

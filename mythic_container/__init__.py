@@ -1,9 +1,9 @@
 from .rabbitmq import rabbitmqConnectionClass
 from .mythic_service import start_and_run_forever, test_command
 
-containerVersion = "v1.0.7"
+containerVersion = "v1.1.0"
 
-PyPi_version = "0.2.10"
+PyPi_version = "0.3.0"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -13,6 +13,7 @@ PAYLOAD_BUILD_C2_ROUTING_KEY = "payload_c2_build"
 PT_SYNC_ROUTING_KEY = "pt_sync"
 PT_RPC_RESYNC_ROUTING_KEY = "pt_rpc_resync"
 PT_RPC_COMMAND_DYNAMIC_QUERY_FUNCTION = "pt_command_dynamic_query_function"
+PT_RPC_COMMAND_TYPEDARRAY_PARSE_FUNCTION = "pt_command_typedarray_parse"
 PAYLOAD_BUILD_ROUTING_KEY = "payload_build"
 PT_BUILD_RESPONSE_ROUTING_KEY = "pt_build_response"
 PT_BUILD_C2_RESPONSE_ROUTING_KEY = "pt_c2_build_response"
@@ -42,6 +43,7 @@ C2_RPC_GET_FILE = "c2_rpc_get_file"
 C2_RPC_REMOVE_FILE = "c2_rpc_remove_file"
 C2_RPC_LIST_FILE = "c2_rpc_list_file"
 C2_RPC_WRITE_FILE = "c2_rpc_write_file"
+C2_RPC_HOST_FILE_ROUTING_KEY = "c2_rpc_host_file"
 # tr routes
 TR_SYNC_ROUTING_KEY = "tr_sync"
 TR_RPC_RESYNC_ROUTING_KEY = "tr_rpc_resync"
@@ -61,3 +63,4 @@ LOG_TYPE_ARTIFACT = "new_artifact"
 LOG_TYPE_TASK = "new_task"
 LOG_TYPE_PAYLOAD = "new_payload"
 LOG_TYPE_KEYLOG = "new_keylog"
+LOG_TYPE_RESPONSE = "new_response"

@@ -11,12 +11,14 @@ class MythicRPCPayloadUpdateBuildStepMessage:
                  StepStdout: str = "",
                  StepStderr: str = "",
                  StepSuccess: bool = False,
+                 StepSkip: bool = False,
                  **kwargs):
         self.PayloadUUID = PayloadUUID
         self.StepName = StepName
         self.StepStdout = StepStdout
         self.StepStderr = StepStderr
         self.StepSuccess = StepSuccess
+        self.StepSkip = StepSkip
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -26,7 +28,8 @@ class MythicRPCPayloadUpdateBuildStepMessage:
             "step_name": self.StepName,
             "step_stdout": self.StepStdout,
             "step_stderr": self.StepStderr,
-            "step_success": self.StepSuccess
+            "step_success": self.StepSuccess,
+            "step_skip": self.StepSkip
         }
 
 

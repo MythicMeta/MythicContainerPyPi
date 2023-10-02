@@ -624,3 +624,51 @@ async def reSyncC2Profile(msg: bytes) -> bytes:
     except Exception as e:
         logger.exception(f"Failed to re-sync c2 profile: {e}")
         return ujson.dumps({"success": False, "error": f"Failed to sync: {traceback.format_exc()}\n{e}"}).encode()
+
+
+async def hostFile(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == msgDict["c2_profile_name"]:
+                if callable(c2.host_file):
+                    try:
+                        result = await c2.host_file(mythic_container.C2ProfileBase.C2HostFileMessage(**msgDict))
+                    except Exception as callEx:
+                        logger.exception(
+                            f"Failed to call host_file for {c2.name}")
+                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
+                            Success=False,
+                            Error=f"Failed to call config check function: {traceback.format_exc()}\n{callEx}"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                    if result is None:
+                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
+                            Success=False,
+                            Error=f"Failed to call host file: No result returned"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                    elif isinstance(result, dict):
+                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(**result)
+                        return ujson.dumps(response).encode()
+                    elif isinstance(result, mythic_container.C2ProfileBase.C2HostFileMessageResponse):
+                        return ujson.dumps(result.to_json()).encode()
+                    else:
+                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
+                            Success=False,
+                            Error=f"unknown result type from function: {result}"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                else:
+                    logger.error(f"host_file function for {c2.name} isn't callable")
+                    response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
+                        Success=False,
+                        Error=f"host file function for {c2.name} isn't callable"
+                    )
+                    return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call host_file function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()

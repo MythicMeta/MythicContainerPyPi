@@ -136,7 +136,7 @@ class rabbitmqConnectionClass:
 
     async def SendRPCMessage(self, queue: str, body: bytes) -> dict:
         correlation_id = str(uuid.uuid4())
-
+        future = None
         try:
             while True:
                 future = asyncio.get_event_loop().create_future()
@@ -155,13 +155,17 @@ class rabbitmqConnectionClass:
                                                reply_to=callback_queue.name,
                                                correlation_id=correlation_id)
                     # make sure the queue exists first before we try to send to it
-                    await exchange.publish(
-                        message=message,
-                        routing_key=queue,
-                        mandatory=True,
-                        immediate=False,
-                        timeout=None
-                    )
+                    try:
+                        await exchange.publish(
+                            message=message,
+                            routing_key=queue,
+                            mandatory=True,
+                            immediate=False,
+                            timeout=20
+                        )
+                    except Exception as err:
+                        future.cancel()
+                        logger.error("hit timeout trying to send RPC message, retrying...")
                     logger.debug(f"published RPC message to {queue}")
                     try:
                         async with asyncio.timeout(20):
@@ -171,9 +175,13 @@ class rabbitmqConnectionClass:
                         # cancel the current future and move on to try again
                         future.cancel()
                         logger.error("hit timeout waiting for RPC response, retrying...")
+                    except Exception as sendError:
+                        logger.error(sendError)
+
         except Exception as e:
             logger.error(f"[-] failed to send rpc message to {queue}: {e}")
-            future.set_result({})
+            if future:
+                future.set_result({})
             return {}
 
     def on_response(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
