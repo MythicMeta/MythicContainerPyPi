@@ -92,8 +92,8 @@ class NewCallbackLoggingData:
         self.Locked = locked
         self.OperationID = operation_id
         self.CryptoType = crypto_type
-        self.DecKey = base64.b64decode(dec_key) if dec_key is not None else None
-        self.EncKey = base64.b64decode(enc_key) if enc_key is not None else None
+        self.DecKey = dec_key
+        self.EncKey = enc_key
         self.OS = os
         self.Architecture = architecture
         self.Domain = domain
