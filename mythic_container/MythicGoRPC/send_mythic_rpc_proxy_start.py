@@ -11,11 +11,15 @@ CALLBACK_PORT_TYPE_INTERACTIVE = "interactive"
 class MythicRPCProxyStartMessage:
     """
     Start a new proxy session with Mythic.
+    For CALLBACK_PORT_TYPE_SOCKS and CALLBACK_PORT_TYPE_INTERACTIVE:
+        if LocalPort is 0, then Mythic will assign the next available port
     For PortType == CALLBACK_PORT_TYPE_SOCKS:
         LocalPort is used to open up a port on Mythic
     For PortType == CALLBACK_PORT_TYPE_RPORTFWD:
         LocalPort is used to open up a port on the host where the agent is running
         RemoteIP:RemotePort is used for Mythic to connect to when LocalPort gets a connection
+    For PortType == CALLBACK_PORT_TYPE_INTERACTIVE:
+        LocalPort is used to open up a port on Mythic
     """
 
     def __init__(self,
@@ -47,9 +51,11 @@ class MythicRPCProxyStartMessageResponse:
     def __init__(self,
                  success: bool = False,
                  error: str = "",
+                 local_port: int = 0,
                  **kwargs):
         self.Success = success
         self.Error = error
+        self.LocalPort = local_port
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 

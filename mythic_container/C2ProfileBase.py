@@ -879,6 +879,70 @@ class C2OtherServiceRPCMessageResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class C2HostFileMessage:
+    """Request to host a file through the C2 profile's server
+
+    Attributes:
+        Name (str): Name of the C2 Profile
+        FileUUID (str): UUID of the file to host
+        HostURL (str): URL to host the file (ex: /bob)
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 c2_profile_name: str,
+                 file_uuid: str,
+                 host_url: str,
+                 **kwargs):
+        self.Name = c2_profile_name
+        self.FileUUID = file_uuid
+        self.HostURL = host_url
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "c2_profile_name": self.Name,
+            "file_uuid": self.FileUUID,
+            "host_url": self.HostURL
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2HostFileMessageResponse:
+    """Status of hosting a file
+
+    Attributes:
+        Success (bool): Did the file get hosted or not
+        Error (str): Error message if the file failed be hosted
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 Success: bool,
+                 Error: str = "",
+                 **kwargs):
+        self.Success = Success
+        self.Error = Error
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class ParameterType(Enum):
     """Types of parameters available for C2 Profiles when building payloads
 
@@ -895,13 +959,17 @@ class ParameterType(Enum):
              The user can supply a dictionary of values
          Boolean:
              The user can toggle a switch for True/False
+         TypedArray:
+            The user can supply multiple values in an array format where each entry has a dropdown of choices for metadata
      """
     String = "String"
     ChooseOne = "ChooseOne"
+    ChooseMultiple = "ChooseMultiple"
     Array = "Array"
     Date = "Date"
     Dictionary = "Dictionary"
     Boolean = "Boolean"
+    TypedArray = "TypedArray"
 
 
 class DictionaryChoice:
@@ -1075,6 +1143,17 @@ class C2Profile:
         :return: C2SampleMessageMessageResponse detailing a sample message
         """
         response = C2SampleMessageMessageResponse(Success=True)
+        response.Message = "Not Implemented"
+        response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
+        return response
+
+    async def host_file(self, inputMsg: C2HostFileMessage) -> C2HostFileMessageResponse:
+        """Host a file through a c2 channel
+
+        :param inputMsg: The file UUID to host and which URL to host it at
+        :return: C2HostFileMessageResponse detailing success or failure to host the file
+        """
+        response = C2HostFileMessageResponse(Success=True)
         response.Message = "Not Implemented"
         response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response

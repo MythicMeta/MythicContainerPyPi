@@ -357,10 +357,10 @@ async def createTasking(msg: bytes) -> None:
                                         Success=True,
                                         TaskStatus=str(createTaskingResponse.status),
                                         Params=str(createTaskingResponse.args),
-                                        DisplayParams=createTaskingResponse.display_params,
+                                        DisplayParams=str(createTaskingResponse.display_params),
                                         CommandName=task.command_name,
-                                        Stdout=createTaskingResponse.stdout,
-                                        Stderr=createTaskingResponse.stderr,
+                                        Stdout=str(createTaskingResponse.stdout),
+                                        Stderr=str(createTaskingResponse.stderr),
                                         Completed=createTaskingResponse.completed,
                                         ParameterGroupName=createTaskingResponse.args.get_parameter_group_name(),
                                         CompletionFunctionName=createTaskingResponse.completed_callback_function,
@@ -603,6 +603,84 @@ async def dynamicQueryFunction(msg: bytes) -> bytes:
         response = mythic_container.MythicCommandBase.PTRPCDynamicQueryFunctionMessageResponse(
             Success=False,
             Error=f"Hit exception trying to call dynamic query function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
+async def typedTaskParseFunction(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, pt in PayloadBuilder.payloadTypes.items():
+            if pt.name == msgDict["payload_type"]:
+                if pt.name not in MythicCommandBase.commands:
+                    logger.error(f"[-] no commands for payload type, can't do typedarray parse function")
+                else:
+                    for cmd in MythicCommandBase.commands[pt.name]:
+                        if cmd.cmd == msgDict["command"]:
+                            if cmd.argument_class is not None:
+                                for param in cmd.argument_class(command_line="").args:
+                                    if param.name == msgDict["parameter_name"]:
+                                        if callable(param.typedarray_parse_function):
+                                            try:
+                                                result = await param.typedarray_parse_function(
+                                                    mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
+                                                        **msgDict))
+                                            except Exception as callEx:
+                                                logger.exception(
+                                                    f"Failed to call typedarray parse function for {cmd.cmd}")
+                                                result = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                                                    Success=False,
+                                                    Error=f"Failed to call typedarray parse function: {traceback.format_exc()}"
+                                                )
+                                                return ujson.dumps(result.to_json()).encode()
+                                            if result is None:
+                                                response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                                                    Success=False,
+                                                    Error=f"Failed to call typedarray parse function: No result returned"
+                                                )
+                                                return ujson.dumps(response.to_json()).encode()
+                                            elif isinstance(result, list):
+                                                response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                                                    Success=True,
+                                                    TypedArray=result
+                                                )
+                                                return ujson.dumps(response.to_json()).encode()
+                                            elif isinstance(result,
+                                                            mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse):
+                                                return ujson.dumps(result.to_json()).encode()
+                                            else:
+                                                response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                                                    Success=False,
+                                                    Error=f"unknown result type from function: {result}"
+                                                )
+                                                return ujson.dumps(response.to_json()).encode()
+                                        else:
+                                            logger.error(f"typedarray parse function for {cmd.cmd} isn't callable")
+                                            response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                                                Success=False,
+                                                Error=f"typedarray parse function for {cmd.cmd} isn't callable"
+                                            )
+                                            return ujson.dumps(response.to_json()).encode()
+                                response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"Failed to find parameter name for typedarray parse function: {msgDict['parameter_name']}"
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                            else:
+                                response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"No argument class for command {cmd.cmd}"
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                    response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+                        Success=False,
+                        Error=f"Failed to find command, {msgDict['command']}"
+                    )
+                    return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call typedarray parse function: {traceback.format_exc()}\n{e}"
         )
         return ujson.dumps(response.to_json()).encode()
 

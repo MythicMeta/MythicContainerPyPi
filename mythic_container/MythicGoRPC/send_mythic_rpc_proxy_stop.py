@@ -28,9 +28,11 @@ class MythicRPCProxyStopMessageResponse:
     def __init__(self,
                  success: bool = False,
                  error: str = "",
+                 local_port: int = 0,
                  **kwargs):
         self.Success = success
         self.Error = error
+        self.LocalPort = local_port
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 

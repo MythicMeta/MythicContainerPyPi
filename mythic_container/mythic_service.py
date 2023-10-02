@@ -84,6 +84,11 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
         handler=agent_utils.dynamicQueryFunction
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(pt.name, mythic_container.PT_RPC_COMMAND_TYPEDARRAY_PARSE_FUNCTION),
+        routing_key=getRoutingKey(pt.name, mythic_container.PT_RPC_COMMAND_TYPEDARRAY_PARSE_FUNCTION),
+        handler=agent_utils.typedTaskParseFunction
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(pt.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
         routing_key=getRoutingKey(pt.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
         handler=agent_utils.customRPCFunction
@@ -202,6 +207,11 @@ async def startC2RabbitMQ(c2: C2ProfileBase.C2Profile) -> None:
         queue=getRoutingKey(c2.name, mythic_container.C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY),
         routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY),
         handler=c2_utils.sampleMessage
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_HOST_FILE_ROUTING_KEY),
+        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_HOST_FILE_ROUTING_KEY),
+        handler=c2_utils.hostFile
     )))
 
 

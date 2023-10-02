@@ -49,6 +49,8 @@ class BuildParameterType(str, Enum):
             A string value
         ChooseOne:
             A list of choices for the user to select exactly one
+        ChooseMultiple:
+            A list of choices for the user to select 0 or more
         Array:
             The user can supply multiple values in an Array format
         Date:
@@ -59,14 +61,18 @@ class BuildParameterType(str, Enum):
             The user can toggle a switch for True/False
         File:
             The user can select a file that gets uploaded - a file UUID gets passed in during build
+        TypedArray:
+            The user can supply an array where each element also has a drop-down option of choices
     """
     String = "String"
     ChooseOne = "ChooseOne"
+    ChooseMultiple = "ChooseMultiple"
     Array = "Array"
     Date = "Date"
     Dictionary = "Dictionary"
     Boolean = "Boolean"
     File = "File"
+    TypedArray = "TypedArray"
 
 
 class DictionaryChoice:
