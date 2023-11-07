@@ -970,6 +970,7 @@ class ParameterType(Enum):
     Dictionary = "Dictionary"
     Boolean = "Boolean"
     TypedArray = "TypedArray"
+    File = "File"
 
 
 class DictionaryChoice:
@@ -1091,6 +1092,8 @@ class C2Profile:
 
         sample_message
 
+        host_file
+
     """
 
     async def opsec(self, inputMsg: C2OPSECMessage) -> C2OPSECMessageResponse:
@@ -1153,7 +1156,7 @@ class C2Profile:
         :param inputMsg: The file UUID to host and which URL to host it at
         :return: C2HostFileMessageResponse detailing success or failure to host the file
         """
-        response = C2HostFileMessageResponse(Success=True)
+        response = C2HostFileMessageResponse(Success=False)
         response.Message = "Not Implemented"
         response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response

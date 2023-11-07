@@ -1,4 +1,10 @@
 
+## [v0.3.3] - 2023-11-07
+
+### Changed
+
+- Added support for 'File' parameter types for C2 Profiles
+
 ## [v0.3.0] - 2023-10-02
 
 ### Changed
