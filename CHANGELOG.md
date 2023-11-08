@@ -1,4 +1,10 @@
 
+## [v0.3.4] - 2023-11-08
+
+### Changed
+
+- Added support for 'Number' parameter types for C2 Profiles
+
 ## [v0.3.3] - 2023-11-07
 
 ### Changed

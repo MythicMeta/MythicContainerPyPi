@@ -961,6 +961,10 @@ class ParameterType(Enum):
              The user can toggle a switch for True/False
          TypedArray:
             The user can supply multiple values in an array format where each entry has a dropdown of choices for metadata
+         File:
+            The user can supply a file, but this will get passed along as a UUID representing the file
+         Number:
+            An number
      """
     String = "String"
     ChooseOne = "ChooseOne"
@@ -971,6 +975,7 @@ class ParameterType(Enum):
     Boolean = "Boolean"
     TypedArray = "TypedArray"
     File = "File"
+    Number = "Number"
 
 
 class DictionaryChoice:
