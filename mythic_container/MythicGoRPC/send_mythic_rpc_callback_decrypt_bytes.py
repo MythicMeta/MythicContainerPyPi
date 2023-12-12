@@ -36,7 +36,7 @@ class MythicRPCCallbackDecryptBytesMessageResponse:
                  **kwargs):
         self.Success = success
         self.Error = error
-        self.Message = message
+        self.Message = base64.b64decode(message)
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 

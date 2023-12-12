@@ -1,4 +1,10 @@
 
+## [v0.3.5] - 2023-12-11
+
+### Changed
+
+- Fixed the MythicRPCEncryptBytes and MythicRPCDecryptBytes functions to base64 decode the responses back from Mythic
+
 ## [v0.3.4] - 2023-11-08
 
 ### Changed
