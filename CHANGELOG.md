@@ -1,4 +1,10 @@
 
+## [v0.3.6] - 2023-12-22
+
+### Changed
+
+- Fixed an issue with async timeout in rabbitmq from issue #10
+
 ## [v0.3.5] - 2023-12-11
 
 ### Changed

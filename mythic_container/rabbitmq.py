@@ -168,9 +168,8 @@ class rabbitmqConnectionClass:
                         logger.error("hit timeout trying to send RPC message, retrying...")
                     logger.debug(f"published RPC message to {queue}")
                     try:
-                        async with asyncio.timeout(20):
-                            result = await future
-                            return result
+                        result = await asyncio.wait_for(future, timeout=20)
+                        return result
                     except asyncio.TimeoutError:
                         # cancel the current future and move on to try again
                         future.cancel()
