@@ -1,4 +1,15 @@
 
+## [v0.4.2] - 2024-01-11
+
+### Changed
+
+- Removed the FileRegister MythicRPC Call
+- Updated the FileCreate MythicRPC Call to allow TaskID, PayloadUUID, or AgentCallbackID to be supplied
+  - This makes it possible to register new files with Mythic during payload build, translation containers, etc
+- Updated the DynamicQuery Parameters to now also have PayloadOS, PayloadUUID, CallbackDisplayID, and AgentCallbackID
+  - This should make it easier to use MythicRPC functionality to make more informed decisions
+- Updated container version to v1.1.4, Needs Mythic v3.2.13+
+  
 ## [v0.4.1] - 2024-01-10
 
 ### Changed

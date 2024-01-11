@@ -6,8 +6,13 @@ MYTHIC_RPC_FILE_CREATE = "mythic_rpc_file_create"
 
 
 class MythicRPCFileCreateMessage:
+    """
+    Must supply TaskID, PayloadUUID, or AgentCallbackID in order to properly assign the file to your operation
+    """
     def __init__(self,
-                 TaskID: int,
+                 TaskID: int = 0,
+                 PayloadUUID: str = "",
+                 AgentCallbackID: str = "",
                  FileContents: bytes = None,
                  DeleteAfterFetch: bool = False,
                  Filename: str = None,
@@ -18,6 +23,8 @@ class MythicRPCFileCreateMessage:
                  Comment: str = "",
                  **kwargs):
         self.TaskID = TaskID
+        self.PayloadUUID = PayloadUUID
+        self.AgentCallbackID = AgentCallbackID
         self.FileContents = FileContents
         self.DeleteAfterFetch = DeleteAfterFetch
         self.Filename = Filename
@@ -32,6 +39,8 @@ class MythicRPCFileCreateMessage:
     def to_json(self):
         return {
             "task_id": self.TaskID,
+            "payload_uuid": self.PayloadUUID,
+            "agent_callback_id": self.AgentCallbackID,
             "delete_after_fetch": self.DeleteAfterFetch,
             "filename": self.Filename,
             "is_screenshot": self.IsScreenshot,

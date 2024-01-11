@@ -1,9 +1,9 @@
 from .rabbitmq import rabbitmqConnectionClass
 from .mythic_service import start_and_run_forever, test_command
 
-containerVersion = "v1.1.2"
+containerVersion = "v1.1.4"
 
-PyPi_version = "0.4.1"
+PyPi_version = "0.4.2"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 

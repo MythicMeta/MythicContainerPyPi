@@ -20,7 +20,6 @@ from .send_mythic_rpc_credential_create import *
 from .send_mythic_rpc_credential_search import *
 from .send_mythic_rpc_file_create import *
 from .send_mythic_rpc_file_get_content import *
-from .send_mythic_rpc_file_register import *
 from .send_mythic_rpc_file_search import *
 from .send_mythic_rpc_file_update import *
 from .send_mythic_rpc_filebrowser_create import *

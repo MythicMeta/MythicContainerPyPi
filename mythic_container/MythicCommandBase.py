@@ -188,6 +188,10 @@ class PTRPCDynamicQueryFunctionMessage:
         ParameterName (str): Name of the parameter
         PayloadType (str): Name of the PayloadType
         Callback (int): ID of the Callback where this function is called. This can be used for PRC calls to Mythic
+        CallbackDisplayID (int): Display ID of the callback where this function is called
+        AgentCallbackID (str): Agent UUID of the callback where this function is called
+        PayloadOS (str): The selected OS when the backing payload for this callback was created
+        PayloadUUID (str): The UUID of the backing payload for this callback that can be used to fetch more information
 
     Functions:
         to_json(self): return dictionary form of class
@@ -197,18 +201,32 @@ class PTRPCDynamicQueryFunctionMessage:
                  command: str,
                  parameter_name: str,
                  payload_type: str,
-                 callback: int):
+                 callback: int,
+                 payload_os: str,
+                 payload_uuid: str,
+                 agent_callback_id: str,
+                 callback_display_id: int,
+                 **kwargs
+                 ):
         self.Command = command
         self.ParameterName = parameter_name
         self.PayloadType = payload_type
         self.Callback = callback
+        self.PayloadOS = payload_os
+        self.PayloadUUID = payload_uuid
+        self.AgentCallbackID = agent_callback_id
+        self.CallbackDisplayID = callback_display_id
 
     def to_json(self):
         return {
             "command": self.Command,
             "parameter_name": self.ParameterName,
             "payload_type": self.PayloadType,
-            "callback": self.Callback
+            "callback": self.Callback,
+            "payload_os": self.PayloadOS,
+            "payload_uuid": self.PayloadUUID,
+            "agent_callback_id": self.AgentCallbackID,
+            "callback_display_id": self.CallbackDisplayID
         }
 
     def __str__(self):
