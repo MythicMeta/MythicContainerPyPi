@@ -1674,7 +1674,6 @@ class PTOnNewCallbackAllData:
     Functions:
         to_json(self): return dictionary form of class
     """
-    args: TaskArguments
 
     def __init__(self,
                  callback: dict = {},

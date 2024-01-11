@@ -1,12 +1,12 @@
 
-## [v0.4.0] - 2024-01-10
+## [v0.4.1] - 2024-01-10
 
 ### Changed
 
 - Added a new optional `on_new_callback` function to the PayloadType class
   - This allows you to take additional actions on a new callback based on your payload type
 - Added new MythicRPC* functions for searching edges associated with a callback and for creating new tasks for a callback
-- Needs Mythic v3.2.12+
+- Needs Mythic v3.2.12+ to leverage new functionality
 
 ## [v0.3.6] - 2023-12-22
 
