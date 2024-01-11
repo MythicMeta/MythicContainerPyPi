@@ -5,6 +5,7 @@ from .send_mythic_rpc_artifact_create import *
 from .send_mythic_rpc_artifact_search import *
 from .send_mythic_rpc_callback_add_command import *
 from .send_mythic_rpc_callback_create import *
+from .send_mythic_rpc_callback_edge_search import *
 from .send_mythic_rpc_callback_decrypt_bytes import *
 from .send_mythic_rpc_callback_encrypt_bytes import *
 from .send_mythic_rpc_callback_remove_command import *
@@ -41,6 +42,7 @@ from .send_mythic_rpc_proxy_start import *
 from .send_mythic_rpc_proxy_stop import *
 from .send_mythic_rpc_response_create import *
 from .send_mythic_rpc_response_search import *
+from .send_mythic_rpc_task_create import *
 from .send_mythic_rpc_task_create_subtask import *
 from .send_mythic_rpc_task_create_subtask_group import *
 from .send_mythic_rpc_task_display_to_real_id_search import *

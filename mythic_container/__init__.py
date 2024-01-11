@@ -1,9 +1,9 @@
 from .rabbitmq import rabbitmqConnectionClass
 from .mythic_service import start_and_run_forever, test_command
 
-containerVersion = "v1.1.1"
+containerVersion = "v1.2.0"
 
-PyPi_version = "0.3.7"
+PyPi_version = "0.4.0"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -16,6 +16,8 @@ PT_RPC_COMMAND_DYNAMIC_QUERY_FUNCTION = "pt_command_dynamic_query_function"
 PT_RPC_COMMAND_TYPEDARRAY_PARSE_FUNCTION = "pt_command_typedarray_parse"
 PAYLOAD_BUILD_ROUTING_KEY = "payload_build"
 PT_BUILD_RESPONSE_ROUTING_KEY = "pt_build_response"
+PT_ON_NEW_CALLBACK_ROUTING_KEY = "pt_on_new_callback"
+PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY = "pt_on_new_callback_response"
 PT_BUILD_C2_RESPONSE_ROUTING_KEY = "pt_c2_build_response"
 PT_TASK_OPSEC_PRE_CHECK = "pt_task_opsec_pre_check"
 PT_TASK_OPSEC_PRE_CHECK_RESPONSE = "pt_task_opsec_pre_check_response"

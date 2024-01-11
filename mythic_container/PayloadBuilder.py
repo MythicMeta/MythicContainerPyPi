@@ -1,6 +1,8 @@
 from enum import Enum
 from abc import abstractmethod
 import base64
+
+from .MythicCommandBase import PTOnNewCallbackAllData, PTOnNewCallbackResponse
 from .logging import logger
 import json
 from collections.abc import Callable, Awaitable
@@ -84,6 +86,7 @@ class DictionaryChoice:
         default_value (str): Default value to fill in
 
     """
+
     def __init__(self,
                  name: str,
                  default_value: str = "",
@@ -131,6 +134,7 @@ class BuildParameter:
             Indicate if this value should be used to generate a crypto key or not
 
     """
+
     def __init__(
             self,
             name: str,
@@ -195,6 +199,7 @@ class C2ProfileParameters:
         get_parameters_dict:
             Get a dictionary of the parameters for the profile
     """
+
     def __init__(self, c2profile: dict, parameters: dict = None):
         self.parameters = {}
         self.c2profile = c2profile
@@ -221,6 +226,7 @@ class CommandList:
        get_commands:
            Get a list of the command names
    """
+
     def __init__(self, commands: [str] = None):
         self.commands = []
         if commands is not None:
@@ -264,6 +270,7 @@ class BuildResponse:
        get_commands:
            Get a list of the command names
    """
+
     def __init__(self, status: BuildStatus, payload: bytes = None, build_message: str = None, build_stderr: str = None,
                  build_stdout: str = None, updated_command_list: [str] = None, updated_filename: str = None):
         self.status = status
@@ -327,6 +334,7 @@ class BuildStep:
             The description of the step to display to users
 
    """
+
     def __init__(self,
                  step_name: str,
                  step_description: str):
@@ -354,6 +362,7 @@ class PTOtherServiceRPCMessage:
     Functions:
         to_json(self): return dictionary form of class
     """
+
     def __init__(self,
                  ServiceName: str = None,
                  service_name: str = None,
@@ -491,6 +500,8 @@ class PayloadType:
             Given an instance of a bare payload and all the configuration options that the user selected (build parameters, c2 profile parameters), build the payload
         get_parameter:
             Get the value of a build parameter
+        on_new_callback(self, newCallback):
+            Given the context of a new callback, perform some initial analysis and tasking
     """
     uuid: str = None
     c2info: [C2ProfileParameters] = None
@@ -590,6 +601,9 @@ class PayloadType:
     async def build(self) -> BuildResponse:
         pass
 
+    async def on_new_callback(self, newCallback: PTOnNewCallbackAllData) -> PTOnNewCallbackResponse:
+        return PTOnNewCallbackResponse(AgentCallbackID=newCallback.Callback.AgentCallbackID, Success=True)
+
     def get_parameter(self, name):
         for arg in self.build_parameters:
             if arg.name == name:
@@ -646,5 +660,6 @@ class PayloadType:
 
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
 
 payloadTypes: dict[str, PayloadType] = {}

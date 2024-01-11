@@ -1658,6 +1658,87 @@ class PTTaskMessageAllData:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class PTOnNewCallbackAllData:
+    """A container for all information about a callback including the callback, build parameters, commands, etc.
+
+    Note: Lowercase names are used in the __init__ function to auto-populate from JSON, but attributes are upper case.
+
+    Attributes:
+        Callback (PTTaskMessageCallbackData): The information about this callback
+        Payload (PTTaskMessagePayloadData): The information about this callback's associated payload
+        Commands (list[str]): The names of all the commands currently loaded into this callback
+        PayloadType (str): The name of the payload type
+        BuildParameters (list[MythicRPCPayloadConfigurationBuildParameter]): Information about the build parameters used to generate the payload for this callback
+        C2Profiles (list[MythicRPCPayloadConfigurationC2Profile]): Information about the c2 profiles associated with this callback and their values
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+    args: TaskArguments
+
+    def __init__(self,
+                 callback: dict = {},
+                 build_parameters: list[dict] = [],
+                 commands: list[str] = [],
+                 payload: dict = {},
+                 c2info: list[dict] = [],
+                 payload_type: str = "",
+                 **kwargs):
+        self.Callback = PTTaskMessageCallbackData(**callback)
+        self.Payload = PTTaskMessagePayloadData(**payload)
+        self.Commands = commands
+        self.PayloadType = payload_type
+        self.BuildParameters = [MythicRPCPayloadConfigurationBuildParameter(**x) for x in build_parameters]
+        self.C2Profiles = [MythicRPCPayloadConfigurationC2Profile(**x) for x in c2info]
+
+        for k, v in kwargs.items():
+            logger.info(f"unknown kwarg {k} with value {v}")
+
+    def to_json(self):
+        return {
+            "callback": self.Callback.to_json(),
+            "build_parameters": [x.to_json() for x in self.BuildParameters],
+            "commands": self.Commands,
+            "payload": self.Payload.to_json(),
+            "c2info": [x.to_json() for x in self.C2Profiles],
+            "payload_type": self.PayloadType
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class PTOnNewCallbackResponse:
+    """The result of executing the on_new_callback function for a payload type
+
+    Attributes:
+        AgentCallbackID (str): The Agent Callback UUID of the new callback
+        Success (bool): Did the function execute successfully or not
+        Error (str): If the function failed to execute, return an error message here
+
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+    def __init__(self,
+                 AgentCallbackID: str,
+                 Success: bool = True,
+                 Error: str = ""):
+        self.AgentCallbackID = AgentCallbackID
+        self.Success = Success
+        self.Error = Error
+
+    def to_json(self):
+        return {
+            "agent_callback_id": self.AgentCallbackID,
+            "success": self.Success,
+            "error": self.Error
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PTTaskCompletionFunctionMessage:
     """A request to execute the completion function for a task or subtask
 

@@ -54,6 +54,11 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
         handler=agent_utils.buildWrapper
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(pt.name, mythic_container.PT_ON_NEW_CALLBACK_ROUTING_KEY),
+        routing_key=getRoutingKey(pt.name, mythic_container.PT_ON_NEW_CALLBACK_ROUTING_KEY),
+        handler=agent_utils.onNewCallback
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
         queue=getRoutingKey(pt.name, mythic_container.PT_TASK_OPSEC_PRE_CHECK),
         routing_key=getRoutingKey(pt.name, mythic_container.PT_TASK_OPSEC_PRE_CHECK),
         handler=agent_utils.opsecPreCheck

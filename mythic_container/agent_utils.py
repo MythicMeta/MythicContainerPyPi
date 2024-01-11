@@ -89,6 +89,34 @@ async def buildWrapper(msg: bytes) -> None:
         )
 
 
+async def onNewCallback(msg: bytes) -> None:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, pt in PayloadBuilder.payloadTypes.items():
+            if pt.name == msgDict["payload_type"]:
+                agent_builder = pt.__class__()
+                try:
+                    callbackData = mythic_container.MythicCommandBase.PTOnNewCallbackAllData(**msgDict)
+                    callback_response = await agent_builder.on_new_callback(callbackData)
+                    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                        queue=mythic_container.PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
+                        body=callback_response.to_json()
+                    )
+                except Exception as b:
+                    logger.exception(f"[-] Failed to process on_new_callback for agent {pt.name}")
+                    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                        queue=mythic_container.PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
+                        body={"success": False, "error": f"{traceback.format_exc()}\n{b}",
+                              "agent_callback_id": msgDict["callback"]["agent_callback_id"]}
+                    )
+    except Exception as e:
+        logger.exception(f"[-] Failed to process on_new_callback request")
+        await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+            queue=mythic_container.PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
+            body={"success": False, "build_stderr": f"{traceback.format_exc()}\n{e}"}
+        )
+
+
 async def initialize_task(
         command_class: MythicCommandBase.CommandBase,
         message_json: dict,
