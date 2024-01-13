@@ -202,10 +202,10 @@ class PTRPCDynamicQueryFunctionMessage:
                  parameter_name: str,
                  payload_type: str,
                  callback: int,
-                 payload_os: str,
-                 payload_uuid: str,
-                 agent_callback_id: str,
-                 callback_display_id: int,
+                 payload_os: str = "",
+                 payload_uuid: str = "",
+                 agent_callback_id: str = "",
+                 callback_display_id: int = 0,
                  **kwargs
                  ):
         self.Command = command

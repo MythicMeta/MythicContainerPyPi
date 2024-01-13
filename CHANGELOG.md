@@ -1,4 +1,10 @@
 
+## [v0.4.3] - 2024-01-13
+
+### Changed
+
+- Updated the DynamicFunctionQuery attributes to be optional and not required
+
 ## [v0.4.2] - 2024-01-11
 
 ### Changed
