@@ -317,7 +317,7 @@ class PTRPCTypedArrayParseFunctionMessageResponse:
     def __init__(self,
                  Success: bool = False,
                  Error: str = None,
-                 TypedArray: list[tuple] = []):
+                 TypedArray: list[list] = []):
         self.Success = Success
         self.Error = Error
         self.TypedArray = TypedArray
@@ -586,7 +586,7 @@ class TypeValidators:
         if isinstance(val, dict):
             return val
         else:
-            raise ValueError("value ins't a dictionary")
+            raise ValueError("value isn't a dictionary")
 
     def validatePass(self, val):
         return val
@@ -605,9 +605,10 @@ class TypeValidators:
             return val
         else:
             raise ValueError("Not instance of dictionary")
+
     def validateTypedArray(self, val):
         if isinstance(val, list):
-            if len(val) > 0 and not isinstance(val[0], tuple):
+            if len(val) > 0 and (not isinstance(val[0], tuple) and not isinstance(val[0], list)):
                 raise ValueError("Value isn't a list of tuples")
             return val
         else:
@@ -791,6 +792,7 @@ class TaskArguments(metaclass=ABCMeta):
                     else:
                         self.add_arg(key=k, value=v, type=ParameterType.String)
         except Exception as e:
+            logger.error(e)
             logger.error("Tried parsing command line as JSON when it's not")
             return
 

@@ -1,4 +1,13 @@
 
+## [v0.4.4] - 2024-01-13
+
+### Changed
+
+- Updated the typedarray_parse_function to be called after parse_dictionary or parse_arguments is called
+  - Parsing dictionary and arguments should simply make sure that there's data in the typed array parameter
+  - The `typedarray_parse_function` will be called if the value after parse_dictionary or parse_arguments is `[ ["", "string"], ["", "value" ]]` or `[ "value", "value" ]` formats.
+    - The first format with the empty first value is how Mythic's UI parsing will interpret the arrays
+
 ## [v0.4.3] - 2024-01-13
 
 ### Changed

@@ -152,6 +152,31 @@ async def initialize_task(
                 task.args.load_args_from_dictionary(dictionary, add_unknown_args=True)
             except Exception as loadException:
                 pass
+        for arg in task.args.args:
+            if arg.type == MythicCommandBase.ParameterType.TypedArray and callable(arg.typedarray_parse_function):
+                if len(arg.value) > 0 and arg.value[0][0] == "":
+                    resp = await arg.typedarray_parse_function(MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
+                        command=command_class.cmd,
+                        parameter_name=arg.name,
+                        payload_type="",
+                        callback=message_json["callback"]["id"],
+                        input_array=arg.value
+                    ))
+                    if not resp.Success:
+                        raise Exception(resp.Error)
+                    arg.value = resp.TypedArray
+            elif len(arg.value) > 0 and isinstance(arg.value[0], str):
+                resp = await arg.typedarray_parse_function(MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
+                    command=command_class.cmd,
+                    parameter_name=arg.name,
+                    payload_type="",
+                    callback=message_json["callback"]["id"],
+                    input_array=arg.value
+                ))
+                if not resp.Success:
+                    raise Exception(resp.Error)
+                task.args.set_arg(arg.name, resp.TypedArray)
+
     except Exception as pa:
         message = {
             "task_id": message_json["task"]["id"],
@@ -204,6 +229,32 @@ async def verifyTaskArgs(
             except Exception as loadException:
                 # must be looking at a task that doesn't have JSON-based parameters
                 pass
+        for arg in task.args.args:
+            if arg.type == MythicCommandBase.ParameterType.TypedArray and callable(arg.typedarray_parse_function):
+                if len(arg.value) > 0 and arg.value[0][0] == "":
+                    inputArray = [x[1] for x in arg.value]
+                    resp = await arg.typedarray_parse_function(MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
+                        command=task.Task.CommandName,
+                        parameter_name=arg.name,
+                        payload_type=task.PayloadType,
+                        callback=task.Callback.ID,
+                        input_array=inputArray
+                    ))
+                    if not resp.Success:
+                        raise Exception(resp.Error)
+                    task.args.set_arg(arg.name, resp.TypedArray)
+                elif len(arg.value) > 0 and isinstance(arg.value[0], str):
+                    resp = await arg.typedarray_parse_function(MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
+                        command=task.Task.CommandName,
+                        parameter_name=arg.name,
+                        payload_type=task.PayloadType,
+                        callback=task.Callback.ID,
+                        input_array=arg.value
+                    ))
+                    if not resp.Success:
+                        raise Exception(resp.Error)
+                    task.args.set_arg(arg.name, resp.TypedArray)
+
     except Exception as pa:
         message = {
             "task_id": task.Task.ID,
