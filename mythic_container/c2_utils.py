@@ -6,6 +6,7 @@ import os
 import subprocess
 import asyncio
 import traceback
+from collections import deque
 
 
 def kill(proc_pid):
@@ -20,22 +21,43 @@ def kill(proc_pid):
         logger.exception(f"[-] Failed to kill process: {e}")
 
 
-async def deal_with_stdout(c2_profile: str) -> str:
-    output = ""
-    lines = 0
+async def keep_reading_stdout(c2_profile: str):
+    if "reading" in mythic_container.C2ProfileBase.runningServers[c2_profile]:
+        return
     while True:
+        mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"] = 1
         try:
             line = await asyncio.wait_for(
                 mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].stdout.readline(), timeout=3.0)
-            output += line.decode()
-            lines += 1
-            if lines > 100:
-                break
-        except asyncio.TimeoutError:
-            break
+            if line is not None:
+                if len(line) == 0:
+                    # the process has stopped, but our loop will keep returning blank lines
+                    if mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].returncode is not None:
+                        del mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"]
+                        return
+                if "output" in mythic_container.C2ProfileBase.runningServers[c2_profile]:
+                    mythic_container.C2ProfileBase.runningServers[c2_profile]["output"].append(line.decode())
+                else:
+                    mythic_container.C2ProfileBase.runningServers[c2_profile]["output"] = deque([line.decode()], 100)
+        except TimeoutError:
+            await asyncio.sleep(1)
+            continue
         except Exception as e:
             logger.exception(f"hit exception trying to get server output: {traceback.format_exc()}")
-            return output + traceback.format_exc()
+            del mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"]
+            return
+
+
+async def deal_with_stdout(c2_profile: str) -> str:
+    output = ""
+    if "output" in mythic_container.C2ProfileBase.runningServers[c2_profile]:
+        try:
+            while True:
+                output += mythic_container.C2ProfileBase.runningServers[c2_profile]["output"].popleft()
+        except IndexError:
+            pass
+        except Exception as e:
+            logger.exception(f"hit exception trying to read server output: {traceback.format_exc()}")
     return output
 
 
@@ -421,6 +443,7 @@ async def startServerBinary(
         process = await asyncio.create_subprocess_shell(cmd=str(path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                                         shell=True, cwd=str(cwd), env=os.environ.copy())
         mythic_container.C2ProfileBase.runningServers[c2.name]["process"] = process
+        asyncio.create_task(keep_reading_stdout(c2.name))
         await asyncio.sleep(3)
         if process.returncode is not None:
             # this means something went wrong and the process is dead
@@ -521,7 +544,8 @@ async def stopServer(msg: bytes) -> bytes:
                             Message=f"Stopped server:\nOutput:{await deal_with_stdout(c2.name)}",
                             InternalServerRunning=False
                         )
-                        mythic_container.C2ProfileBase.runningServers[c2.name]["output"] = ""
+                        if "output" in mythic_container.C2ProfileBase.runningServers[c2.name]:
+                            mythic_container.C2ProfileBase.runningServers[c2.name]["output"].clear()
                         return ujson.dumps(response.to_json()).encode()
                 else:
                     # just means we've never started it before, so start it now

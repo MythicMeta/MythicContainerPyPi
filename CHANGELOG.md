@@ -1,4 +1,10 @@
 
+## [v0.4.5] - 2024-01-16
+
+### Changed
+
+- Updated the c2 profile sub-process code to not cause deadlocks and only keep the latest 100 messages from debug output
+
 ## [v0.4.4] - 2024-01-13
 
 ### Changed
