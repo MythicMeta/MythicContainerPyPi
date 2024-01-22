@@ -3,7 +3,7 @@ from .mythic_service import start_and_run_forever, test_command
 
 containerVersion = "v1.1.4"
 
-PyPi_version = "0.4.6"
+PyPi_version = "0.4.7"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 

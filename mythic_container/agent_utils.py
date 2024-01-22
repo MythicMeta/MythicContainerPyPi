@@ -165,17 +165,17 @@ async def initialize_task(
                     if not resp.Success:
                         raise Exception(resp.Error)
                     arg.value = resp.TypedArray
-            elif len(arg.value) > 0 and isinstance(arg.value[0], str):
-                resp = await arg.typedarray_parse_function(MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
-                    command=command_class.cmd,
-                    parameter_name=arg.name,
-                    payload_type="",
-                    callback=message_json["callback"]["id"],
-                    input_array=arg.value
-                ))
-                if not resp.Success:
-                    raise Exception(resp.Error)
-                task.args.set_arg(arg.name, resp.TypedArray)
+                elif len(arg.value) > 0 and isinstance(arg.value[0], str):
+                    resp = await arg.typedarray_parse_function(MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
+                        command=command_class.cmd,
+                        parameter_name=arg.name,
+                        payload_type="",
+                        callback=message_json["callback"]["id"],
+                        input_array=arg.value
+                    ))
+                    if not resp.Success:
+                        raise Exception(resp.Error)
+                    task.args.set_arg(arg.name, resp.TypedArray)
 
     except Exception as pa:
         message = {
@@ -187,6 +187,7 @@ async def initialize_task(
             queue=error_routing_key,
             body=message
         )
+        logger.error(f"failed to parse arguments and hit exception: {pa}")
         return None
     try:
         if error_routing_key == mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE or \
@@ -194,6 +195,7 @@ async def initialize_task(
             await task.args.verify_required_args_have_values()
             task.parameter_group_name = task.args.get_parameter_group_name()
     except Exception as va:
+        logger.error(f"failed to verify args have values and hit exception: {va}")
         message = {
             "task_id": message_json["task"]["id"],
             "message": f"[-] {message_json['task']['command_name']} has arguments with invalid values: {va} \n"
@@ -428,6 +430,7 @@ async def createTasking(msg: bytes) -> None:
                                     task = await initialize_task(cmd, msgDict,
                                                                  mythic_container.PT_TASK_CREATE_TASKING_RESPONSE)
                                     if task is None:
+                                        print("task is none from initialize task")
                                         # we hit an error and already sent the response, just return
                                         return
                                     createTaskingResponse = await cmd.create_tasking(task=task)

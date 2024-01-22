@@ -1,4 +1,17 @@
 
+
+## [v0.4.7] - 2024-01-22
+
+### Changed
+
+- Fixed a breaking bug in parsing tasking for old create_tasking style when checking for typedArray functions
+
+## [v0.4.6] - 2024-01-22
+
+### Changed
+
+- Fixed a path that was too long on windows
+
 ## [v0.4.5] - 2024-01-16
 
 ### Changed
