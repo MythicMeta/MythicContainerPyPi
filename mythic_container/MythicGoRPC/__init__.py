@@ -10,7 +10,7 @@ from .send_mythic_rpc_callback_decrypt_bytes import *
 from .send_mythic_rpc_callback_encrypt_bytes import *
 from .send_mythic_rpc_callback_remove_command import *
 from .send_mythic_rpc_callback_search import *
-from .send_mythic_rpc_callback_display_to_real_id_search import *
+from .callback_display_to_real_id import *
 from .send_mythic_rpc_callback_search_command import *
 from .send_mythic_rpc_callback_update import *
 from .send_mythic_rpc_callbacktoken_create import *
@@ -44,7 +44,7 @@ from .send_mythic_rpc_response_search import *
 from .send_mythic_rpc_task_create import *
 from .send_mythic_rpc_task_create_subtask import *
 from .send_mythic_rpc_task_create_subtask_group import *
-from .send_mythic_rpc_task_display_to_real_id_search import *
+from .task_display_to_real_id import *
 from .send_mythic_rpc_task_search import *
 from .send_mythic_rpc_task_update import *
 from .send_mythic_rpc_token_create import *
