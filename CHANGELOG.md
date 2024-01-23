@@ -1,4 +1,8 @@
 
+## [v0.4.8] - 2024-01-23
+
+### Changed
+- Fixed a bug where in some situations old style tasking would get improperly formatted typedarray args
 
 ## [v0.4.7] - 2024-01-22
 

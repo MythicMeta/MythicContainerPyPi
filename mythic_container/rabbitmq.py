@@ -101,7 +101,7 @@ class rabbitmqConnectionClass:
                         virtualhost="mythic_vhost",
                         timeout=failedConnectTimeout,
                     )
-                    logger.info("[+] Successfully connected to rabbitmq")
+                    logger.critical("[+] Successfully connected to rabbitmq")
                     return self.conn
                 except Exception as e:
                     logger.error(f"[-] Failed to connect to rabbitmq: {e}")

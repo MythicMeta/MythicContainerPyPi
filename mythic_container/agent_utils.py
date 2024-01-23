@@ -160,8 +160,10 @@ async def initialize_task(
                         parameter_name=arg.name,
                         payload_type="",
                         callback=message_json["callback"]["id"],
-                        input_array=arg.value
+                        input_array=[x[1] for x in arg.value]
                     ))
+                    if resp is None:
+                        raise Exception('failed to get anything back from typedarray_parse_function')
                     if not resp.Success:
                         raise Exception(resp.Error)
                     arg.value = resp.TypedArray
@@ -173,6 +175,8 @@ async def initialize_task(
                         callback=message_json["callback"]["id"],
                         input_array=arg.value
                     ))
+                    if resp is None:
+                        raise Exception('failed to get anything back from typedarray_parse_function')
                     if not resp.Success:
                         raise Exception(resp.Error)
                     task.args.set_arg(arg.name, resp.TypedArray)
@@ -242,6 +246,8 @@ async def verifyTaskArgs(
                         callback=task.Callback.ID,
                         input_array=inputArray
                     ))
+                    if resp is None:
+                        raise Exception('failed to get anything back from typedarray_parse_function')
                     if not resp.Success:
                         raise Exception(resp.Error)
                     task.args.set_arg(arg.name, resp.TypedArray)
@@ -253,6 +259,8 @@ async def verifyTaskArgs(
                         callback=task.Callback.ID,
                         input_array=arg.value
                     ))
+                    if resp is None:
+                        raise Exception('failed to get anything back from typedarray_parse_function')
                     if not resp.Success:
                         raise Exception(resp.Error)
                     task.args.set_arg(arg.name, resp.TypedArray)
