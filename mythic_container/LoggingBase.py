@@ -640,12 +640,14 @@ class LoggingMessage:
                  timestamp: str = None,
                  action: str = None,
                  data: dict = None,
+                 server_name: str = None,
                  **kwargs):
         self.OperationID = operation_id
         self.OperationName = operation_name
         self.OperatorUsername = username
         self.Timestamp = timestamp
         self.Action = action
+        self.ServerName = server_name
         if self.Action == mythic_container.LOG_TYPE_CALLBACK:
             self.Data = NewCallbackLoggingData(**data)
         elif self.Action == mythic_container.LOG_TYPE_FILE:
@@ -674,6 +676,7 @@ class LoggingMessage:
             "operator_username": self.OperatorUsername,
             "timestamp": self.Timestamp,
             "action": self.Action,
+            "server_name": self.ServerName,
             "data": self.Data.to_json()
         }
 

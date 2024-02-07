@@ -30,6 +30,7 @@ class NewCallbackWebhookData:
         IntegrityLevel (int): The integrity level of this callback (mirrors Windows integrity levels with 0-5 range and 3+ is High integrity)
 
     """
+
     def __init__(self,
                  user: str = None,
                  host: str = None,
@@ -98,6 +99,7 @@ class NewFeedbackWebhookData:
         DisplayID (int): The display ID of the task that the user would see
 
     """
+
     def __init__(self,
                  task_id: int = None,
                  display_id: int = None,
@@ -130,6 +132,7 @@ class NewStartupWebhookData:
         StartupMessage (str): The message that Mythic started
 
     """
+
     def __init__(self,
                  startup_message: str = None,
                  **kwargs):
@@ -157,6 +160,7 @@ class NewAlertWebhookData:
         Timestamp (str): When this alert was generated
 
     """
+
     def __init__(self,
                  operator_id: int = None,
                  message: str = None,
@@ -212,12 +216,14 @@ class WebhookMessage:
                  operator_username: str = None,
                  action: str = None,
                  data: dict = None,
+                 server_name: str = None,
                  **kwargs):
         self.OperationID = operation_id
         self.OperationName = operation_name
         self.OperationWebhook = operation_webhook
         self.OperationChannel = operation_channel
         self.OperatorUsername = operator_username
+        self.ServerName = server_name
         self.Action = action
         if self.Action == mythic_container.WEBHOOK_TYPE_NEW_CALLBACK:
             self.Data = NewCallbackWebhookData(**data)
@@ -242,6 +248,7 @@ class WebhookMessage:
             "operation_channel": self.OperationChannel,
             "operator_username": self.OperatorUsername,
             "action": self.Action,
+            "server_name": self.ServerName,
             "data": self.Data if isinstance(self.Data, dict) or self.Data is None else self.Data.to_json()
         }
 
@@ -321,17 +328,11 @@ class Webhook:
             return ""
 
 
-async def sendWebhookMessage(contents: dict, url: str) -> str:
+async def sendWebhookMessage(contents: dict, url: str) -> (int, str):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=contents, ssl=False) as resp:
-                if resp.status == 200:
-                    responseData = await resp.text()
-                    logger.debug(f"webhook response data: {responseData}")
-                    return responseData
-                else:
-                    logger.error(f"[-] Failed to send webhook message: {resp}")
-                    return f"[-] Failed to send webhook message: {resp}"
+                return resp.status, await resp.text()
     except Exception as e:
         logger.exception(f"[-] Failed to send webhook: {e}")
-        return f"[-] Failed to send webhook: {e}"
+        return 400, f"[-] Failed to send webhook: {e}"
