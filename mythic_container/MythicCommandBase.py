@@ -192,7 +192,7 @@ class PTRPCDynamicQueryFunctionMessage:
         AgentCallbackID (str): Agent UUID of the callback where this function is called
         PayloadOS (str): The selected OS when the backing payload for this callback was created
         PayloadUUID (str): The UUID of the backing payload for this callback that can be used to fetch more information
-
+        Secrets (dict): User secrets based on the operator that issued this action
     Functions:
         to_json(self): return dictionary form of class
     """
@@ -206,6 +206,7 @@ class PTRPCDynamicQueryFunctionMessage:
                  payload_uuid: str = "",
                  agent_callback_id: str = "",
                  callback_display_id: int = 0,
+                 secrets: dict = {},
                  **kwargs
                  ):
         self.Command = command
@@ -216,6 +217,7 @@ class PTRPCDynamicQueryFunctionMessage:
         self.PayloadUUID = payload_uuid
         self.AgentCallbackID = agent_callback_id
         self.CallbackDisplayID = callback_display_id
+        self.Secrets = secrets
 
     def to_json(self):
         return {
@@ -226,7 +228,8 @@ class PTRPCDynamicQueryFunctionMessage:
             "payload_os": self.PayloadOS,
             "payload_uuid": self.PayloadUUID,
             "agent_callback_id": self.AgentCallbackID,
-            "callback_display_id": self.CallbackDisplayID
+            "callback_display_id": self.CallbackDisplayID,
+            "secrets": self.Secrets
         }
 
     def __str__(self):
@@ -1624,6 +1627,7 @@ class PTTaskMessageAllData:
         BuildParameters (list[MythicRPCPayloadConfigurationBuildParameter]): Information about the build parameters used to generate the payload for this callback
         C2Profiles (list[MythicRPCPayloadConfigurationC2Profile]): Information about the c2 profiles associated with this callback and their values
         args: The running instance of arguments for this task, this allows you to modify any arguments as necessary in your `create_go_tasking` function
+        Secrets (dict): Dictionary of secrets associated with the user for this action
 
     Functions:
         to_json(self): return dictionary form of class
@@ -1639,6 +1643,7 @@ class PTTaskMessageAllData:
                  c2info: list[dict] = [],
                  payload_type: str = "",
                  args: TaskArguments.__class__ = None,
+                 secrets: dict = {},
                  **kwargs):
         self.Task = PTTaskMessageTaskData(**task)
         self.Callback = PTTaskMessageCallbackData(**callback)
@@ -1647,6 +1652,7 @@ class PTTaskMessageAllData:
         self.PayloadType = payload_type
         self.BuildParameters = [MythicRPCPayloadConfigurationBuildParameter(**x) for x in build_parameters]
         self.C2Profiles = [MythicRPCPayloadConfigurationC2Profile(**x) for x in c2info]
+        self.Secrets = secrets
         if args is not None:
             self.args = args(command_line=task["params"],
                              tasking_location=task["tasking_location"],
@@ -1666,7 +1672,8 @@ class PTTaskMessageAllData:
             "commands": self.Commands,
             "payload": self.Payload.to_json(),
             "c2info": [x.to_json() for x in self.C2Profiles],
-            "payload_type": self.PayloadType
+            "payload_type": self.PayloadType,
+            "secrets": self.Secrets
         }
 
     def set_args(self, args: TaskArguments.__class__) -> None:
@@ -1690,6 +1697,7 @@ class PTOnNewCallbackAllData:
         PayloadType (str): The name of the payload type
         BuildParameters (list[MythicRPCPayloadConfigurationBuildParameter]): Information about the build parameters used to generate the payload for this callback
         C2Profiles (list[MythicRPCPayloadConfigurationC2Profile]): Information about the c2 profiles associated with this callback and their values
+        Secrets (dict): Dictionary of secrets from the user associated with this action
 
     Functions:
         to_json(self): return dictionary form of class
@@ -1702,6 +1710,7 @@ class PTOnNewCallbackAllData:
                  payload: dict = {},
                  c2info: list[dict] = [],
                  payload_type: str = "",
+                 secrets: dict = {},
                  **kwargs):
         self.Callback = PTTaskMessageCallbackData(**callback)
         self.Payload = PTTaskMessagePayloadData(**payload)
@@ -1709,6 +1718,7 @@ class PTOnNewCallbackAllData:
         self.PayloadType = payload_type
         self.BuildParameters = [MythicRPCPayloadConfigurationBuildParameter(**x) for x in build_parameters]
         self.C2Profiles = [MythicRPCPayloadConfigurationC2Profile(**x) for x in c2info]
+        self.Secrets = secrets
 
         for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
@@ -1720,7 +1730,8 @@ class PTOnNewCallbackAllData:
             "commands": self.Commands,
             "payload": self.Payload.to_json(),
             "c2info": [x.to_json() for x in self.C2Profiles],
-            "payload_type": self.PayloadType
+            "payload_type": self.PayloadType,
+            "secrets": self.Secrets
         }
 
     def __str__(self):

@@ -1,4 +1,11 @@
 
+## [v0.4.10] - 2024-02-13
+
+### Changed
+
+- Added access to "Secrets" in tasking, dynamic queries, new callbacks, and payload builds
+- Added `message_format` attribute for Payload Types for use later
+
 ## [v0.4.8] - 2024-01-23
 
 ### Changed

@@ -3,26 +3,33 @@ from mythic_container.logging import logger
 
 MYTHIC_RPC_PAYLOAD_CREATE_FROM_SCRATCH = "mythic_rpc_payload_create_from_scratch"
 
+
 class MythicRPCPayloadConfigurationC2Profile:
     def __init__(self,
                  Name: str = None,
                  Parameters: dict = None,
                  c2_profile: str = None,
+                 c2_profile_is_p2p: bool = False,
                  c2_profile_parameters: dict = None,
                  **kwargs):
         self.Name = Name
         self.Parameters = Parameters
+        self.IsP2P = c2_profile_is_p2p
         if c2_profile is not None:
             self.Name = c2_profile
         if c2_profile_parameters is not None:
             self.Parameters = c2_profile_parameters
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
+
     def to_json(self):
         return {
             "c2_profile": self.Name,
-            "c2_profile_parameters": self.Parameters
+            "c2_profile_parameters": self.Parameters,
+            "c2_profile_is_p2p": self.IsP2P
         }
+
+
 class MythicRPCPayloadConfigurationBuildParameter:
     def __init__(self,
                  Name: str = None,
@@ -38,11 +45,14 @@ class MythicRPCPayloadConfigurationBuildParameter:
             self.Value = value
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
+
     def to_json(self):
         return {
             "name": self.Name,
             "value": self.Value
         }
+
+
 class MythicRPCPayloadConfiguration:
     def __init__(self,
                  Description: str = None,
@@ -119,7 +129,8 @@ class MythicRPCPayloadCreateFromScratchMessageResponse:
 
 async def SendMythicRPCPayloadCreateFromScratch(
         msg: MythicRPCPayloadCreateFromScratchMessage) -> MythicRPCPayloadCreateFromScratchMessageResponse:
-    response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(queue=MYTHIC_RPC_PAYLOAD_CREATE_FROM_SCRATCH,
-                                                                            body=msg.to_json())
+    response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+        queue=MYTHIC_RPC_PAYLOAD_CREATE_FROM_SCRATCH,
+        body=msg.to_json())
 
     return MythicRPCPayloadCreateFromScratchMessageResponse(**response)

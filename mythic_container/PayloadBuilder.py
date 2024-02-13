@@ -494,6 +494,8 @@ class PayloadType:
             The path to the folder holding your browser scripts so that they can be fetched when Syncing
         custom_rpc_functions (dict):
             Dictionary of RPC name to awaitable RPC function that other services can call
+        message_format (str):
+            Defaults to `json`, but you can optionally specify `xml` to have your messages parsed and returned as xml instead of JSON for Mythic
 
     Functions:
         build(self):
@@ -518,6 +520,7 @@ class PayloadType:
     agent_path = None
     agent_code_path = None
     agent_browserscript_path = None
+    message_format = 'json'
     custom_rpc_functions: dict[
         str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
 
@@ -529,7 +532,8 @@ class PayloadType:
             selected_os: str = None,
             commands: CommandList = None,
             wrapped_payload_uuid: str = None,
-            wrapped_payload: bytes = None
+            wrapped_payload: bytes = None,
+            secrets: dict = {},
     ):
         self.uuid = uuid
         self.c2info = c2info
@@ -538,6 +542,7 @@ class PayloadType:
         self.filename = filename
         self.wrapped_payload = wrapped_payload
         self.wrapped_payload_uuid = wrapped_payload_uuid
+        self.secrets = secrets
         if self.agent_path is None:
             self.agent_path = pathlib.Path(".") / self.name
             logger.error(f"{self.name} has no agent_path set, setting to {self.agent_path}")
@@ -656,6 +661,7 @@ class PayloadType:
             "mythic_encrypts": self.mythic_encrypts,
             "build_steps": [x.to_json() for x in self.build_steps],
             "agent_icon": base64.b64encode(agent_bytes).decode(),
+            "message_format": self.message_format,
         }
 
     def __str__(self):
