@@ -496,6 +496,8 @@ class PayloadType:
             Dictionary of RPC name to awaitable RPC function that other services can call
         message_format (str):
             Defaults to `json`, but you can optionally specify `xml` to have your messages parsed and returned as xml instead of JSON for Mythic
+        agent_type (str):
+            Defaults to `agent`, but you can optionally specify `service` to report back as a 3rd party service agent
 
     Functions:
         build(self):
@@ -521,6 +523,7 @@ class PayloadType:
     agent_code_path = None
     agent_browserscript_path = None
     message_format = 'json'
+    agent_type = 'agent'
     custom_rpc_functions: dict[
         str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
 
@@ -662,6 +665,7 @@ class PayloadType:
             "build_steps": [x.to_json() for x in self.build_steps],
             "agent_icon": base64.b64encode(agent_bytes).decode(),
             "message_format": self.message_format,
+            "agent_type": self.agent_type
         }
 
     def __str__(self):

@@ -1,4 +1,10 @@
 
+## [v0.4.11] - 2024-03-04
+
+### Changed
+
+- Added `agent_type` attribute for Payload Types
+
 ## [v0.4.10] - 2024-02-13
 
 ### Changed
