@@ -1502,7 +1502,7 @@ class PTTaskMessageCallbackData:
                  process_name: str = "",
                  description: str = "",
                  operator_id: int = 0,
-                 operator_username: string = "",
+                 operator_username: str = "",
                  active: bool = False,
                  integrity_level: int = 0,
                  locked: bool = False,
