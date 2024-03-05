@@ -1,4 +1,10 @@
 
+## [v0.4.12] - 2024-03-05
+
+### Changed
+
+- Added OperatorUsername and OperationName to PTTaskMessageCallbackData fields with Mythic 3.2.19
+
 ## [v0.4.11] - 2024-03-04
 
 ### Changed

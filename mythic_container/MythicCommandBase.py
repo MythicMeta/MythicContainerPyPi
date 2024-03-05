@@ -1469,10 +1469,12 @@ class PTTaskMessageCallbackData:
         ProcessName (str): The name of the process for the callback
         Description (str): The description for the callback (by default it matches the description for the associated payload)
         OperatorID (int): The ID of the operator that created the associated payload
+        OperatorUsername (string): The username of the operator that created the associated payload
         Active (bool): Indicating if this callback is in the active callbacks table or not
         IntegrityLevel (int): The integrity level for the callback that mirrors that of Windows (0-4) with a value of 3+ indicating a High Integrity (or root) callback
         Locked (bool): Indicating if this callback is locked or not so that other operators can't task it
         OperationID (int): The ID of the operation this callback belongs to
+        OperationName (string): The name of the operation this callback belongs to
         CryptoType (str): The type of cryptography used for this callback (typically None or aes256_hmac)
         DecKey (bytes): The decryption key for this callback
         EncKey (bytes): The encryption key for this callback
@@ -1500,10 +1502,12 @@ class PTTaskMessageCallbackData:
                  process_name: str = "",
                  description: str = "",
                  operator_id: int = 0,
+                 operator_username: string = "",
                  active: bool = False,
                  integrity_level: int = 0,
                  locked: bool = False,
                  operation_id: int = 0,
+                 operation_name: str = "",
                  crypto_type: str = "",
                  os: str = "",
                  architecture: str = "",
@@ -1528,10 +1532,12 @@ class PTTaskMessageCallbackData:
         self.ProcessName = process_name
         self.Description = description
         self.OperatorID = operator_id
+        self.OperatorUsername = operator_username
         self.Active = active
         self.IntegrityLevel = integrity_level
         self.Locked = locked
         self.OperationID = operation_id
+        self.OperationName = operation_name
         self.CryptoType = crypto_type
         self.DecKey = base64.b64decode(dec_key) if dec_key is not None else None
         self.EncKey = base64.b64decode(enc_key) if enc_key is not None else None
@@ -1560,14 +1566,16 @@ class PTTaskMessageCallbackData:
             "process_name": self.ProcessName,
             "description": self.Description,
             "operator_id": self.OperatorID,
+            "operator_username": self.OperatorUsername,
             "active": self.Active,
             "integrity_level": self.IntegrityLevel,
             "locked": self.Locked,
             "operation_id": self.OperationID,
+            "operation_name": self.OperationName,
             "crypto_type": self.CryptoType,
             "dec_key": self.DecKey,
             "enc_key": self.EncKey,
-            "os": self.Os,
+            "os": self.OS,
             "architecture": self.Architecture,
             "domain": self.Domain,
             "extra_info": self.ExtraInfo,
