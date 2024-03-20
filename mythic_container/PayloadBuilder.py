@@ -75,6 +75,7 @@ class BuildParameterType(str, Enum):
     Boolean = "Boolean"
     File = "File"
     TypedArray = "TypedArray"
+    Number = "Number"
 
 
 class DictionaryChoice:

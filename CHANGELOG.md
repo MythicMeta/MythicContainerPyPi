@@ -1,4 +1,11 @@
 
+## [v0.4.14] - 2024-03-20
+
+### Changed
+
+- Added `Number` parameter type to build parameters to match C2 Profile Parameters
+- Updated package dependencies
+
 ## [v0.4.13] - 2024-03-05
 
 ### Changed
