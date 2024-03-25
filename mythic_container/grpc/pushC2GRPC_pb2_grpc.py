@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import pushC2GRPC_pb2 as pushC2GRPC__pb2
+import mythic_container.grpc.pushC2GRPC_pb2 as pushC2GRPC__pb2
 
 
 class PushC2Stub(object):
@@ -19,6 +19,11 @@ class PushC2Stub(object):
                 request_serializer=pushC2GRPC__pb2.PushC2MessageFromAgent.SerializeToString,
                 response_deserializer=pushC2GRPC__pb2.PushC2MessageFromMythic.FromString,
                 )
+        self.StartPushC2StreamingOneToMany = channel.stream_stream(
+                '/pushC2Services.PushC2/StartPushC2StreamingOneToMany',
+                request_serializer=pushC2GRPC__pb2.PushC2MessageFromAgent.SerializeToString,
+                response_deserializer=pushC2GRPC__pb2.PushC2MessageFromMythic.FromString,
+                )
 
 
 class PushC2Servicer(object):
@@ -31,11 +36,22 @@ class PushC2Servicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def StartPushC2StreamingOneToMany(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_PushC2Servicer_to_server(servicer, server):
     rpc_method_handlers = {
             'StartPushC2Streaming': grpc.stream_stream_rpc_method_handler(
                     servicer.StartPushC2Streaming,
+                    request_deserializer=pushC2GRPC__pb2.PushC2MessageFromAgent.FromString,
+                    response_serializer=pushC2GRPC__pb2.PushC2MessageFromMythic.SerializeToString,
+            ),
+            'StartPushC2StreamingOneToMany': grpc.stream_stream_rpc_method_handler(
+                    servicer.StartPushC2StreamingOneToMany,
                     request_deserializer=pushC2GRPC__pb2.PushC2MessageFromAgent.FromString,
                     response_serializer=pushC2GRPC__pb2.PushC2MessageFromMythic.SerializeToString,
             ),
@@ -61,6 +77,23 @@ class PushC2(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.stream_stream(request_iterator, target, '/pushC2Services.PushC2/StartPushC2Streaming',
+            pushC2GRPC__pb2.PushC2MessageFromAgent.SerializeToString,
+            pushC2GRPC__pb2.PushC2MessageFromMythic.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def StartPushC2StreamingOneToMany(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_stream(request_iterator, target, '/pushC2Services.PushC2/StartPushC2StreamingOneToMany',
             pushC2GRPC__pb2.PushC2MessageFromAgent.SerializeToString,
             pushC2GRPC__pb2.PushC2MessageFromMythic.FromString,
             options, channel_credentials,
