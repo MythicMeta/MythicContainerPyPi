@@ -1,4 +1,11 @@
 
+## [v0.4.16] - 2024-04-08
+
+### Changed
+
+- Added InteractiveTaskType dictionary lookup in MythicCommandBase based on InteractiveTaskType
+- Updated the processing of payload type commands to be based on root module name
+
 ## [v0.4.14] - 2024-03-20
 
 ### Changed

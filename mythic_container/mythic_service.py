@@ -111,11 +111,8 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
         "commands": [],
         "container_version": mythic_container.containerVersion
     }
-
-    modulePieces = pt.__module__.split(".")
-    modulePrefix = ".".join(modulePieces[:-1])
     for cls in MythicCommandBase.CommandBase.__subclasses__():
-        if cls.__module__.startswith(modulePrefix):
+        if cls.__module__.split(".")[0] == pt.name:
             logger.info(f"[*] Processing command {cls.cmd}")
             if pt.name not in MythicCommandBase.commands:
                 MythicCommandBase.commands[pt.name] = []
@@ -447,10 +444,8 @@ async def test_command(payload_type_name: str,
         payload_type = cls()
         if payload_type.name == payload_type_name:
             logger.info(f"[+] Found payload type: {payload_type.name}")
-            modulePieces = payload_type.__module__.split(".")
-            modulePrefix = ".".join(modulePieces[:-1])
             for cmdcls in MythicCommandBase.CommandBase.__subclasses__():
-                if cmdcls.__module__.startswith(modulePrefix):
+                if cmdcls.__module__.split(".")[0] == payload_type.name:
                     if cmdcls.cmd == command_name:
                         commandInstance = cmdcls(payload_type.agent_path, payload_type.agent_code_path,
                                                  payload_type.agent_browserscript_path)

@@ -990,11 +990,11 @@ class BrowserScript:
             )
             if code_file.exists():
                 code = code_file.read_bytes().decode()
-                #code = base64.b64encode(code).decode()
+                # code = base64.b64encode(code).decode()
                 return {"script": code, "name": self.script_name, "author": self.author}
             elif Path(self.script_name).exists():
                 code = Path(self.script_name).read_bytes().decode()
-                #code = base64.b64encode(code).decode()
+                # code = base64.b64encode(code).decode()
                 return {"script": code, "name": self.script_name, "author": self.author}
             else:
                 raise Exception(
@@ -1290,6 +1290,35 @@ class PTTaskCreateTaskingMessageResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+InteractiveMessageType = {
+    0: ("Input", 0),
+    1: ("Output", 1),
+    2: ("Error", 2),
+    3: ("Exit", 3),
+    4: ("^[", 0x1B),
+    5: ("^A", 0x01),
+    6: ("^B", 0x02),
+    7: ("^C", 0x03),
+    8: ("^D", 0x04),
+    9: ("^E", 0x05),
+    10: ("^F", 0x06),
+    11: ("^G", 0x07),
+    12: ("^H", 0x08),
+    13: ("^I", 0x09),
+    14: ("^K", 0x0B),
+    15: ("^L", 0x0C),
+    16: ("^N", 0x0E),
+    17: ("^P", 0x10),
+    18: ("^Q", 0x11),
+    19: ("^R", 0x12),
+    20: ("^S", 0x13),
+    21: ("^U", 0x15),
+    22: ("^W", 0x17),
+    23: ("^Y", 0x19),
+    24: ("^Z", 0x1A)
+}
+
+
 class PTTaskMessageTaskData:
     """A container for all information about a task.
 
@@ -1334,6 +1363,7 @@ class PTTaskMessageTaskData:
     Functions:
         to_json(self): return dictionary form of class
     """
+
     def __init__(self,
                  id: int = 0,
                  display_id: int = 0,
@@ -1369,6 +1399,9 @@ class PTTaskMessageTaskData:
                  tasking_location: str = "",
                  parameter_group_name: str = "",
                  token_id: int = None,
+                 response_count: int = None,
+                 is_interactive_task: bool = None,
+                 interactive_task_type: int = None,
                  **kwargs):
         self.ID = id
         self.DisplayID = display_id
@@ -1406,6 +1439,9 @@ class PTTaskMessageTaskData:
         self.TokenID = token_id
         if self.TokenID is not None and self.TokenID <= 0:
             self.TokenID = None
+        self.ResponseCount = response_count
+        self.IsInteractiveTask = is_interactive_task
+        self.InteractiveTaskType = interactive_task_type
 
     def to_json(self):
         return {
@@ -1443,6 +1479,9 @@ class PTTaskMessageTaskData:
             "tasking_location": self.TaskingLocation,
             "parameter_group_name": self.ParameterGroupName,
             "token_id": self.TokenID,
+            "response_count": self.ResponseCount,
+            "is_interactive_task": self.IsInteractiveTask,
+            "interactive_task_type": self.InteractiveTaskType
         }
 
     def __str__(self):
@@ -1487,6 +1526,7 @@ class PTTaskMessageCallbackData:
     Functions:
         to_json(self): return dictionary form of class
     """
+
     def __init__(self,
                  id: int = 0,
                  display_id: int = 0,
@@ -1599,6 +1639,7 @@ class PTTaskMessagePayloadData:
     Functions:
         to_json(self): return dictionary form of class
     """
+
     def __init__(self,
                  os: str = "",
                  uuid: str = "",
@@ -1758,6 +1799,7 @@ class PTOnNewCallbackResponse:
     Functions:
         to_json(self): return dictionary form of class
     """
+
     def __init__(self,
                  AgentCallbackID: str,
                  Success: bool = True,
@@ -1843,6 +1885,7 @@ class PTTaskCompletionFunctionMessageResponse:
     Functions:
         to_json(self): return dictionary form of class
     """
+
     def __init__(self,
                  TaskID: int = 0,
                  ParentTaskId: int = 0,
@@ -1909,6 +1952,7 @@ class PTTaskProcessResponseMessageResponse:
     Functions:
         to_json(self): return dictionary form of class
     """
+
     def __init__(self,
                  TaskID: int,
                  Success: bool = True,
