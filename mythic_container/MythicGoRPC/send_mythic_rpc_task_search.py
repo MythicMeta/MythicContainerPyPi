@@ -51,6 +51,9 @@ class MythicRPCTaskSearchData:
                  params: str = None,
                  timestamp: str = None,
                  callback_id: int = None,
+                 callback_display_id: int = None,
+                 payload_type: str = "",
+                 operator_id: int = 0,
                  status: str = None,
                  original_params: str = None,
                  display_params: str = None,
@@ -78,6 +81,8 @@ class MythicRPCTaskSearchData:
                  tasking_location: str = None,
                  parameter_group_name: str = None,
                  token_id: int = None,
+                 is_interactive_task: bool = False,
+                 interactive_task_type: int = 0,
                  **kwargs):
         self.TaskID = id
         self.DisplayID = display_id
@@ -86,6 +91,9 @@ class MythicRPCTaskSearchData:
         self.Params = params
         self.Timestamp = timestamp
         self.CallbackID = callback_id
+        self.CallbackDisplayID = callback_display_id
+        self.PayloadType = payload_type
+        self.OperatorID = operator_id
         self.Status = status
         self.OriginalParams = original_params
         self.DisplayParams = display_params
@@ -113,6 +121,8 @@ class MythicRPCTaskSearchData:
         self.TaskingLocation = tasking_location
         self.ParameterGroupName = parameter_group_name
         self.TokenID = token_id
+        self.IsInteractiveTask = is_interactive_task
+        self.InteractiveTaskType = interactive_task_type
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
     def to_json(self):
@@ -124,6 +134,9 @@ class MythicRPCTaskSearchData:
             "params": self.Params,
             "timestamp": self.Timestamp,
             "callback_id": self.CallbackID,
+            "callback_display_id": self.CallbackDisplayID,
+            "payload_type": self.PayloadType,
+            "operator_id": self.OperatorID,
             "status": self.Status,
             "original_params": self.OriginalParams,
             "display_params": self.DisplayParams,
@@ -150,7 +163,9 @@ class MythicRPCTaskSearchData:
             "subtask_group_name": self.SubtaskGroupName,
             "tasking_location": self.TaskingLocation,
             "parameter_group_name": self.ParameterGroupName,
-            "token_id": self.TokenID
+            "token_id": self.TokenID,
+            "is_interactive_task": self.IsInteractiveTask,
+            "interactive_task_type": self.InteractiveTaskType
         }
 
 class MythicRPCTaskSearchMessageResponse:

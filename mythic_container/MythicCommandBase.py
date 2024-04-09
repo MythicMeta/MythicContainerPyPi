@@ -1372,6 +1372,9 @@ class PTTaskMessageTaskData:
                  params: str = "",
                  timestamp: str = "",
                  callback_id: int = 0,
+                 callback_display_id: int = 0,
+                 payload_type: str = "",
+                 operator_id: int = 0,
                  status: str = "",
                  original_params: str = "",
                  display_params: str = "",
@@ -1410,6 +1413,8 @@ class PTTaskMessageTaskData:
         self.Params = params
         self.Timestamp = timestamp
         self.CallbackID = callback_id
+        self.CallbackDisplayID = callback_display_id
+        self.PayloadType = payload_type
         self.Status = status
         self.OriginalParams = original_params
         self.DisplayParams = display_params
@@ -1418,6 +1423,7 @@ class PTTaskMessageTaskData:
         self.Stderr = stderr
         self.Completed = completed
         self.OperatorUsername = operator_username
+        self.OperatorID = operator_id
         self.OpsecPreBlocked = opsec_pre_blocked
         self.OpsecPreMessage = opsec_pre_message
         self.OpsecPreBypassed = opsec_pre_bypassed
@@ -1452,6 +1458,9 @@ class PTTaskMessageTaskData:
             "params": self.Params,
             "timestamp": self.Timestamp,
             "callback_id": self.CallbackID,
+            "callback_display_id": self.CallbackDisplayID,
+            "payload_type": self.PayloadType,
+            "operator_id": self.OperatorID,
             "status": self.Status,
             "original_params": self.OriginalParams,
             "display_params": self.DisplayParams,

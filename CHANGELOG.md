@@ -1,4 +1,10 @@
 
+## [v0.4.17] - 2024-04-08
+
+### Changed
+
+- Added CallbackDisplayID, PayloadType, IsInteractiveTask, and InteractiveTaskType to task search and task log data
+
 ## [v0.4.16] - 2024-04-08
 
 ### Changed
