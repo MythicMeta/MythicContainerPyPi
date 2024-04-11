@@ -86,7 +86,7 @@ class MythicRPCFileBrowserCreateMessage:
     def to_json(self):
         return {
             "task_id": self.TaskID,
-            "callbacktokens": self.FileBrowser.to_json()
+            "filebrowser": self.FileBrowser.to_json()
         }
 
 

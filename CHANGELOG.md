@@ -1,4 +1,10 @@
 
+## [v0.4.18] - 2024-04-11
+
+### Changed
+
+- Fixed a typo in the SendMythicRPCFileBrowserCreate
+
 ## [v0.4.17] - 2024-04-08
 
 ### Changed
