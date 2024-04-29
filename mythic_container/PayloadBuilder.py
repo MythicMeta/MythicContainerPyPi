@@ -638,6 +638,7 @@ class PayloadType:
 
     def to_json(self):
         agent_bytes = self.agent_icon_bytes
+        self.name = self.name.lower()
         if agent_bytes is None:
             if self.agent_icon_path is not None:
                 # read agent icon path

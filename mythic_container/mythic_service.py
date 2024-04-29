@@ -112,7 +112,7 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
         "container_version": mythic_container.containerVersion
     }
     for cls in MythicCommandBase.CommandBase.__subclasses__():
-        if cls.__module__.split(".")[0] == pt.name:
+        if cls.__module__.split(".")[0].lower() == pt.name:
             logger.info(f"[*] Processing command {cls.cmd}")
             if pt.name not in MythicCommandBase.commands:
                 MythicCommandBase.commands[pt.name] = []

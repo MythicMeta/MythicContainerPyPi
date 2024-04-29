@@ -1,4 +1,11 @@
 
+## [v0.4.19] - 2024-04-29
+
+### Changed
+
+- Updated PayloadTypes to store lowercase names locally and check against module names lower case
+  - This fixes an issue where a Capital payload type name and a lowercase module name won't sync together
+  
 ## [v0.4.18] - 2024-04-11
 
 ### Changed
