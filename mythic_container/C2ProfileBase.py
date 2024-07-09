@@ -1,12 +1,11 @@
 import pathlib
 from enum import Enum
-from abc import abstractmethod
 import json
 from collections.abc import Awaitable, Callable
 from .logging import logger
-import base64
 import sys
 from typing import List
+from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
 
 
 class C2OPSECMessage:
@@ -349,70 +348,6 @@ class C2GetDebugOutputMessageResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
-class C2GetFileMessage:
-    """Fetch file from C2 Profile's server folder directory
-
-    Attributes:
-        Name (str): Name of the C2 Profile
-        Filename (str): Name of the file to read
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 c2_profile_name: str,
-                 filename: str,
-                 **kwargs):
-        self.Name = c2_profile_name
-        self.Filename = filename
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "c2_profile_name": self.Name,
-            "filename": self.Filename
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
-class C2GetFileMessageResponse:
-    """Contents or error from fetching a file
-
-    Attributes:
-        Success (bool): Did we successfully read the file or not
-        Error (str): Error message if we failed to read the file
-        Message (str): Contents of the file
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 Success: bool,
-                 Error: str = "",
-                 Message: bytes = b"",
-                 **kwargs):
-        self.Success = Success
-        self.Error = Error
-        self.Message = Message
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "success": self.Success,
-            "error": self.Error,
-            "message": base64.b64encode(self.Message).decode(),
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
 class C2GetRedirectorRulesMessage:
     """Payload's C2 Profile configuration for generating Apache ModRewrite rules
 
@@ -471,126 +406,6 @@ class C2GetRedirectorRulesMessageResponse:
             "success": self.Success,
             "error": self.Error,
             "message": self.Message
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
-class C2ListFileMessage:
-    """List the contents of a C2 Profile's server folder directory
-
-    Attributes:
-        Name (str): Name of the C2 Profile
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 c2_profile_name: str,
-                 **kwargs):
-        self.Name = c2_profile_name
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "c2_profile_name": self.Name,
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
-class C2ListFileMessageResponse:
-    """List of filenames in the C2 Profile's server folder directory
-
-    Attributes:
-        Success (bool): Did the OPSEC check succeed or fail
-        Error (str): Error message if the OPSEC check failed
-        Files (list[str]): List of filenames
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 Success: bool,
-                 Error: str = "",
-                 Files: list[str] = [],
-                 **kwargs):
-        self.Success = Success
-        self.Error = Error
-        self.Files = Files
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "success": self.Success,
-            "error": self.Error,
-            "files": self.Files,
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
-class C2RemoveFileMessage:
-    """Request to remove a file from a C2 Profile's server folder path
-
-    Attributes:
-        Name (str): Name of the C2 Profile
-        Filename (str): Name of the file to remove
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 c2_profile_name: str,
-                 filename: str,
-                 **kwargs):
-        self.Name = c2_profile_name
-        self.Filename = filename
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "c2_profile_name": self.Name,
-            "filename": self.Filename
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
-class C2RemoveFileMessageResponse:
-    """Status of removing the file
-
-    Attributes:
-        Success (bool): Did the file removal succeed or fail
-        Error (str): Error message if the file removal failed
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 Success: bool,
-                 Error: str = "",
-                 **kwargs):
-        self.Success = Success
-        self.Error = Error
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "success": self.Success,
-            "error": self.Error,
         }
 
     def __str__(self):
@@ -719,74 +534,6 @@ class C2StopServerMessageResponse:
             "error": self.Error,
             "message": self.Message,
             "server_running": self.InternalServerRunning
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
-class C2WriteFileMessage:
-    """Request to write a file to the C2 Profile's server folder directory
-
-    Attributes:
-        Name (str): Name of the C2 Profile
-        Filename (str): Name of the file to create/overwrite
-        Contents (bytes): Contents of the file to write
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 c2_profile_name: str,
-                 filename: str,
-                 contents: str,
-                 **kwargs):
-        self.Name = c2_profile_name
-        self.Filename = filename
-        self.Contents = base64.b64decode(contents)
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "c2_profile_name": self.Name,
-            "filename": self.Filename,
-            "contents": base64.b64encode(self.Contents)
-        }
-
-    def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
-
-
-class C2WriteFileMessageResponse:
-    """Status of writing the file to disk
-
-    Attributes:
-        Success (bool): Did the file get written or not
-        Error (str): Error message if the file failed to write to disk
-        Message (str): Informative message about the file getting written
-
-    Functions:
-        to_json(self): return dictionary form of class
-    """
-
-    def __init__(self,
-                 Success: bool,
-                 Error: str = "",
-                 Message: bytes = b"",
-                 **kwargs):
-        self.Success = Success
-        self.Error = Error
-        self.Message = Message
-        for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
-
-    def to_json(self):
-        return {
-            "success": self.Success,
-            "error": self.Error,
-            "message": self.Message,
         }
 
     def __str__(self):
@@ -968,6 +715,7 @@ class ParameterType(Enum):
      """
     String = "String"
     ChooseOne = "ChooseOne"
+    ChooseOneCustom = "ChooseOneCustom"
     ChooseMultiple = "ChooseMultiple"
     Array = "Array"
     Date = "Date"
@@ -975,6 +723,7 @@ class ParameterType(Enum):
     Boolean = "Boolean"
     TypedArray = "TypedArray"
     File = "File"
+    FileMultiple = "FileMultiple"
     Number = "Number"
 
 
@@ -1101,6 +850,13 @@ class C2Profile:
 
     """
 
+    name: str = ""
+    description: str = ""
+    author: str = ""
+    is_p2p: bool = False
+    is_server_routed: bool = True
+    parameters: [C2ProfileParameter] = []
+
     async def opsec(self, inputMsg: C2OPSECMessage) -> C2OPSECMessageResponse:
         """Check payload's C2 configuration for OPSEC issues
 
@@ -1109,7 +865,7 @@ class C2Profile:
         """
         response = C2OPSECMessageResponse(Success=True)
         response.Message = "Not Implemented, passing by default"
-        response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
+        #response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response
 
     async def config_check(self, inputMsg: C2ConfigCheckMessage) -> C2ConfigCheckMessageResponse:
@@ -1130,8 +886,7 @@ class C2Profile:
         :return: C2GetRedirectorRulesMessageResponse detailing some Apache ModRewrite rules for the payload
         """
         response = C2GetRedirectorRulesMessageResponse(Success=True)
-        response.Message = "Not Implemented"
-        response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
+        response.Message = "#Not Implemented"
         return response
 
     async def get_ioc(self, inputMsg: C2GetIOCMessage) -> C2GetIOCMessageResponse:
@@ -1152,7 +907,7 @@ class C2Profile:
         """
         response = C2SampleMessageMessageResponse(Success=True)
         response.Message = "Not Implemented"
-        response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
+        #response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response
 
     async def host_file(self, inputMsg: C2HostFileMessage) -> C2HostFileMessageResponse:
@@ -1163,43 +918,16 @@ class C2Profile:
         """
         response = C2HostFileMessageResponse(Success=False)
         response.Message = "Not Implemented"
-        response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
+        #response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response
+
+    async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
+        return ContainerOnStartMessageResponse(ContainerName=self.name)
 
     custom_rpc_functions: dict[
         str, Callable[[C2OtherServiceRPCMessage], Awaitable[C2OtherServiceRPCMessageResponse]]] = {}
     server_folder_path: pathlib.Path
     server_binary_path: pathlib.Path
-
-    @property
-    @abstractmethod
-    def name(self):
-        pass
-
-    @property
-    @abstractmethod
-    def description(self):
-        pass
-
-    @property
-    @abstractmethod
-    def author(self):
-        pass
-
-    @property
-    @abstractmethod
-    def is_p2p(self):
-        pass
-
-    @property
-    @abstractmethod
-    def is_server_routed(self):
-        pass
-
-    @property
-    @abstractmethod
-    def parameters(self):
-        pass
 
     def to_json(self):
         if self.server_binary_path is None:
@@ -1216,6 +944,7 @@ class C2Profile:
         elif not isinstance(self.server_folder_path, pathlib.Path):
             logger.exception("Wrong type for server_folder_path - should be pathlib.Path")
             sys.exit(1)
+        self.name = self.name.lower()
         return {
             "c2_profile": {
                 "name": self.name,

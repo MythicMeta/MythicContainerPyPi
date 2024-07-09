@@ -1,4 +1,17 @@
 
+## [v0.5.0] - 2024-07-09
+
+### Changed
+
+- This is updated to work with Mythic 3.3+ and will cause some issues with Mythic 3.2 and below
+- New Auth
+- New Eventing
+- New Build/C2/Command parameter options of ChooseOneCustom and FileMultiple
+- New Logging options
+- Added MythicRPCAPITokenCreate
+- Added MythicRPCCallbackNextCheckinRange
+- Added MythicRPCFilebrowserParsePath
+
 ## [v0.4.19] - 2024-04-29
 
 ### Changed

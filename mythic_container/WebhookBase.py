@@ -6,6 +6,7 @@ from .logging import logger
 import aiohttp
 from .config import settings
 import json
+from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
 
 
 class NewCallbackWebhookData:
@@ -281,6 +282,9 @@ class Webhook:
         getWebhookChannel:
             This will automatically determine the channel to use by look at the operation configuration, this class' configuartion, and any env configurations
     """
+    name: str = ""
+    description: str = ""
+
     webhook_url: str = ""
     webhook_channel: str = ""
 
@@ -327,6 +331,28 @@ class Webhook:
             logger.error(f"No webhook channel found")
             return ""
 
+    async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
+        return ContainerOnStartMessageResponse(ContainerName=self.name)
+
+    def get_sync_message(self):
+        subscriptions = []
+        if self.new_alert is not None:
+            subscriptions.append("new_alert")
+        if self.new_feedback is not None:
+            subscriptions.append("new_feedback")
+        if self.new_callback is not None:
+            subscriptions.append("new_callback")
+        if self.new_startup is not None:
+            subscriptions.append("new_startup")
+        if self.new_custom is not None:
+            subscriptions.append("new_custom")
+        return {
+            "name": self.name,
+            "type": "webhook",
+            "description": self.description,
+            "subscriptions": subscriptions
+        }
+
 
 async def sendWebhookMessage(contents: dict, url: str) -> (int, str):
     try:
@@ -336,3 +362,5 @@ async def sendWebhookMessage(contents: dict, url: str) -> (int, str):
     except Exception as e:
         logger.exception(f"[-] Failed to send webhook: {e}")
         return 400, f"[-] Failed to send webhook: {e}"
+
+webhooks: dict[str, Webhook] = {}
