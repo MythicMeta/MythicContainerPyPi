@@ -71,9 +71,7 @@ async def listFile(msg: bytes) -> bytes:
 def listFilesOfPath(path: str) -> mythic_container.SharedClasses.ListFileMessageResponse:
     response = mythic_container.SharedClasses.ListFileMessageResponse(Success=False)
     try:
-        logger.info(path)
         files = os.listdir(path)
-        logger.info(files)
         files = [f for f in files if os.path.isfile(pathlib.Path(path) / f)]
         response.Files = files
         response.Success = True

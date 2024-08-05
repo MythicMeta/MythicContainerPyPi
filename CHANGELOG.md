@@ -1,4 +1,16 @@
 
+## [v0.5.3] - 2024-07-31
+
+### Changed
+
+- fixed typo when building payload
+- 
+## [v0.5.1] - 2024-07-31
+
+### Changed
+
+- fixed typo when building payload
+
 ## [v0.5.0] - 2024-07-09
 
 ### Changed

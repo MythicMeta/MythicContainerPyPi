@@ -43,7 +43,7 @@ async def buildWrapper(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["command_payload_type"]:
+            if pt.name == msgDict["payload_type"]:
                 # go through all the data from rabbitmq to make the proper classes
                 commands = PayloadBuilder.CommandList(msgDict["commands"])
                 # go through all the data from rabbitmq to make the proper classes
@@ -57,7 +57,7 @@ async def buildWrapper(msg: bytes) -> None:
                             )
                         )
                 wrapper_bytes = None
-                if msgDict["wrapped_payload_uuid"] is not None:
+                if "wrapped_payload_uuid" in msgDict and msgDict["wrapped_payload_uuid"] is not None:
                     wrapper_bytes = await getFileFromMythic(msgDict["wrapped_payload_uuid"])
                 agent_builder = pt.__class__(
                     uuid=msgDict["uuid"],
