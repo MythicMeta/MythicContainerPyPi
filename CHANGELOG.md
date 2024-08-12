@@ -1,4 +1,11 @@
 
+## [v0.5.4] - 2024-08-07
+
+### Changed
+
+- Updated payload type definition to support using legacy "note" field or updated "description" field
+- Updated typed array parsing to fix bugs
+
 ## [v0.5.3] - 2024-07-31
 
 ### Changed

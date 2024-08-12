@@ -267,7 +267,8 @@ async def verifyTaskArgs(
                         parameter_name=arg.name,
                         payload_type=task.PayloadType,
                         callback=task.Callback.ID,
-                        input_array=inputArray
+                        input_array=inputArray,
+                        command_payload_type=task.CommandPayloadType
                     ))
                     if resp is None:
                         raise Exception('failed to get anything back from typedarray_parse_function')
@@ -280,7 +281,8 @@ async def verifyTaskArgs(
                         parameter_name=arg.name,
                         payload_type=task.PayloadType,
                         callback=task.Callback.ID,
-                        input_array=arg.value
+                        input_array=arg.value,
+                        command_payload_type=task.CommandPayloadType
                     ))
                     if resp is None:
                         raise Exception('failed to get anything back from typedarray_parse_function')

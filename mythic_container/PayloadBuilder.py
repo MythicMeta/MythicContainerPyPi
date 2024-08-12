@@ -489,7 +489,9 @@ class PayloadType:
         wrapped_payloads (list[str]):
             What wrappers does this payload type support (ex: service_wrapper)
         note (str):
-            A description of the payload type to present to users
+            A description of the payload type to present to users (legacy, still works)
+        description (str):
+            A description of the payload type to present to users (use this instead of note)
         supports_dynamic_loading (bool):
             Does this payload type support dynamically choosing which commands to build in or not. If this is `False` then when building a payload for this payload type, you won't get the option to pick which commands to add to the payload - they'll all automatically get added.
         c2_profiles (list[str]):
@@ -560,6 +562,7 @@ class PayloadType:
     wrapper: bool = False
     wrapped_payloads: [str] = []
     note: str = ""
+    description: str = ""
     supports_dynamic_loading: bool = False
     c2_profiles: [str] = []
     build_parameters: [BuildParameter] = []
@@ -684,6 +687,9 @@ class PayloadType:
             self.wrapper = True
         elif self.wrapper:
             self.agent_type = AgentType.Wrapper
+        desc = self.description
+        if desc == "":
+            desc = self.note
         return {
             "name": self.name,
             "file_extension": self.file_extension,
@@ -692,7 +698,7 @@ class PayloadType:
             "wrapper": self.wrapper,
             "supported_wrapper_payload_types": self.wrapped_payloads,
             "supports_dynamic_load": self.supports_dynamic_loading,
-            "description": self.note,
+            "description": desc,
             "build_parameters": [b.to_json() for b in self.build_parameters],
             "supported_c2_profiles": self.c2_profiles,
             "translation_container_name": self.translation_container,
