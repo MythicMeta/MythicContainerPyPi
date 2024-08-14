@@ -311,14 +311,14 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
         "container_version": mythic_container.containerVersion
     }
     for cls in MythicCommandBase.CommandBase.__subclasses__():
-        if cls.__module__.split(".")[0].lower() == pt.name:
-            logger.info(f"[*] Processing command {cls.cmd}")
-            if pt.name not in MythicCommandBase.commands:
-                MythicCommandBase.commands[pt.name] = []
-            MythicCommandBase.commands[pt.name].append(
-                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
-            syncMessage["commands"].append(
-                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
+        #if cls.__module__.split(".")[0].lower() == pt.name or pt.agent_code_path:
+        logger.info(f"[*] Processing command {cls.cmd}")
+        if pt.name not in MythicCommandBase.commands:
+            MythicCommandBase.commands[pt.name] = []
+        MythicCommandBase.commands[pt.name].append(
+            cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
+        syncMessage["commands"].append(
+            cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
     while True:
         response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
             queue=mythic_container.PT_SYNC_ROUTING_KEY,

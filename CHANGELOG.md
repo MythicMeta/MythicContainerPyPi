@@ -1,4 +1,10 @@
 
+## [v0.5.5] - 2024-08-13
+
+### Changed
+
+- Updated the processing of commands to not check command class module's parent path name, too error prone
+
 ## [v0.5.4] - 2024-08-07
 
 ### Changed
