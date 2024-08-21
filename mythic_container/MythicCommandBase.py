@@ -365,6 +365,7 @@ class CommandParameter:
         choices_are_loaded_commands (bool): Can be used with ChooseOne or ChooseMultiple Parameter Types to automatically populate those options in the UI with all of the currently loaded commands.
         parameter_group_info (list[ParameterGroupInfo]): Define 0+ different parameter groups that this parameter belongs to.
         dynamic_query_function: Provide a dynamic query function to be called when the user views that parameter option in the UI to populate choices for the ChooseOne or ChooseMultiple Parameter Types.
+        limit_credentials_by_type (list[str]): List of supported credential types when parameter type is CredentialJson. Blank would allow all credential types.
 
     Functions:
         to_json(self): return dictionary form of class
@@ -390,7 +391,8 @@ class CommandParameter:
                 [PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]] = None,
             typedarray_parse_function: Callable[
                 [PTRPCTypedArrayParseFunctionMessage], Awaitable[PTRPCTypedArrayParseFunctionMessageResponse]] = None,
-            parameter_group_info: [ParameterGroupInfo] = None
+            parameter_group_info: [ParameterGroupInfo] = None,
+            limit_credentials_by_type: [str] = None,
     ):
         self.name = name
         if display_name is None:
@@ -428,6 +430,7 @@ class CommandParameter:
         self.parameter_group_info = parameter_group_info
         if self.parameter_group_info is None:
             self.parameter_group_info = [ParameterGroupInfo()]
+        self.limit_credentials_by_type = limit_credentials_by_type
 
     @property
     def name(self):
@@ -476,6 +479,14 @@ class CommandParameter:
     @supported_agents.setter
     def supported_agents(self, supported_agents):
         self._supported_agents = supported_agents
+
+    @property
+    def limit_credentials_by_type(self):
+        return self._limit_credentials_by_type
+
+    @limit_credentials_by_type.setter
+    def limit_credentials_by_type(self, limit_credentials_by_type):
+        self._limit_credentials_by_type = limit_credentials_by_type
 
     @property
     def supported_agent_build_parameters(self):
@@ -559,7 +570,8 @@ class CommandParameter:
                 self.dynamic_query_function) else None,
             "parameter_group_info": [x.to_json() for x in
                                      self.parameter_group_info] if self.parameter_group_info is not None else [
-                ParameterGroupInfo().to_json()]
+                ParameterGroupInfo().to_json()],
+            "limit_credentials_by_type": self._limit_credentials_by_type if self._limit_credentials_by_type is not None else []
         }
 
     def __str__(self):

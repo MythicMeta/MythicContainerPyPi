@@ -1,4 +1,10 @@
 
+## [v0.5.6] - 2024-08-21
+
+### Changed
+
+- Added the option for `limit_credentials_by_type` for CredentialJson command parameters to limit the options in the UI dropdown to certain types
+
 ## [v0.5.5] - 2024-08-13
 
 ### Changed
