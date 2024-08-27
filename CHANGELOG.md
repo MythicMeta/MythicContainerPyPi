@@ -1,4 +1,10 @@
 
+## [v0.5.8] - 2024-08-27
+
+### Changed
+
+- Fixed awaited functions in eventing containers
+
 ## [v0.5.7] - 2024-08-27
 
 ### Changed
