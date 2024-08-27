@@ -1,4 +1,10 @@
 
+## [v0.5.7] - 2024-08-27
+
+### Changed
+
+- Added in container ReSync message acknowledgement for consuming containers to indicate uptime
+
 ## [v0.5.6] - 2024-08-21
 
 ### Changed

@@ -237,6 +237,10 @@ async def onStart(msg: bytes) -> None:
         logger.exception(f"[-] Failed to call container on start with exception: {e}")
         return
 
+
+async def consumingContainerReSync(msg: bytes) -> bytes:
+    return ujson.dumps({"success": True}).encode()
+
 payloadQueueTasks = []
 
 
@@ -507,6 +511,11 @@ async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
                 routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
                 handler=webhook_utils.new_custom
             )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
     logger.info(f"Successfully started webhook service")
 
 
@@ -589,7 +598,11 @@ async def syncLoggingData(wb: LoggingBase.Log) -> None:
                 routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_RESPONSE),
                 handler=logging_utils.new_response
             )))
-
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
     logger.info(f"Successfully started logging service")
 
 
@@ -646,6 +659,11 @@ async def syncAuthData(wb: AuthBase.Auth) -> None:
         routing_key=getRoutingKey(wb.name, mythic_container.AUTH_RPC_PROCESS_NONIDP_RESPONSE),
         handler=auth_utils.ProcessNonIDPResponse
     )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
     logger.info(f"Successfully started auth service")
 
 
@@ -691,6 +709,11 @@ async def syncEventingData(wb: EventingBase.Eventing) -> None:
         queue=getRoutingKey(wb.name, mythic_container.EVENTING_CONDITIONAL_CHECK),
         routing_key=getRoutingKey(wb.name, mythic_container.EVENTING_CONDITIONAL_CHECK),
         handler=eventing_utils.ConditionalEventingCheck
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
     )))
     logger.info(f"Successfully started Eventing service")
 
