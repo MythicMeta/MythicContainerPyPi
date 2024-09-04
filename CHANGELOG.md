@@ -1,4 +1,12 @@
 
+## [v0.5.10] - 2024-09-04
+
+### Changed
+
+- ContainerVersion v1.3.3
+- Added support for PayloadUUID and StagingUUID to be used in MythicRPCCallbackEncryptBytes and MythicRPCCallbackDecryptBytes
+  - A new field, `C2Profile` must be provided with these so that the appropriate keys can be looked up
+  
 ## [v0.5.8] - 2024-08-27
 
 ### Changed
