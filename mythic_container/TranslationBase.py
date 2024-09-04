@@ -7,7 +7,7 @@ from mythic_container.logging import logger
 from .config import settings
 import json
 from typing import List
-import sys
+from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
 
 
 class TrGenerateEncryptionKeysMessage:
@@ -234,6 +234,10 @@ class TranslationContainer:
             A function for translating from a custom C2 format to Mythic's JSON format
 
     """
+    name: str = ""
+    description: str = ""
+    author: str = ""
+
     async def generate_keys(self, inputMsg: TrGenerateEncryptionKeysMessage) -> TrGenerateEncryptionKeysMessageResponse:
         response = TrGenerateEncryptionKeysMessageResponse(Success=False)
         response.Error = f"Not Implemented:\n{inputMsg}"
@@ -252,20 +256,8 @@ class TranslationContainer:
         response.Error = f"Not Implemented:\n{inputMsg}"
         return response
 
-    @property
-    @abstractmethod
-    def name(self):
-        pass
-
-    @property
-    @abstractmethod
-    def description(self):
-        pass
-
-    @property
-    @abstractmethod
-    def author(self):
-        pass
+    async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
+        return ContainerOnStartMessageResponse(ContainerName=self.name)
 
     def to_json(self):
         return {

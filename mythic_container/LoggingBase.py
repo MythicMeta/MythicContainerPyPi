@@ -6,6 +6,7 @@ from .logging import logger
 import base64
 import json
 from .MythicCommandBase import PTTaskMessageTaskData
+from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
 
 
 class NewCallbackLoggingData:
@@ -42,6 +43,7 @@ class NewCallbackLoggingData:
         LockedOperatorID (int): The unique ID for the operator that locked this callback (if it's locked)
         Timestamp (str): The timestamp for the last time this callback updated
     """
+
     def __init__(self,
                  id: int = 0,
                  display_id: int = 0,
@@ -162,6 +164,7 @@ class NewArtifactLoggingData:
             The unique ID of the operation for this artifact
 
     """
+
     def __init__(self,
                  id: int = 0,
                  task_id: int = 0,
@@ -185,7 +188,7 @@ class NewArtifactLoggingData:
         return {
             "id": self.ID,
             "task_id": self.TaskID,
-            "artifact":self.Artifact,
+            "artifact": self.Artifact,
             "base_artifact": self.BaseArtifact,
             "operation_id": self.OperationID,
             "host": self.Host
@@ -223,6 +226,7 @@ class NewCredentialLoggingData:
             The unique ID of the operation for this artifact
 
     """
+
     def __init__(self,
                  id: int = 0,
                  task_id: int = 0,
@@ -317,6 +321,7 @@ class NewFileLoggingData:
         Comment (str):
             Any comment attached to the file
     """
+
     def __init__(self,
                  id: int = 0,
                  agent_file_id: str = "",
@@ -419,6 +424,7 @@ class NewKeylogLoggingData:
             The unique ID of the operation for this artifact
 
     """
+
     def __init__(self,
                  id: int = 0,
                  task_id: int = 0,
@@ -498,6 +504,7 @@ class NewPayloadLoggingData:
 
 
     """
+
     def __init__(self,
                  id: int = 0,
                  uuid: str = "",
@@ -585,6 +592,7 @@ class NewResponseLoggingData:
         Timestamp (str):
             When this response was created
     """
+
     def __init__(self,
                  id: int = 0,
                  task_id: int = 0,
@@ -716,6 +724,9 @@ class Log:
         new_response(self, LoggingMessage):
             Handle new response (user_output) log messages
     """
+    name: str = ""
+    description: str = ""
+
     LogToFilePath: str
     LogLevel: str
     LogMaxSizeInMB: int
@@ -728,3 +739,34 @@ class Log:
     new_artifact: Callable[[LoggingMessage], Awaitable[None]] = None
     new_task: Callable[[LoggingMessage], Awaitable[None]] = None
     new_response: Callable[[LoggingMessage], Awaitable[None]] = None
+
+    async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
+        return ContainerOnStartMessageResponse(ContainerName=self.name)
+
+    def get_sync_message(self):
+        subscriptions = []
+        if self.new_callback is not None:
+            subscriptions.append("new_callback")
+        if self.new_credential is not None:
+            subscriptions.append("new_credential")
+        if self.new_keylog is not None:
+            subscriptions.append("new_keylog")
+        if self.new_file is not None:
+            subscriptions.append("new_file")
+        if self.new_payload is not None:
+            subscriptions.append("new_payload")
+        if self.new_artifact is not None:
+            subscriptions.append("new_artifact")
+        if self.new_task is not None:
+            subscriptions.append("new_task")
+        if self.new_response is not None:
+            subscriptions.append("new_response")
+        return {
+            "name": self.name,
+            "type": "logging",
+            "description": self.description,
+            "subscriptions": subscriptions
+        }
+
+
+loggers: dict[str, Log] = {}

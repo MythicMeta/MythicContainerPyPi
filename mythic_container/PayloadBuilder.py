@@ -1,12 +1,13 @@
 from enum import Enum
-from abc import abstractmethod
 import base64
 
-from .MythicCommandBase import PTOnNewCallbackAllData, PTOnNewCallbackResponse
+from .MythicCommandBase import PTOnNewCallbackAllData, PTOnNewCallbackResponse, PTCheckIfCallbacksAliveMessage, \
+    PTCheckIfCallbacksAliveMessageResponse
 from .logging import logger
 import json
 from collections.abc import Callable, Awaitable
 import pathlib
+from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
 
 
 class BuildStatus:
@@ -43,6 +44,33 @@ class SupportedOS:
         return self.os
 
 
+class AgentType:
+    """Type of agent container
+
+    This identifies what kind of container this is and how it shows up in the Mythic UI.
+
+    Agent - your normal payload type
+    Wrapper - identifies that this payload type doesn't use C2 and wraps an existing payload
+    Service - this payload type interacts with an external service
+    CommandAugment - this payload type defines commands that are injected into existing callbacks
+
+    """
+    Agent = "agent"
+    Wrapper = "wrapper"
+    Service = "service"
+    CommandAugment = "command_augment"
+
+
+class MessageFormat:
+    """Message format of the agent
+
+    Mythic natively supports both JSON and XML messages. Anything else and you'll need a translation container
+
+    """
+    JSON = "json"
+    XML = "xml"
+
+
 class BuildParameterType(str, Enum):
     """Types of parameters available for building payloads
 
@@ -53,6 +81,8 @@ class BuildParameterType(str, Enum):
             A list of choices for the user to select exactly one
         ChooseMultiple:
             A list of choices for the user to select 0 or more
+        ChooseOneCustom:
+            A list of choices for the user to select exactly one OR write in their own
         Array:
             The user can supply multiple values in an Array format
         Date:
@@ -63,17 +93,21 @@ class BuildParameterType(str, Enum):
             The user can toggle a switch for True/False
         File:
             The user can select a file that gets uploaded - a file UUID gets passed in during build
+        FileMultiple:
+            The user can select multiple files that get uploaded - an array of file UUIDs gets passed in during build
         TypedArray:
             The user can supply an array where each element also has a drop-down option of choices
     """
     String = "String"
     ChooseOne = "ChooseOne"
+    ChooseOneCustom = "ChooseOneCustom"
     ChooseMultiple = "ChooseMultiple"
     Array = "Array"
     Date = "Date"
     Dictionary = "Dictionary"
     Boolean = "Boolean"
     File = "File"
+    FileMultiple = "FileMultiple"
     TypedArray = "TypedArray"
     Number = "Number"
 
@@ -455,14 +489,19 @@ class PayloadType:
         wrapped_payloads (list[str]):
             What wrappers does this payload type support (ex: service_wrapper)
         note (str):
-            A description of the payload type to present to users
+            A description of the payload type to present to users (legacy, still works)
+        description (str):
+            A description of the payload type to present to users (use this instead of note)
         supports_dynamic_loading (bool):
             Does this payload type support dynamically choosing which commands to build in or not. If this is `False` then when building a payload for this payload type, you won't get the option to pick which commands to add to the payload - they'll all automatically get added.
         c2_profiles (list[str]):
             List of C2 Profile names that this Payload Type supports
         build_parameters (list[BuildParameter]):
             List of build parameters for this Payload Type that the user can modify when building the payload
-
+        message_uuid_length (int):
+            The length of UUIDs you will be using in agent messages, can be either 36 (string) or 16 (bytes)
+        command_augment_supported_agents (list[str]):
+            If this is an AgentType.CommandAugment container, then you can specify the names of the payload types where you want these commands injected specifically
         uuid (str):
             UUID of the payload
         filename (str):
@@ -483,6 +522,10 @@ class PayloadType:
             Path to the agent icon you want to use with Mythic. This MUST be a .svg file.
         agent_icon_bytes (bytes):
             If you don't want to provide the path, you can optionally provide the raw bytes to the .svg file here.
+        dark_mode_agent_icon_path (str):
+            Path to the agent icon dark mode you want to use with Mythic. This MUST be a .svg file.
+        dark_mode_agent_icon_bytes (bytes):
+            If you don't want to provide the path, you can optionally provide the raw bytes to the dark mode .svg file here.
         translation_container (str):
             If your payload type uses a translation container, provide the name of it here
         mythic_encrypts (bool):
@@ -505,9 +548,42 @@ class PayloadType:
             Given an instance of a bare payload and all the configuration options that the user selected (build parameters, c2 profile parameters), build the payload
         get_parameter:
             Get the value of a build parameter
+        on_container_start(self, ContainerOnStartMessage):
+            Given some configuration information about each operation, you have the option to configure thigns as needed within your container
         on_new_callback(self, newCallback):
             Given the context of a new callback, perform some initial analysis and tasking
+        check_if_callbacks_alive(self, callbacks):
+            Given info about active callbacks based on this payload type, identify if they are potentially dead or not based on their last checkin time and sleep info
     """
+    name: str = ""
+    file_extension: str = ""
+    author: str = ""
+    supported_os: [str] = []
+    wrapper: bool = False
+    wrapped_payloads: [str] = []
+    note: str = ""
+    description: str = ""
+    supports_dynamic_loading: bool = False
+    c2_profiles: [str] = []
+    build_parameters: [BuildParameter] = []
+    message_uuid_length: int = 36
+    command_augment_supported_agents: [str] = []
+    build_steps = []
+    agent_icon_path: str = None
+    agent_icon_bytes: bytes = None
+    dark_mode_agent_icon_path: str = None
+    dark_mode_agent_icon_bytes: bytes = None
+    translation_container = None
+    mythic_encrypts = True
+    agent_path = None
+    agent_code_path = None
+    agent_browserscript_path = None
+    message_format: MessageFormat = MessageFormat.JSON
+    agent_type: AgentType = AgentType.Agent
+    custom_rpc_functions: dict[
+        str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
+
+    # These following fields are established when the build function is called
     uuid: str = None
     c2info: [C2ProfileParameters] = None
     commands: CommandList = None
@@ -515,18 +591,6 @@ class PayloadType:
     wrapped_payload: bytes = None
     selected_os: str = None
     filename: str = None
-    build_steps = []
-    agent_icon_path: str = None
-    agent_icon_bytes: bytes = None
-    translation_container = None
-    mythic_encrypts = True
-    agent_path = None
-    agent_code_path = None
-    agent_browserscript_path = None
-    message_format = 'json'
-    agent_type = 'agent'
-    custom_rpc_functions: dict[
-        str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
 
     def __init__(
             self,
@@ -556,62 +620,18 @@ class PayloadType:
         if self.agent_browserscript_path is None:
             self.agent_browserscript_path = self.agent_path / "browser_scripts"
 
-    @property
-    @abstractmethod
-    def name(self):
-        pass
-
-    @property
-    @abstractmethod
-    def file_extension(self):
-        pass
-
-    @property
-    @abstractmethod
-    def author(self):
-        pass
-
-    @property
-    @abstractmethod
-    def supported_os(self):
-        pass
-
-    @property
-    @abstractmethod
-    def wrapper(self):
-        pass
-
-    @property
-    @abstractmethod
-    def wrapped_payloads(self):
-        pass
-
-    @property
-    @abstractmethod
-    def note(self):
-        pass
-
-    @property
-    @abstractmethod
-    def supports_dynamic_loading(self):
-        pass
-
-    @property
-    @abstractmethod
-    def c2_profiles(self):
-        pass
-
-    @property
-    @abstractmethod
-    def build_parameters(self):
-        pass
-
-    @abstractmethod
     async def build(self) -> BuildResponse:
         pass
 
     async def on_new_callback(self, newCallback: PTOnNewCallbackAllData) -> PTOnNewCallbackResponse:
         return PTOnNewCallbackResponse(AgentCallbackID=newCallback.Callback.AgentCallbackID, Success=True)
+
+    async def check_if_callbacks_alive(self,
+                                       message: PTCheckIfCallbacksAliveMessage) -> PTCheckIfCallbacksAliveMessageResponse:
+        return PTCheckIfCallbacksAliveMessageResponse(Success=True)
+
+    async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
+        return ContainerOnStartMessageResponse(ContainerName=self.name)
 
     def get_parameter(self, name):
         for arg in self.build_parameters:
@@ -638,6 +658,7 @@ class PayloadType:
 
     def to_json(self):
         agent_bytes = self.agent_icon_bytes
+        dark_mode_agent_bytes = self.dark_mode_agent_icon_bytes
         self.name = self.name.lower()
         if agent_bytes is None:
             if self.agent_icon_path is not None:
@@ -651,6 +672,24 @@ class PayloadType:
             else:
                 logger.error(f"{self.name} has no agent_icon_bytes or agent_icon_path specified, no icon will be used")
                 agent_bytes = b""
+        if dark_mode_agent_bytes is None:
+            if self.dark_mode_agent_icon_path is not None:
+                try:
+                    with open(self.dark_mode_agent_icon_path, "rb") as f:
+                        dark_mode_agent_bytes = f.read()
+                except Exception as e:
+                    logger.exception(
+                        f"failed to read dark mode agent icon from ({self.dark_mode_agent_icon_path}): {e}")
+                    dark_mode_agent_bytes = b""
+            else:
+                dark_mode_agent_bytes = agent_bytes
+        if self.agent_type == AgentType.Wrapper:
+            self.wrapper = True
+        elif self.wrapper:
+            self.agent_type = AgentType.Wrapper
+        desc = self.description
+        if desc == "":
+            desc = self.note
         return {
             "name": self.name,
             "file_extension": self.file_extension,
@@ -659,15 +698,18 @@ class PayloadType:
             "wrapper": self.wrapper,
             "supported_wrapper_payload_types": self.wrapped_payloads,
             "supports_dynamic_load": self.supports_dynamic_loading,
-            "description": self.note,
+            "description": desc,
             "build_parameters": [b.to_json() for b in self.build_parameters],
             "supported_c2_profiles": self.c2_profiles,
             "translation_container_name": self.translation_container,
             "mythic_encrypts": self.mythic_encrypts,
             "build_steps": [x.to_json() for x in self.build_steps],
             "agent_icon": base64.b64encode(agent_bytes).decode(),
+            "dark_mode_agent_icon": base64.b64encode(dark_mode_agent_bytes).decode(),
             "message_format": self.message_format,
-            "agent_type": self.agent_type
+            "agent_type": self.agent_type,
+            "message_uuid_length": self.message_uuid_length,
+            "command_augment_supported_agents": self.command_augment_supported_agents
         }
 
     def __str__(self):

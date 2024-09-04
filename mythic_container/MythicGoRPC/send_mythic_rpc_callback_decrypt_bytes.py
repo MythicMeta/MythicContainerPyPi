@@ -11,11 +11,13 @@ class MythicRPCCallbackDecryptBytesMessage:
                  Message: bytes,
                  IncludesUUID: bool = False,
                  IsBase64Encoded: bool = True,
+                 C2Profile: str = "",
                  **kwargs):
         self.AgentCallbackUUID = AgentCallbackUUID
         self.Message = Message
         self.IncludesUUID = IncludesUUID
         self.IsBase64Encoded = IsBase64Encoded
+        self.C2Profile = C2Profile
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -24,7 +26,8 @@ class MythicRPCCallbackDecryptBytesMessage:
             "agent_callback_id": self.AgentCallbackUUID,
             "message": base64.b64encode(self.Message).decode(),
             "include_uuid": self.IncludesUUID,
-            "base64_message": self.IsBase64Encoded
+            "base64_message": self.IsBase64Encoded,
+            "c2_profile": self.C2Profile
         }
 
 

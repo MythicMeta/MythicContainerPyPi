@@ -22,6 +22,7 @@ class SupportedOS:
     Windows = "Windows"
     MacOS = "macOS"
     Linux = "Linux"
+    WebShell = "WebShell"
     Chrome = "Chrome"
 
     def __init__(self, os: str):
@@ -75,8 +76,10 @@ class ParameterType(str, Enum):
     String = "String"
     Boolean = "Boolean"
     File = "File"
+    FileMultiple = "FileMultiple"
     Array = "Array"
     ChooseOne = "ChooseOne"
+    ChooseOneCustom = "ChooseOneCustom"
     ChooseMultiple = "ChooseMultiple"
     Credential_JSON = "CredentialJson"
     Number = "Number"
@@ -187,6 +190,7 @@ class PTRPCDynamicQueryFunctionMessage:
         Command (str): Name of the command
         ParameterName (str): Name of the parameter
         PayloadType (str): Name of the PayloadType
+        CommandPayloadType (str): Name of the payload type associated with this command
         Callback (int): ID of the Callback where this function is called. This can be used for PRC calls to Mythic
         CallbackDisplayID (int): Display ID of the callback where this function is called
         AgentCallbackID (str): Agent UUID of the callback where this function is called
@@ -201,6 +205,7 @@ class PTRPCDynamicQueryFunctionMessage:
                  command: str,
                  parameter_name: str,
                  payload_type: str,
+                 command_payload_type: str,
                  callback: int,
                  payload_os: str = "",
                  payload_uuid: str = "",
@@ -210,6 +215,7 @@ class PTRPCDynamicQueryFunctionMessage:
                  **kwargs
                  ):
         self.Command = command
+        self.CommandPayloadType = command_payload_type
         self.ParameterName = parameter_name
         self.PayloadType = payload_type
         self.Callback = callback
@@ -224,6 +230,7 @@ class PTRPCDynamicQueryFunctionMessage:
             "command": self.Command,
             "parameter_name": self.ParameterName,
             "payload_type": self.PayloadType,
+            "command_payload_type": self.CommandPayloadType,
             "callback": self.Callback,
             "payload_os": self.PayloadOS,
             "payload_uuid": self.PayloadUUID,
@@ -274,6 +281,7 @@ class PTRPCTypedArrayParseFunctionMessage:
         Command (str): Name of the command
         ParameterName (str): Name of the parameter
         PayloadType (str): Name of the PayloadType
+        CommandPayloadType (str): Name of the payload type for the command issued
         Callback (int): ID of the Callback where this function is called. This can be used for PRC calls to Mythic
         InputArray (list[str]): List of strings that the user supplied for the TypedArray parameter type
 
@@ -285,11 +293,13 @@ class PTRPCTypedArrayParseFunctionMessage:
                  command: str,
                  parameter_name: str,
                  payload_type: str,
+                 command_payload_type: str,
                  callback: int,
                  input_array: list[str]):
         self.Command = command
         self.ParameterName = parameter_name
         self.PayloadType = payload_type
+        self.CommandPayloadType = command_payload_type
         self.Callback = callback
         self.InputArray = input_array
 
@@ -298,6 +308,7 @@ class PTRPCTypedArrayParseFunctionMessage:
             "command": self.Command,
             "parameter_name": self.ParameterName,
             "payload_type": self.PayloadType,
+            "command_payload_type": self.CommandPayloadType,
             "callback": self.Callback,
             "input_array": self.InputArray
         }
@@ -354,6 +365,7 @@ class CommandParameter:
         choices_are_loaded_commands (bool): Can be used with ChooseOne or ChooseMultiple Parameter Types to automatically populate those options in the UI with all of the currently loaded commands.
         parameter_group_info (list[ParameterGroupInfo]): Define 0+ different parameter groups that this parameter belongs to.
         dynamic_query_function: Provide a dynamic query function to be called when the user views that parameter option in the UI to populate choices for the ChooseOne or ChooseMultiple Parameter Types.
+        limit_credentials_by_type (list[str]): List of supported credential types when parameter type is CredentialJson. Blank would allow all credential types.
 
     Functions:
         to_json(self): return dictionary form of class
@@ -379,7 +391,8 @@ class CommandParameter:
                 [PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]] = None,
             typedarray_parse_function: Callable[
                 [PTRPCTypedArrayParseFunctionMessage], Awaitable[PTRPCTypedArrayParseFunctionMessageResponse]] = None,
-            parameter_group_info: [ParameterGroupInfo] = None
+            parameter_group_info: [ParameterGroupInfo] = None,
+            limit_credentials_by_type: [str] = None,
     ):
         self.name = name
         if display_name is None:
@@ -417,6 +430,7 @@ class CommandParameter:
         self.parameter_group_info = parameter_group_info
         if self.parameter_group_info is None:
             self.parameter_group_info = [ParameterGroupInfo()]
+        self.limit_credentials_by_type = limit_credentials_by_type
 
     @property
     def name(self):
@@ -465,6 +479,14 @@ class CommandParameter:
     @supported_agents.setter
     def supported_agents(self, supported_agents):
         self._supported_agents = supported_agents
+
+    @property
+    def limit_credentials_by_type(self):
+        return self._limit_credentials_by_type
+
+    @limit_credentials_by_type.setter
+    def limit_credentials_by_type(self, limit_credentials_by_type):
+        self._limit_credentials_by_type = limit_credentials_by_type
 
     @property
     def supported_agent_build_parameters(self):
@@ -548,7 +570,8 @@ class CommandParameter:
                 self.dynamic_query_function) else None,
             "parameter_group_info": [x.to_json() for x in
                                      self.parameter_group_info] if self.parameter_group_info is not None else [
-                ParameterGroupInfo().to_json()]
+                ParameterGroupInfo().to_json()],
+            "limit_credentials_by_type": self._limit_credentials_by_type if self._limit_credentials_by_type is not None else []
         }
 
     def __str__(self):
@@ -622,10 +645,12 @@ class TypeValidators:
         "Number": validateNumber,
         "Boolean": validateBoolean,
         "File": validateFile,
+        "FileMultiple": validateArray,
         "Array": validateArray,
         "CredentialJson": validateCredentialJSON,
         "ChooseOne": validatePass,
         "ChooseMultiple": validateChooseMultiple,
+        "ChooseOneCustom": validatePass,
         "PayloadList": validatePayloadList,
         "AgentConnect": validateAgentConnect,
         "LinkInfo": validateAgentConnect,
@@ -1681,7 +1706,8 @@ class PTTaskMessageAllData:
         Callback (PTTaskMessageCallbackData): The information about this task's callback
         Payload (PTTaskMessagePayloadData): The information about this task's associated payload
         Commands (list[str]): The names of all the commands currently loaded into this callback
-        PayloadType (str): The name of the payload type
+        PayloadType (str): The name of the payload type associated with this callback
+        CommandPayloadType (str): Name of the payload type associated with this task
         BuildParameters (list[MythicRPCPayloadConfigurationBuildParameter]): Information about the build parameters used to generate the payload for this callback
         C2Profiles (list[MythicRPCPayloadConfigurationC2Profile]): Information about the c2 profiles associated with this callback and their values
         args: The running instance of arguments for this task, this allows you to modify any arguments as necessary in your `create_go_tasking` function
@@ -1700,6 +1726,7 @@ class PTTaskMessageAllData:
                  payload: dict = {},
                  c2info: list[dict] = [],
                  payload_type: str = "",
+                 command_payload_type: str = "",
                  args: TaskArguments.__class__ = None,
                  secrets: dict = {},
                  **kwargs):
@@ -1708,6 +1735,7 @@ class PTTaskMessageAllData:
         self.Payload = PTTaskMessagePayloadData(**payload)
         self.Commands = commands
         self.PayloadType = payload_type
+        self.CommandPayloadType = command_payload_type
         self.BuildParameters = [MythicRPCPayloadConfigurationBuildParameter(**x) for x in build_parameters]
         self.C2Profiles = [MythicRPCPayloadConfigurationC2Profile(**x) for x in c2info]
         self.Secrets = secrets
@@ -1731,6 +1759,7 @@ class PTTaskMessageAllData:
             "payload": self.Payload.to_json(),
             "c2info": [x.to_json() for x in self.C2Profiles],
             "payload_type": self.PayloadType,
+            "command_payload_type": self.CommandPayloadType,
             "secrets": self.Secrets
         }
 
@@ -1741,6 +1770,75 @@ class PTTaskMessageAllData:
 
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class PTCallbacksToCheck:
+    def __init__(self, id: int = 0,
+                 display_id: int = 0,
+                 agent_callback_id: str = "",
+                 initial_checkin: str = "",
+                 last_checkin: str = "",
+                 sleep_info: str = "",
+                 active_c2_profiles: [str] = []):
+        self.ID = id
+        self.DisplayID = display_id
+        self.AgentCallbackID = agent_callback_id
+        self.InitialCheckin = initial_checkin
+        self.LastCheckin = last_checkin
+        self.SleepInfo = sleep_info
+        self.ActiveC2Profiles = active_c2_profiles
+
+    def to_json(self):
+        return {
+            "id": self.ID,
+            "display_id": self.DisplayID,
+            "agent_callback_id": self.AgentCallbackID,
+            "sleep_info": self.SleepInfo,
+            "initial_checkin": self.InitialCheckin,
+            "last_checkin": self.LastCheckin,
+            "active_c2_profiles": self.ActiveC2Profiles
+        }
+
+
+class PTCheckIfCallbacksAliveMessage:
+    def __init__(self,
+                 container_name: str = "",
+                 callbacks: [dict] = []):
+        self.ContainerName = container_name
+        self.Callbacks = [PTCallbacksToCheck(**x) for x in callbacks]
+
+    def to_json(self):
+        return {
+            "container_name": self.ContainerName,
+            "callbacks": [x.to_json() for x in self.Callbacks]
+        }
+
+
+class PTCallbacksToCheckResponse:
+    def __init__(self, ID: int = 0, Alive: bool = True):
+        self.ID = ID
+        self.Alive = Alive
+
+    def to_json(self):
+        return {
+            "id": self.ID,
+            "alive": self.Alive
+        }
+
+
+class PTCheckIfCallbacksAliveMessageResponse:
+    def __init__(self, Success: bool = True, Error: str = "",
+                 Callbacks: [PTCallbacksToCheckResponse] = []):
+        self.Success = Success
+        self.Error = Error
+        self.Callbacks = Callbacks
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+            "callbacks": [x.to_json() for x in self.Callbacks]
+        }
 
 
 class PTOnNewCallbackAllData:

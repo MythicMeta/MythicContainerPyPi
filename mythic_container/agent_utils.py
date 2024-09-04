@@ -56,13 +56,16 @@ async def buildWrapper(msg: bytes) -> None:
                                 parameters=params, c2profile=c2
                             )
                         )
+                wrapper_bytes = None
+                if "wrapped_payload_uuid" in msgDict and msgDict["wrapped_payload_uuid"] is not None:
+                    wrapper_bytes = await getFileFromMythic(msgDict["wrapped_payload_uuid"])
                 agent_builder = pt.__class__(
                     uuid=msgDict["uuid"],
                     c2info=c2info_list,
                     filename=msgDict["filename"],
                     selected_os=msgDict["selected_os"],
                     commands=commands,
-                    wrapped_payload=msgDict["wrapped_payload"] if "wrapped_payload" in msgDict else None,
+                    wrapped_payload=wrapper_bytes,
                     wrapped_payload_uuid=msgDict["wrapped_payload_uuid"] if "wrapped_payload_uuid" in msgDict else None
                 )
                 try:
@@ -115,6 +118,26 @@ async def onNewCallback(msg: bytes) -> None:
             queue=mythic_container.PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
             body={"success": False, "build_stderr": f"{traceback.format_exc()}\n{e}"}
         )
+
+
+async def checkIfCallbacksAlive(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, pt in PayloadBuilder.payloadTypes.items():
+            if pt.name == msgDict["container_name"]:
+                agent_builder = pt.__class__()
+                try:
+                    callbackData = mythic_container.MythicCommandBase.PTCheckIfCallbacksAliveMessage(**msgDict)
+                    callback_response = await agent_builder.check_if_callbacks_alive(callbackData)
+                    return ujson.dumps(callback_response.to_json()).encode()
+                except Exception as b:
+                    logger.exception(f"[-] Failed to process check_if_callbacks_alive for agent {pt.name}")
+                    response = {"success": False, "error": f"{traceback.format_exc()}\n{b}"}
+                    return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        logger.exception(f"[-] Failed to process check_if_callbacks_alive request")
+        response = {"success": False, "error": f"{traceback.format_exc()}\n{e}"}
+        return ujson.dumps(response).encode()
 
 
 async def initialize_task(
@@ -244,7 +267,8 @@ async def verifyTaskArgs(
                         parameter_name=arg.name,
                         payload_type=task.PayloadType,
                         callback=task.Callback.ID,
-                        input_array=inputArray
+                        input_array=inputArray,
+                        command_payload_type=task.CommandPayloadType
                     ))
                     if resp is None:
                         raise Exception('failed to get anything back from typedarray_parse_function')
@@ -257,7 +281,8 @@ async def verifyTaskArgs(
                         parameter_name=arg.name,
                         payload_type=task.PayloadType,
                         callback=task.Callback.ID,
-                        input_array=arg.value
+                        input_array=arg.value,
+                        command_payload_type=task.CommandPayloadType
                     ))
                     if resp is None:
                         raise Exception('failed to get anything back from typedarray_parse_function')
@@ -306,7 +331,7 @@ async def opsecPreCheck(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["payload_type"]:
+            if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do opsec pre-check")
                 else:
@@ -358,7 +383,7 @@ async def opsecPostCheck(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["payload_type"]:
+            if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do opsec post-check")
                 else:
@@ -410,7 +435,7 @@ async def createTasking(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["payload_type"]:
+            if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do create tasking")
                 else:
@@ -499,7 +524,7 @@ async def completionFunction(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["task"]["payload_type"]:
+            if pt.name == msgDict["task"]["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do completion function")
                 else:
@@ -575,7 +600,7 @@ async def processResponse(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["task"]["payload_type"]:
+            if pt.name == msgDict["task"]["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do process response")
                 else:
@@ -623,7 +648,7 @@ async def dynamicQueryFunction(msg: bytes) -> bytes:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["payload_type"]:
+            if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do dynamic query function")
                 else:
@@ -701,7 +726,7 @@ async def typedTaskParseFunction(msg: bytes) -> bytes:
     try:
         msgDict = ujson.loads(msg)
         for name, pt in PayloadBuilder.payloadTypes.items():
-            if pt.name == msgDict["payload_type"]:
+            if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
                     logger.error(f"[-] no commands for payload type, can't do typedarray parse function")
                 else:

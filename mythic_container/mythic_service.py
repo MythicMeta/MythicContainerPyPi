@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import sys
 import json
+import ujson
+import os
+import traceback
+import pathlib
 import asyncio
 import mythic_container
 from . import MythicCommandBase
@@ -15,10 +19,11 @@ from . import WebhookBase
 from . import LoggingBase
 from . import webhook_utils
 from . import logging_utils
+from . import AuthBase
+from . import auth_utils
+from . import EventingBase
+from . import eventing_utils
 from .rabbitmq import failedConnectRetryDelay
-
-# set the global hostname variable
-output = ""
 
 
 # start our service
@@ -44,10 +49,203 @@ def getLoggingRoutingKey(loggingType: str) -> str:
     return f"{mythic_container.EMIT_LOG_ROUTING_KEY_PREFIX}.{loggingType}"
 
 
+# Shared file based functionality for all services
+async def listFile(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == msgDict["container_name"]:
+                response = listFilesOfPath(c2.server_folder_path)
+                return ujson.dumps(response.to_json()).encode()
+        # if it's not a c2 profile, then just use the current path of the script that's executing
+        response = listFilesOfPath(os.path.dirname(os.path.abspath(sys.argv[0])))
+        return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.SharedClasses.ListFileMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call list file function function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
+def listFilesOfPath(path: str) -> mythic_container.SharedClasses.ListFileMessageResponse:
+    response = mythic_container.SharedClasses.ListFileMessageResponse(Success=False)
+    try:
+        files = os.listdir(path)
+        files = [f for f in files if os.path.isfile(pathlib.Path(path) / f)]
+        response.Files = files
+        response.Success = True
+    except Exception as e:
+        response.Error = f"{traceback.format_exc()}\n{e}"
+    return response
+
+
+async def removeFile(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        inputMsg = mythic_container.SharedClasses.RemoveFileMessage(**msgDict)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == msgDict["container_name"]:
+                response = removeFileOfPath(c2.server_folder_path / inputMsg.Filename)
+                return ujson.dumps(response.to_json()).encode()
+        path = pathlib.Path(os.path.dirname(os.path.abspath(sys.argv[0]))) / inputMsg.Filename
+        response = removeFileOfPath(path)
+        return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.SharedClasses.GetFileMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call get removeFile function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
+def removeFileOfPath(path: str) -> mythic_container.SharedClasses.RemoveFileMessageResponse:
+    response = mythic_container.SharedClasses.RemoveFileMessageResponse(Success=False)
+    try:
+        path = path.resolve()
+        os.remove(path)
+        response.Success = True
+    except Exception as e:
+        response.Error = f"{traceback.format_exc()}\n{e}"
+    return response
+
+
+async def getFile(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        inputMsg = mythic_container.SharedClasses.GetFileMessage(**msgDict)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == msgDict["container_name"]:
+                response = getFileOfPath(c2.server_folder_path / inputMsg.Filename)
+                return ujson.dumps(response.to_json()).encode()
+        path = pathlib.Path(os.path.dirname(os.path.abspath(sys.argv[0]))) / inputMsg.Filename
+        response = getFileOfPath(path)
+        return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.SharedClasses.GetFileMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call get file function function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
+def getFileOfPath(path: str) -> mythic_container.SharedClasses.GetFileMessageResponse:
+    response = mythic_container.SharedClasses.GetFileMessageResponse(Success=False)
+    try:
+        file_data = open(path, "rb").read()
+        response.Success = True
+        response.Message = file_data
+    except Exception as e:
+        response.Error = f"{traceback.format_exc()}\n{e}"
+    return response
+
+
+async def writeFile(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        inputMsg = mythic_container.SharedClasses.WriteFileMessage(**msgDict)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == msgDict["container_name"]:
+                response = writeFileOfPath(c2.server_folder_path / inputMsg.Filename, inputMsg.Contents)
+                return ujson.dumps(response.to_json()).encode()
+        path = pathlib.Path(os.path.dirname(os.path.abspath(sys.argv[0]))) / inputMsg.Filename
+        response = writeFileOfPath(path, inputMsg.Contents)
+        return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        logger.exception(f"[-] Failed to write to file with exception: {e}")
+        response = mythic_container.SharedClasses.WriteFileMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call write file function function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
+def writeFileOfPath(path: str, bytesToWrite: bytes) -> mythic_container.SharedClasses.WriteFileMessageResponse:
+    response = mythic_container.SharedClasses.WriteFileMessageResponse(Success=False)
+    try:
+        with open(path, "wb") as f:
+            f.write(bytesToWrite)
+        response.Success = True
+        response.Message = "Successfully wrote file"
+    except Exception as e:
+        logger.exception(f"[-] Failed to write to file: {e}")
+        response.Error = f"{traceback.format_exc()}\n{e}"
+    return response
+
+
+async def onStart(msg: bytes) -> None:
+    try:
+        msgDict = ujson.loads(msg)
+        inputMsg = mythic_container.SharedClasses.ContainerOnStartMessage(**msgDict)
+        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+            if c2.name == inputMsg.ContainerName:
+                response = await c2.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+        for name, pt in mythic_container.PayloadBuilder.payloadTypes.items():
+            if pt.name == inputMsg.ContainerName:
+                response = await pt.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+        for name, tr in mythic_container.TranslationBase.translationServices.items():
+            if tr.name == inputMsg.ContainerName:
+                response = await tr.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+        for name, lg in mythic_container.LoggingBase.loggers.items():
+            if lg.name == inputMsg.ContainerName:
+                response = await lg.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+        for name, wb in mythic_container.WebhookBase.webhooks.items():
+            if wb.name == inputMsg.ContainerName:
+                response = await wb.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+        for name, auth in mythic_container.AuthBase.authServices.items():
+            if auth.name == inputMsg.ContainerName:
+                response = await auth.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+        for name, event in mythic_container.EventingBase.eventingServices.items():
+            if event.name == inputMsg.ContainerName:
+                response = await event.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+    except Exception as e:
+        logger.exception(f"[-] Failed to call container on start with exception: {e}")
+        return
+
+
+async def consumingContainerReSync(msg: bytes) -> bytes:
+    return ujson.dumps({"success": True}).encode()
+
 payloadQueueTasks = []
 
 
 async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
+    await startSharedServices(pt.name)
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
         queue=getRoutingKey(pt.name, mythic_container.PAYLOAD_BUILD_ROUTING_KEY),
         routing_key=getRoutingKey(pt.name, mythic_container.PAYLOAD_BUILD_ROUTING_KEY),
@@ -103,6 +301,11 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
         routing_key=getRoutingKey(pt.name, mythic_container.PT_RPC_RESYNC_ROUTING_KEY),
         handler=agent_utils.reSyncPayloadType
     )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(pt.name, mythic_container.PT_CHECK_IF_CALLBACKS_ALIVE),
+        routing_key=getRoutingKey(pt.name, mythic_container.PT_CHECK_IF_CALLBACKS_ALIVE),
+        handler=agent_utils.checkIfCallbacksAlive
+    )))
 
 
 async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
@@ -112,14 +315,14 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
         "container_version": mythic_container.containerVersion
     }
     for cls in MythicCommandBase.CommandBase.__subclasses__():
-        if cls.__module__.split(".")[0].lower() == pt.name:
-            logger.info(f"[*] Processing command {cls.cmd}")
-            if pt.name not in MythicCommandBase.commands:
-                MythicCommandBase.commands[pt.name] = []
-            MythicCommandBase.commands[pt.name].append(
-                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
-            syncMessage["commands"].append(
-                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
+        #if cls.__module__.split(".")[0].lower() == pt.name or pt.agent_code_path:
+        logger.info(f"[*] Processing command {cls.cmd}")
+        if pt.name not in MythicCommandBase.commands:
+            MythicCommandBase.commands[pt.name] = []
+        MythicCommandBase.commands[pt.name].append(
+            cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
+        syncMessage["commands"].append(
+            cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
     while True:
         response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
             queue=mythic_container.PT_SYNC_ROUTING_KEY,
@@ -139,6 +342,7 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
 
 
 async def startC2RabbitMQ(c2: C2ProfileBase.C2Profile) -> None:
+    await startSharedServices(c2.name)
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(c2.name, mythic_container.C2_RPC_START_SERVER_ROUTING_KEY),
         routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_START_SERVER_ROUTING_KEY),
@@ -155,19 +359,9 @@ async def startC2RabbitMQ(c2: C2ProfileBase.C2Profile) -> None:
         handler=c2_utils.getDebugOutput
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
-        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_GET_FILE),
-        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_GET_FILE),
-        handler=c2_utils.getFile
-    )))
-    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(c2.name, mythic_container.C2_RPC_REDIRECTOR_RULES_ROUTING_KEY),
         routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_REDIRECTOR_RULES_ROUTING_KEY),
         handler=c2_utils.getRedirectorRules
-    )))
-    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
-        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_LIST_FILE),
-        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_LIST_FILE),
-        handler=c2_utils.listFile
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(c2.name, mythic_container.C2_RPC_OPSEC_CHECKS_ROUTING_KEY),
@@ -175,21 +369,11 @@ async def startC2RabbitMQ(c2: C2ProfileBase.C2Profile) -> None:
         handler=c2_utils.opsecChecks
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
-        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_REMOVE_FILE),
-        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_REMOVE_FILE),
-        handler=c2_utils.removeFile
-    )))
-
-    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(c2.name, mythic_container.C2_RPC_STOP_SERVER_ROUTING_KEY),
         routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_STOP_SERVER_ROUTING_KEY),
         handler=c2_utils.stopServer
     )))
-    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
-        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_WRITE_FILE),
-        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_WRITE_FILE),
-        handler=c2_utils.writeFile
-    )))
+
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(c2.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
         routing_key=getRoutingKey(c2.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
@@ -242,6 +426,7 @@ async def syncC2ProfileData(c2: C2ProfileBase.C2Profile) -> None:
 
 
 async def startTranslatorRabbitMQ(tr: TranslationBase.TranslationContainer) -> None:
+    await startSharedServices(tr.name)
     payloadQueueTasks.append(asyncio.create_task(TranslationBase.handleTranslationServices(tr.name)))
 
 
@@ -269,6 +454,28 @@ async def syncTranslatorData(tr: TranslationBase.TranslationContainer) -> None:
 
 
 async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
+    syncMessage = {
+        "consuming_container": wb.get_sync_message(),
+        "container_version": mythic_container.containerVersion
+    }
+    await startSharedServices(wb.name)
+    while True:
+        response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+            queue=mythic_container.CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
+            body=syncMessage)
+        if response is None:
+            logger.error("[-] Failed to get a response back from syncing RPC message, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif "success" not in response:
+            logger.error("[-] RPC response doesn't contain success, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif not response["success"]:
+            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        else:
+            logger.info(f"[+] Successfully synced {wb.name}")
+            break
+
     if wb.new_startup is not None and callable(wb.new_startup):
         payloadQueueTasks.append(
             asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
@@ -304,10 +511,37 @@ async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
                 routing_key=getWebhookRoutingKey(mythic_container.WEBHOOK_TYPE_NEW_CUSTOM),
                 handler=webhook_utils.new_custom
             )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
     logger.info(f"Successfully started webhook service")
 
 
 async def syncLoggingData(wb: LoggingBase.Log) -> None:
+    syncMessage = {
+        "consuming_container": wb.get_sync_message(),
+        "container_version": mythic_container.containerVersion
+    }
+    await startSharedServices(wb.name)
+    while True:
+        response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+            queue=mythic_container.CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
+            body=syncMessage)
+        if response is None:
+            logger.error("[-] Failed to get a response back from syncing RPC message, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif "success" not in response:
+            logger.error("[-] RPC response doesn't contain success, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif not response["success"]:
+            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        else:
+            logger.info(f"[+] Successfully synced {wb.name}")
+            break
+
     if wb.new_callback is not None and callable(wb.new_callback):
         payloadQueueTasks.append(
             asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectTopicExchange(
@@ -364,33 +598,188 @@ async def syncLoggingData(wb: LoggingBase.Log) -> None:
                 routing_key=getLoggingRoutingKey(mythic_container.LOG_TYPE_RESPONSE),
                 handler=logging_utils.new_response
             )))
-
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
     logger.info(f"Successfully started logging service")
 
 
-consumingServices = []
+async def syncAuthData(wb: AuthBase.Auth) -> None:
+    syncMessage = {
+        "consuming_container": wb.get_sync_message(),
+        "container_version": mythic_container.containerVersion
+    }
+    await startSharedServices(wb.name)
+    while True:
+        response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+            queue=mythic_container.CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
+            body=syncMessage)
+        if response is None:
+            logger.error("[-] Failed to get a response back from syncing RPC message, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif "success" not in response:
+            logger.error("[-] RPC response doesn't contain success, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif not response["success"]:
+            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        else:
+            logger.info(f"[+] Successfully synced {wb.name}")
+            break
+
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_IDP_METADATA),
+        routing_key=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_IDP_METADATA),
+        handler=auth_utils.GetIDPMetadata
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_IDP_REDIRECT),
+        routing_key=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_IDP_REDIRECT),
+        handler=auth_utils.GetIDPRedirect
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.AUTH_RPC_PROCESS_IDP_RESPONSE),
+        routing_key=getRoutingKey(wb.name, mythic_container.AUTH_RPC_PROCESS_IDP_RESPONSE),
+        handler=auth_utils.ProcessIDPResponse
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_NONIDP_METADATA),
+        routing_key=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_NONIDP_METADATA),
+        handler=auth_utils.GetNonIDPMetadata
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_NONIDP_REDIRECT),
+        routing_key=getRoutingKey(wb.name, mythic_container.AUTH_RPC_GET_NONIDP_REDIRECT),
+        handler=auth_utils.GetNonIDPRedirect
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.AUTH_RPC_PROCESS_NONIDP_RESPONSE),
+        routing_key=getRoutingKey(wb.name, mythic_container.AUTH_RPC_PROCESS_NONIDP_RESPONSE),
+        handler=auth_utils.ProcessNonIDPResponse
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
+    logger.info(f"Successfully started auth service")
+
+
+async def syncEventingData(wb: EventingBase.Eventing) -> None:
+    syncMessage = {
+        "consuming_container": wb.get_sync_message(),
+        "container_version": mythic_container.containerVersion
+    }
+    await startSharedServices(wb.name)
+    while True:
+        response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+            queue=mythic_container.CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
+            body=syncMessage)
+        if response is None:
+            logger.error("[-] Failed to get a response back from syncing RPC message, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif "success" not in response:
+            logger.error("[-] RPC response doesn't contain success, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif not response["success"]:
+            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        else:
+            logger.info(f"[+] Successfully synced {wb.name}")
+            break
+
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(wb.name, mythic_container.EVENTING_TASK_INTERCEPT),
+        routing_key=getRoutingKey(wb.name, mythic_container.EVENTING_TASK_INTERCEPT),
+        handler=eventing_utils.TaskIntercept
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(wb.name, mythic_container.EVENTING_RESPONSE_INTERCEPT),
+        routing_key=getRoutingKey(wb.name, mythic_container.EVENTING_RESPONSE_INTERCEPT),
+        handler=eventing_utils.ResponseIntercept
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(wb.name, mythic_container.EVENTING_CUSTOM_FUNCTION),
+        routing_key=getRoutingKey(wb.name, mythic_container.EVENTING_CUSTOM_FUNCTION),
+        handler=eventing_utils.CustomFunction
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(wb.name, mythic_container.EVENTING_CONDITIONAL_CHECK),
+        routing_key=getRoutingKey(wb.name, mythic_container.EVENTING_CONDITIONAL_CHECK),
+        handler=eventing_utils.ConditionalEventingCheck
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
+    logger.info(f"Successfully started Eventing service")
+
+
+async def startSharedServices(containerName: str):
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_GET_FILE),
+        routing_key=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_GET_FILE),
+        handler=getFile
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_LIST_FILE),
+        routing_key=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_LIST_FILE),
+        handler=listFile
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_REMOVE_FILE),
+        routing_key=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_REMOVE_FILE),
+        handler=removeFile
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_WRITE_FILE),
+        routing_key=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_WRITE_FILE),
+        handler=writeFile
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(containerName, mythic_container.CONTAINER_ON_START),
+        routing_key=getRoutingKey(containerName, mythic_container.CONTAINER_ON_START),
+        handler=onStart
+    )))
 
 
 async def start_services():
     initialize()
-
     logger.info(
         f"[+] Starting Services with version {mythic_container.containerVersion} and PyPi version {mythic_container.PyPi_version}\n")
     webhook_services = WebhookBase.Webhook.__subclasses__()
     for cls in webhook_services:
         logger.info(f"[*] Processing webhook service")
         webhook = cls()
-        consumingServices.append(webhook)
+        if webhook.name == "":
+            logger.error("missing name for webhook")
+            continue
+        if webhook.name in WebhookBase.webhooks:
+            logger.error(f"[-] attempting to import {webhook.name} multiple times - probably due to import issues")
+            continue
+        WebhookBase.webhooks[webhook.name] = webhook
         await syncWebhookData(webhook)
     logging_services = LoggingBase.Log.__subclasses__()
     for cls in logging_services:
         logger.info(f"[*] Processing logging services")
         definedLog = cls()
-        consumingServices.append(definedLog)
+        if definedLog.name == "":
+            logger.error("missing name for logger")
+            continue
+        if definedLog.name in LoggingBase.loggers:
+            logger.error(f"[-] attempting to import {definedLog.name} multiple times - probably due to import issues")
+            continue
+        LoggingBase.loggers[definedLog.name] = definedLog
         await syncLoggingData(definedLog)
     payloadTypes = PayloadBuilder.PayloadType.__subclasses__()
     for cls in payloadTypes:
         payload_type = cls()
+        if payload_type.name == "":
+            logger.error("missing name for payload_type")
+            continue
         if payload_type.name in PayloadBuilder.payloadTypes:
             logger.error(f"[-] attempting to import {payload_type.name} multiple times - probably due to import issues")
             continue
@@ -402,17 +791,23 @@ async def start_services():
     c2Profiles = C2ProfileBase.C2Profile.__subclasses__()
     for cls in c2Profiles:
         c2profile = cls()
+        if c2profile.name == "":
+            logger.error("missing name for c2profile")
+            continue
         if c2profile.name in C2ProfileBase.c2Profiles:
             logger.error(f"[-] attempting to import {c2profile.name} multiple times - probably due to import issues")
             continue
         C2ProfileBase.c2Profiles[c2profile.name] = c2profile
         logger.info(f"[*] Processing c2 profile: {c2profile.name}")
-        await startC2RabbitMQ(c2profile)
         await syncC2ProfileData(c2profile)
+        await startC2RabbitMQ(c2profile)
 
     translation_services = TranslationBase.TranslationContainer.__subclasses__()
     for cls in translation_services:
         translator = cls()
+        if translator.name == "":
+            logger.error("missing name for translator")
+            continue
         if translator.name in TranslationBase.translationServices:
             logger.error(f"[-] attempting to import {translator.name} multiple times - probably due to import issues")
             continue
@@ -420,6 +815,30 @@ async def start_services():
         logger.info(f"[*] Processing translation service: {translator.name}")
         await syncTranslatorData(translator)
         await startTranslatorRabbitMQ(translator)
+    auth_services = AuthBase.Auth.__subclasses__()
+    for cls in auth_services:
+        auth = cls()
+        if auth.name == "":
+            logger.error("missing name for auth service")
+            continue
+        if auth.name in AuthBase.authServices:
+            logger.error(f"[-] attempting to import {auth.name} multiple times - probably due to import issues")
+            continue
+        AuthBase.authServices[auth.name] = auth
+        logger.info(f"[*] Processing auth service: {auth.name}")
+        await syncAuthData(auth)
+    eventing_services = EventingBase.Eventing.__subclasses__()
+    for cls in eventing_services:
+        event = cls()
+        if event.name == "":
+            logger.error("missing name for event service")
+            continue
+        if event.name in EventingBase.eventingServices:
+            logger.error(f"[-] attempting to import {event.name} multiple times - probably due to import issues")
+            continue
+        EventingBase.eventingServices[event.name] = event
+        logger.info(f"[*] Processing eventing service: {event.name}")
+        await syncEventingData(event)
 
     logger.info("[+] All services synced with Mythic!")
     logger.info("[*] Starting services to listen...")

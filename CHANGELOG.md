@@ -1,4 +1,68 @@
 
+## [v0.5.10] - 2024-09-04
+
+### Changed
+
+- ContainerVersion v1.3.3
+- Added support for PayloadUUID and StagingUUID to be used in MythicRPCCallbackEncryptBytes and MythicRPCCallbackDecryptBytes
+  - A new field, `C2Profile` must be provided with these so that the appropriate keys can be looked up
+  
+## [v0.5.8] - 2024-08-27
+
+### Changed
+
+- Fixed awaited functions in eventing containers
+
+## [v0.5.7] - 2024-08-27
+
+### Changed
+
+- Added in container ReSync message acknowledgement for consuming containers to indicate uptime
+
+## [v0.5.6] - 2024-08-21
+
+### Changed
+
+- Added the option for `limit_credentials_by_type` for CredentialJson command parameters to limit the options in the UI dropdown to certain types
+
+## [v0.5.5] - 2024-08-13
+
+### Changed
+
+- Updated the processing of commands to not check command class module's parent path name, too error prone
+
+## [v0.5.4] - 2024-08-07
+
+### Changed
+
+- Updated payload type definition to support using legacy "note" field or updated "description" field
+- Updated typed array parsing to fix bugs
+
+## [v0.5.3] - 2024-07-31
+
+### Changed
+
+- fixed typo when building payload
+- 
+## [v0.5.1] - 2024-07-31
+
+### Changed
+
+- fixed typo when building payload
+
+## [v0.5.0] - 2024-07-09
+
+### Changed
+
+- This is updated to work with Mythic 3.3+ and will cause some issues with Mythic 3.2 and below
+- New Auth
+- New Eventing
+- New Build/C2/Command parameter options of ChooseOneCustom and FileMultiple
+- New Logging options
+- Added MythicRPCAPITokenCreate
+- Added MythicRPCCallbackNextCheckinRange
+- Added MythicRPCFilebrowserParsePath
+
 ## [v0.4.19] - 2024-04-29
 
 ### Changed

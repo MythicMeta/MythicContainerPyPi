@@ -35,6 +35,8 @@ async def keep_reading_stdout(c2_profile: str):
                     if mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].returncode is not None:
                         del mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"]
                         return
+                    continue
+                logger.debug(line.decode())
                 if "output" in mythic_container.C2ProfileBase.runningServers[c2_profile]:
                     mythic_container.C2ProfileBase.runningServers[c2_profile]["output"].append(line.decode())
                 else:
@@ -291,38 +293,6 @@ async def getDebugOutput(msg: bytes) -> bytes:
         return ujson.dumps(response.to_json()).encode()
 
 
-async def getFile(msg: bytes) -> bytes:
-    try:
-        msgDict = ujson.loads(msg)
-        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
-            if c2.name == msgDict["c2_profile_name"]:
-                response = mythic_container.C2ProfileBase.C2GetFileMessageResponse(Success=False)
-                try:
-                    inputMsg = mythic_container.C2ProfileBase.C2GetFileMessage(**msgDict)
-                    path = c2.server_folder_path / inputMsg.Filename
-                    path = path.resolve()
-                    if c2.server_folder_path.resolve() not in path.parents:
-                        response.Success = False
-                        response.Error = "Attempt to access outside of the c2 server folder"
-                    else:
-                        file_data = open(path, "rb").read()
-                        response.Success = True
-                        response.Message = file_data
-                except Exception as e:
-                    response.Error = f"{traceback.format_exc()}\n{e}"
-                return ujson.dumps(response.to_json()).encode()
-        response = mythic_container.C2ProfileBase.C2GetFileMessageResponse(
-            Success=False, Error="Failed to find that c2 profile",
-        )
-        return ujson.dumps(response.to_json()).encode()
-    except Exception as e:
-        response = mythic_container.C2ProfileBase.C2GetFileMessageResponse(
-            Success=False,
-            Error=f"Hit exception trying to call get debug output function function: {traceback.format_exc()}\n{e}"
-        )
-        return ujson.dumps(response.to_json()).encode()
-
-
 async def getRedirectorRules(msg: bytes) -> bytes:
     try:
         msgDict = ujson.loads(msg)
@@ -368,64 +338,6 @@ async def getRedirectorRules(msg: bytes) -> bytes:
         response = mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse(
             Success=False,
             Error=f"Hit exception trying to call get redirector rules function function: {traceback.format_exc()}\n{e}"
-        )
-        return ujson.dumps(response.to_json()).encode()
-
-
-async def listFile(msg: bytes) -> bytes:
-    try:
-        msgDict = ujson.loads(msg)
-        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
-            if c2.name == msgDict["c2_profile_name"]:
-                response = mythic_container.C2ProfileBase.C2ListFileMessageResponse(Success=False)
-                try:
-                    path = c2.server_folder_path
-                    files = os.listdir(path)
-                    files = [f for f in files if os.path.isfile(path / f)]
-                    response.Files = files
-                    response.Success = True
-                except Exception as e:
-                    response.Error = f"{traceback.format_exc()}\n{e}"
-                return ujson.dumps(response.to_json()).encode()
-        response = mythic_container.C2ProfileBase.C2ListFileMessageResponse(
-            Success=False, Error="Failed to find that c2 profile",
-        )
-        return ujson.dumps(response.to_json()).encode()
-    except Exception as e:
-        response = mythic_container.C2ProfileBase.C2ListFileMessageResponse(
-            Success=False,
-            Error=f"Hit exception trying to call list file function function: {traceback.format_exc()}\n{e}"
-        )
-        return ujson.dumps(response.to_json()).encode()
-
-
-async def removeFile(msg: bytes) -> bytes:
-    try:
-        msgDict = ujson.loads(msg)
-        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
-            if c2.name == msgDict["c2_profile_name"]:
-                response = mythic_container.C2ProfileBase.C2RemoveFileMessageResponse(Success=False)
-                try:
-                    inputMsg = mythic_container.C2ProfileBase.C2RemoveFileMessage(**msgDict)
-                    path = c2.server_folder_path / inputMsg.Filename
-                    path = path.resolve()
-                    if c2.server_folder_path.resolve() not in path.parents:
-                        response.Success = False
-                        response.Error = "Attempt to access outside of the c2 server folder"
-                    else:
-                        os.remove(path)
-                        response.Success = True
-                except Exception as e:
-                    response.Error = f"{traceback.format_exc()}\n{e}"
-                return ujson.dumps(response.to_json()).encode()
-        response = mythic_container.C2ProfileBase.C2GetFileMessageResponse(
-            Success=False, Error="Failed to find that c2 profile",
-        )
-        return ujson.dumps(response.to_json()).encode()
-    except Exception as e:
-        response = mythic_container.C2ProfileBase.C2GetFileMessageResponse(
-            Success=False,
-            Error=f"Hit exception trying to call get debug output function function: {traceback.format_exc()}\n{e}"
         )
         return ujson.dumps(response.to_json()).encode()
 
@@ -563,41 +475,6 @@ async def stopServer(msg: bytes) -> bytes:
         response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
             Success=False,
             Error=f"Hit exception trying to call server start function function: {traceback.format_exc()}\n{e}"
-        )
-        return ujson.dumps(response.to_json()).encode()
-
-
-async def writeFile(msg: bytes) -> bytes:
-    try:
-        msgDict = ujson.loads(msg)
-        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
-            if c2.name == msgDict["c2_profile_name"]:
-                response = mythic_container.C2ProfileBase.C2WriteFileMessageResponse(Success=False)
-                try:
-                    inputMsg = mythic_container.C2ProfileBase.C2WriteFileMessage(**msgDict)
-                    path = c2.server_folder_path / inputMsg.Filename
-                    path = path.resolve()
-                    if c2.server_folder_path.resolve() not in path.parents:
-                        response.Success = False
-                        response.Error = "Attempt to write outside of the c2 server folder"
-                    else:
-                        with open(path, "wb") as f:
-                            f.write(inputMsg.Contents)
-                        response.Success = True
-                        response.Message = "Successfully wrote file"
-                except Exception as e:
-                    logger.exception(f"[-] Failed to write to file: {e}")
-                    response.Error = f"{traceback.format_exc()}\n{e}"
-                return ujson.dumps(response.to_json()).encode()
-        response = mythic_container.C2ProfileBase.C2WriteFileMessageResponse(
-            Success=False, Error="Failed to find that c2 profile",
-        )
-        return ujson.dumps(response.to_json()).encode()
-    except Exception as e:
-        logger.exception(f"[-] Failed to write to file with exception: {e}")
-        response = mythic_container.C2ProfileBase.C2WriteFileMessageResponse(
-            Success=False,
-            Error=f"Hit exception trying to call write file function function: {traceback.format_exc()}\n{e}"
         )
         return ujson.dumps(response.to_json()).encode()
 

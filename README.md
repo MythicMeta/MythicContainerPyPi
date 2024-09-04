@@ -13,7 +13,7 @@ pip install mythic-container
 
 ## How to use
 
-Use it with Mythic version 3.0.0.
+Use it with Mythic version 3.3.0.
 
 For the main execution of the heartbeat and service functionality, simply import and start the service:
 ```
@@ -24,4 +24,4 @@ mythic_container.mythic_service.start_and_run_forever()
 
 ## Where is the code?
 
-The code for this PyPi package can be found at https://github.com/MythicMeta/Mythic_Container 
+The code for this PyPi package can be found at https://github.com/MythicMeta/MythicContainerPyPi
