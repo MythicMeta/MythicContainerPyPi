@@ -12,6 +12,7 @@ async def ConditionalEventingCheck(msg: bytes) -> None:
                 for conditionalDef in pt.conditional_checks:
                     if conditionalDef.Name == msgDict["function_name"]:
                         response = await conditionalDef.Function(EventingBase.ConditionalCheckEventingMessage(**msgDict))
+                        response.EventStepInstanceID = msg["eventstepinstance_id"]
                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                             queue=mythic_container.EVENTING_CONDITIONAL_CHECK_RESPONSE,
                             body=response.to_json()
@@ -34,6 +35,7 @@ async def CustomFunction(msg: bytes) -> None:
                 for conditionalDef in pt.custom_functions:
                     if conditionalDef.Name == msgDict["function_name"]:
                         response = await conditionalDef.Function(EventingBase.NewCustomEventingMessage(**msgDict))
+                        response.EventStepInstanceID = msg["eventstepinstance_id"]
                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                             queue=mythic_container.EVENTING_CUSTOM_FUNCTION_RESPONSE,
                             body=response.to_json()
@@ -55,6 +57,7 @@ async def TaskIntercept(msg: bytes) -> None:
             if pt.name == msgDict["container_name"]:
                 if pt.task_intercept_function is not None:
                     response = await pt.task_intercept_function(EventingBase.TaskInterceptMessage(**msgDict))
+                    response.EventStepInstanceID = msg["eventstepinstance_id"]
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                         queue=mythic_container.EVENTING_TASK_INTERCEPT_RESPONSE,
                         body=response.to_json()
@@ -76,6 +79,7 @@ async def ResponseIntercept(msg: bytes) -> None:
             if pt.name == msgDict["container_name"]:
                 if pt.response_intercept_function is not None:
                     response = await pt.response_intercept_function(EventingBase.ResponseInterceptMessage(**msgDict))
+                    response.EventStepInstanceID = msg["eventstepinstance_id"]
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                         queue=mythic_container.EVENTING_RESPONSE_INTERCEPT_RESPONSE,
                         body=response.to_json()

@@ -18,7 +18,7 @@ Use it with Mythic version 3.3.0.
 For the main execution of the heartbeat and service functionality, simply import and start the service:
 ```
 import mythic_container
-import [my agent | my c2 profile | my translation container | my webhooks | my loggers]
+import [my agent | my c2 profile | my translation container | my webhooks | my loggers | my eventing | my auth]
 mythic_container.mythic_service.start_and_run_forever()
 ```
 

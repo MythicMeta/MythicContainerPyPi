@@ -1,4 +1,10 @@
 
+## [v0.5.11] - 2024-09-06
+
+### Changed
+
+- Updated Eventing-based functions to auto-set the eventstepinstance_id field on the response
+
 ## [v0.5.10] - 2024-09-04
 
 ### Changed
