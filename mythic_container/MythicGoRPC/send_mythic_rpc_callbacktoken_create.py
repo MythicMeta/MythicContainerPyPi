@@ -78,7 +78,7 @@ class MythicRPCCallbackTokenData:
             "host": self.Host,
             "action": self.Action,
             "token": self.TokenInfo.to_json() if self.TokenInfo is not None else None,
-            "TokenId": self.TokenId
+            "token_id": self.TokenId
         }
 
 

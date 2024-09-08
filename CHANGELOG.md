@@ -1,4 +1,10 @@
 
+## [v0.5.12] - 2024-09-08
+
+### Changed
+
+- Fixed a typo in the JSON tag for the MythicRPCCallbackTokenCreate RPC call
+
 ## [v0.5.11] - 2024-09-06
 
 ### Changed
