@@ -184,6 +184,8 @@ async def onStart(msg: bytes) -> None:
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
                 )
+                if response.RestartInternalServer:
+                    t = asyncio.create_task(c2_utils.restartInternalServer(name=c2.name))
                 return
         for name, pt in mythic_container.PayloadBuilder.payloadTypes.items():
             if pt.name == inputMsg.ContainerName:

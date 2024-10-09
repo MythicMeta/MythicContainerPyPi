@@ -54,10 +54,12 @@ class C2OPSECMessageResponse:
                  Success: bool,
                  Error: str = "",
                  Message: str = "",
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         self.Error = Error
         self.Message = Message
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -118,10 +120,12 @@ class C2ConfigCheckMessageResponse:
                  Success: bool,
                  Error: str = "",
                  Message: str = "",
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         self.Error = Error
         self.Message = Message
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -202,10 +206,12 @@ class C2GetIOCMessageResponse:
                  Success: bool,
                  Error: str = "",
                  IOCs: List[C2GetIOCMessageResponseIOC] = [],
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         self.Error = Error
         self.IOCs = IOCs
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -266,10 +272,12 @@ class C2SampleMessageMessageResponse:
                  Success: bool,
                  Error: str = "",
                  Message: str = "",
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         self.Error = Error
         self.Message = Message
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -328,11 +336,13 @@ class C2GetDebugOutputMessageResponse:
                  Error: str = "",
                  Message: str = "",
                  InternalServerRunning: bool = False,
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         self.Error = Error
         self.Message = Message
         self.InternalServerRunning = InternalServerRunning
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -394,10 +404,12 @@ class C2GetRedirectorRulesMessageResponse:
                  Success: bool,
                  Error: str = "",
                  Message: str = "",
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         self.Error = Error
         self.Message = Message
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -602,6 +614,7 @@ class C2OtherServiceRPCMessageResponse:
                  Success: bool = None,
                  Error: str = None,
                  Result: dict = None,
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         if self.Success is None:
@@ -612,6 +625,7 @@ class C2OtherServiceRPCMessageResponse:
         self.Result = Result
         if self.Result is None:
             self.Result = result
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -633,6 +647,7 @@ class C2HostFileMessage:
         Name (str): Name of the C2 Profile
         FileUUID (str): UUID of the file to host
         HostURL (str): URL to host the file (ex: /bob)
+        Remove (bool): If this path (or all paths with this uuid if path is empty) should be removed instead of added
 
     Functions:
         to_json(self): return dictionary form of class
@@ -642,10 +657,12 @@ class C2HostFileMessage:
                  c2_profile_name: str,
                  file_uuid: str,
                  host_url: str,
+                 remove: bool,
                  **kwargs):
         self.Name = c2_profile_name
         self.FileUUID = file_uuid
         self.HostURL = host_url
+        self.Remove = remove
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -653,7 +670,8 @@ class C2HostFileMessage:
         return {
             "c2_profile_name": self.Name,
             "file_uuid": self.FileUUID,
-            "host_url": self.HostURL
+            "host_url": self.HostURL,
+            "remove": self.Remove
         }
 
     def __str__(self):
@@ -674,9 +692,11 @@ class C2HostFileMessageResponse:
     def __init__(self,
                  Success: bool,
                  Error: str = "",
+                 RestartInternalServer: bool = False,
                  **kwargs):
         self.Success = Success
         self.Error = Error
+        self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 

@@ -1,4 +1,14 @@
 
+## [v0.5.13] 
+
+### Changed
+
+- Added mutex around starting/stopping the internal server
+- Updated many C2 RPC functions to allow them to ask for the internal server to restart
+- Added explicit update function for c2 internal server status
+- Added username/password options when starting socks proxy 
+- Added 'remove' option in hosting files via c2
+
 ## [v0.5.12] - 2024-09-08
 
 ### Changed

@@ -28,12 +28,16 @@ class MythicRPCProxyStartMessage:
                  LocalPort: int = None,
                  RemotePort: int = None,
                  RemoteIP: str = None,
+                 Username: str = None,
+                 Password: str = None,
                  **kwargs):
         self.TaskID = TaskID
         self.LocalPort = LocalPort
         self.RemotePort = RemotePort
         self.RemoteIP = RemoteIP
         self.PortType = PortType
+        self.Username = Username
+        self.Password = Password
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -43,7 +47,9 @@ class MythicRPCProxyStartMessage:
             "local_port": self.LocalPort,
             "remote_port": self.RemotePort,
             "remote_ip": self.RemoteIP,
-            "port_type": self.PortType
+            "port_type": self.PortType,
+            "username": self.Username,
+            "password": self.Password
         }
 
 

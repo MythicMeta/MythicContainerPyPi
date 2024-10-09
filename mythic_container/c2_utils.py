@@ -7,6 +7,10 @@ import subprocess
 import asyncio
 import traceback
 from collections import deque
+from threading import Lock
+from mythic_container.MythicGoRPC.send_mythic_rpc_c2_update_status import *
+
+c2Mutex = Lock()
 
 
 def kill(proc_pid):
@@ -87,8 +91,12 @@ async def opsecChecks(msg: bytes) -> bytes:
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
                         response = mythic_container.C2ProfileBase.C2OPSECMessageResponse(**result)
+                        if response.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(response).encode()
                     elif isinstance(result, mythic_container.C2ProfileBase.C2OPSECMessageResponse):
+                        if result.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(result.to_json()).encode()
                     else:
                         response = mythic_container.C2ProfileBase.C2OPSECMessageResponse(
@@ -135,8 +143,12 @@ async def configChecks(msg: bytes) -> bytes:
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
                         response = mythic_container.C2ProfileBase.C2ConfigCheckMessageResponse(**result)
+                        if response.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(response).encode()
                     elif isinstance(result, mythic_container.C2ProfileBase.C2ConfigCheckMessageResponse):
+                        if result.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(result.to_json()).encode()
                     else:
                         response = mythic_container.C2ProfileBase.C2ConfigCheckMessageResponse(
@@ -183,8 +195,12 @@ async def getIOC(msg: bytes) -> bytes:
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
                         response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(**result)
+                        if response.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(response).encode()
                     elif isinstance(result, mythic_container.C2ProfileBase.C2GetIOCMessageResponse):
+                        if result.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(result.to_json()).encode()
                     else:
                         response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
@@ -231,8 +247,12 @@ async def sampleMessage(msg: bytes) -> bytes:
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
                         response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(**result)
+                        if response.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(response).encode()
                     elif isinstance(result, mythic_container.C2ProfileBase.C2SampleMessageMessageResponse):
+                        if result.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(result.to_json()).encode()
                     else:
                         response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
@@ -318,8 +338,12 @@ async def getRedirectorRules(msg: bytes) -> bytes:
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
                         response = mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse(**result)
+                        if response.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(response).encode()
                     elif isinstance(result, mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse):
+                        if result.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(result.to_json()).encode()
                     else:
                         response = mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse(
@@ -380,103 +404,105 @@ async def startServerBinary(
 
 
 async def startServer(msg: bytes) -> bytes:
-    try:
-        msgDict = ujson.loads(msg)
-        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
-            if c2.name == msgDict["c2_profile_name"]:
-                if c2.name in mythic_container.C2ProfileBase.runningServers:
-                    # we've at least started this before, so we can check some keys
-                    if mythic_container.C2ProfileBase.runningServers[c2.name]["process"] is None:
-                        # process isn't running, so we need to start it
-                        response = await startServerBinary(c2)
-                        return ujson.dumps(response.to_json()).encode()
+    with c2Mutex:
+        try:
+            msgDict = ujson.loads(msg)
+            for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+                if c2.name == msgDict["c2_profile_name"]:
+                    if c2.name in mythic_container.C2ProfileBase.runningServers:
+                        # we've at least started this before, so we can check some keys
+                        if mythic_container.C2ProfileBase.runningServers[c2.name]["process"] is None:
+                            # process isn't running, so we need to start it
+                            response = await startServerBinary(c2)
+                            return ujson.dumps(response.to_json()).encode()
 
-                    elif mythic_container.C2ProfileBase.runningServers[c2.name]["process"].returncode is None:
-                        response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
-                            Success=True, Error="", Message=await deal_with_stdout(c2.name),
-                            InternalServerRunning=True
-                        )
-                        return ujson.dumps(response.to_json()).encode()
+                        elif mythic_container.C2ProfileBase.runningServers[c2.name]["process"].returncode is None:
+                            response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
+                                Success=True, Error="", Message=await deal_with_stdout(c2.name),
+                                InternalServerRunning=True
+                            )
+                            return ujson.dumps(response.to_json()).encode()
+                        else:
+                            try:
+                                kill(mythic_container.C2ProfileBase.runningServers[c2.name]["process"].pid)
+                            except Exception as e:
+                                pass
+                            # now try to start it again
+                            response = await startServerBinary(c2)
+                            return ujson.dumps(response.to_json()).encode()
                     else:
-                        try:
-                            kill(mythic_container.C2ProfileBase.runningServers[c2.name]["process"].pid)
-                        except Exception as e:
-                            pass
-                        # now try to start it again
+                        # just means we've never started it before, so start it now
                         response = await startServerBinary(c2)
                         return ujson.dumps(response.to_json()).encode()
-                else:
-                    # just means we've never started it before, so start it now
-                    response = await startServerBinary(c2)
-                    return ujson.dumps(response.to_json()).encode()
-        response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
-            Success=False, Error="Failed to find that c2 profile",
-            InternalServerRunning=False
-        )
-        return ujson.dumps(response.to_json()).encode()
-    except Exception as e:
-        response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
-            Success=False,
-            Error=f"Hit exception trying to call server start function function: {traceback.format_exc()}\n{e}"
-        )
-        return ujson.dumps(response.to_json()).encode()
+            response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
+                Success=False, Error="Failed to find that c2 profile",
+                InternalServerRunning=False
+            )
+            return ujson.dumps(response.to_json()).encode()
+        except Exception as e:
+            response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
+                Success=False,
+                Error=f"Hit exception trying to call server start function function: {traceback.format_exc()}\n{e}"
+            )
+            return ujson.dumps(response.to_json()).encode()
 
 
 async def stopServer(msg: bytes) -> bytes:
-    try:
-        msgDict = ujson.loads(msg)
-        for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
-            if c2.name == msgDict["c2_profile_name"]:
-                if c2.name in mythic_container.C2ProfileBase.runningServers:
-                    # we've at least started this before, so we can check some keys
-                    if mythic_container.C2ProfileBase.runningServers[c2.name]["process"] is None:
-                        # process isn't running, so we need to start it
-                        response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                            Success=True, Error="", Message=f"The server is not running",
-                            InternalServerRunning=False
-                        )
-                        return ujson.dumps(response.to_json()).encode()
+    with c2Mutex:
+        try:
+            msgDict = ujson.loads(msg)
+            for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
+                if c2.name == msgDict["c2_profile_name"]:
+                    if c2.name in mythic_container.C2ProfileBase.runningServers:
+                        # we've at least started this before, so we can check some keys
+                        if mythic_container.C2ProfileBase.runningServers[c2.name]["process"] is None:
+                            # process isn't running, so we need to start it
+                            response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
+                                Success=True, Error="", Message=f"The server is not running",
+                                InternalServerRunning=False
+                            )
+                            return ujson.dumps(response.to_json()).encode()
 
-                    elif mythic_container.C2ProfileBase.runningServers[c2.name]["process"].returncode is not None:
-                        # the process was running, but died at some point before we tried to stop it
-                        response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
-                            Success=True, Error="", Message=f"{await deal_with_stdout(c2.name)}",
-                            InternalServerRunning=False
-                        )
-                        return ujson.dumps(response.to_json()).encode()
+                        elif mythic_container.C2ProfileBase.runningServers[c2.name]["process"].returncode is not None:
+                            # the process was running, but died at some point before we tried to stop it
+                            response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
+                                Success=True, Error="", Message=f"{await deal_with_stdout(c2.name)}",
+                                InternalServerRunning=False
+                            )
+                            return ujson.dumps(response.to_json()).encode()
+                        else:
+                            try:
+                                kill(mythic_container.C2ProfileBase.runningServers[c2.name]["process"].pid)
+                            except Exception as e:
+                                pass
+                            # now try to start it again
+                            await asyncio.sleep(3)
+                            response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
+                                Success=True, Error="",
+                                Message=f"Stopped server:\nOutput:{await deal_with_stdout(c2.name)}",
+                                InternalServerRunning=False
+                            )
+                            if "output" in mythic_container.C2ProfileBase.runningServers[c2.name]:
+                                mythic_container.C2ProfileBase.runningServers[c2.name]["output"].clear()
+                            return ujson.dumps(response.to_json()).encode()
                     else:
-                        try:
-                            kill(mythic_container.C2ProfileBase.runningServers[c2.name]["process"].pid)
-                        except Exception as e:
-                            pass
-                        # now try to start it again
-                        await asyncio.sleep(3)
+                        # just means we've never started it before, so start it now
                         response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                            Success=True, Error="",
-                            Message=f"Stopped server:\nOutput:{await deal_with_stdout(c2.name)}",
+                            Success=True, Error="", Message=f"The server was never started",
                             InternalServerRunning=False
                         )
-                        if "output" in mythic_container.C2ProfileBase.runningServers[c2.name]:
-                            mythic_container.C2ProfileBase.runningServers[c2.name]["output"].clear()
                         return ujson.dumps(response.to_json()).encode()
-                else:
-                    # just means we've never started it before, so start it now
-                    response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                        Success=True, Error="", Message=f"The server was never started",
-                        InternalServerRunning=False
-                    )
-                    return ujson.dumps(response.to_json()).encode()
-        response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
-            Success=False, Error="Failed to find that c2 profile",
-            InternalServerRunning=False
-        )
-        return ujson.dumps(response.to_json()).encode()
-    except Exception as e:
-        response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
-            Success=False,
-            Error=f"Hit exception trying to call server start function function: {traceback.format_exc()}\n{e}"
-        )
-        return ujson.dumps(response.to_json()).encode()
+            response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
+                Success=False, Error="Failed to find that c2 profile",
+                InternalServerRunning=False
+            )
+            return ujson.dumps(response.to_json()).encode()
+        except Exception as e:
+            response = mythic_container.C2ProfileBase.C2StartServerMessageResponse(
+                Success=False,
+                Error=f"Hit exception trying to call server start function function: {traceback.format_exc()}\n{e}"
+            )
+            return ujson.dumps(response.to_json()).encode()
 
 
 async def customRPCFunction(msg: bytes) -> bytes:
@@ -489,6 +515,8 @@ async def customRPCFunction(msg: bytes) -> bytes:
                     for key, f in c2.custom_rpc_functions.items():
                         if key == incomingMessage.ServiceRPCFunction:
                             response = await f(incomingMessage)
+                            if response.RestartInternalServer:
+                                t = asyncio.create_task(restartInternalServer(name=c2.name))
                             return ujson.dumps(response.to_json()).encode()
                     response = mythic_container.C2ProfileBase.C2OtherServiceRPCMessageResponse(
                         Success=False,
@@ -551,8 +579,12 @@ async def hostFile(msg: bytes) -> bytes:
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
                         response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(**result)
+                        if response.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(response).encode()
                     elif isinstance(result, mythic_container.C2ProfileBase.C2HostFileMessageResponse):
+                        if result.RestartInternalServer:
+                            t = asyncio.create_task(restartInternalServer(name=c2.name))
                         return ujson.dumps(result.to_json()).encode()
                     else:
                         response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
@@ -573,3 +605,14 @@ async def hostFile(msg: bytes) -> bytes:
             Error=f"Hit exception trying to call host_file function: {traceback.format_exc()}\n{e}"
         )
         return ujson.dumps(response.to_json()).encode()
+
+
+async def restartInternalServer(name: str):
+    stop_response = await stopServer(ujson.dumps({"c2_profile_name": name}).encode())
+    start_response = await startServer(ujson.dumps({"c2_profile_name": name}).encode())
+    startResponse = ujson.loads(start_response)
+    await SendMythicRPCC2UpdateStatus(MythicRPCC2UpdateStatusMessage(
+        C2Profile=name,
+        InternalServerRunning=startResponse["server_running"] if "server_running" in startResponse else False,
+        Error=startResponse["error"] if "error" in startResponse else "",
+    ))

@@ -27,10 +27,13 @@ class ContainerOnStartMessageResponse:
     def __init__(self,
                  ContainerName: str = "",
                  EventLogInfoMessage: str = "",
-                 EventLogErrorMessage: str = ""):
+                 EventLogErrorMessage: str = "",
+                 RestartInternalServer: bool = False
+                 ):
         self.ContainerName = ContainerName
         self.EventLogInfoMessage = EventLogInfoMessage
         self.EventLogErrorMessage = EventLogErrorMessage
+        self.RestartInternalServer = RestartInternalServer
 
     def to_json(self):
         return {
