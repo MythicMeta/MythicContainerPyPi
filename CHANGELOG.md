@@ -1,4 +1,10 @@
 
+## [v0.4.14] - 2024-10-11
+
+### Changed
+
+- Changed order of calls for C2 Syncing so that RabbitMQ listeners are started before syncing over data
+
 ## [v0.5.13] 
 
 ### Changed

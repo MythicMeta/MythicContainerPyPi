@@ -789,7 +789,6 @@ async def start_services():
         logger.info(f"[*] Processing agent: {payload_type.name}")
         await syncPayloadData(payload_type)
         await startPayloadRabbitMQ(payload_type)
-
     c2Profiles = C2ProfileBase.C2Profile.__subclasses__()
     for cls in c2Profiles:
         c2profile = cls()
@@ -801,9 +800,8 @@ async def start_services():
             continue
         C2ProfileBase.c2Profiles[c2profile.name] = c2profile
         logger.info(f"[*] Processing c2 profile: {c2profile.name}")
-        await syncC2ProfileData(c2profile)
         await startC2RabbitMQ(c2profile)
-
+        await syncC2ProfileData(c2profile)
     translation_services = TranslationBase.TranslationContainer.__subclasses__()
     for cls in translation_services:
         translator = cls()
