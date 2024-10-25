@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-import sys
-import json
-import ujson
-import os
-import traceback
-import pathlib
 import asyncio
+import inspect
+import json
 import mythic_container
+import os
+import pathlib
+import sys
+import traceback
+import ujson
 from . import MythicCommandBase
 from . import PayloadBuilder
 from .logging import logger, initialize
@@ -316,7 +317,15 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
         "commands": [],
         "container_version": mythic_container.containerVersion
     }
-    for cls in MythicCommandBase.CommandBase.__subclasses__():
+    # Create a list of trees representing the subclasses of a base class
+    subClassTrees = lambda base: [(_, subClassTrees(_)) for _ in base.__subclasses__()]
+    # Create a tree representing a base class and its subclasses
+    classTree = lambda base: (base, subClassTrees(base))
+    # Create a flattened list of a class tree
+    allSubClasses = lambda tree: [tree[0]] + [child for subTree in [allSubClasses(child) for child in tree[1]] for child in subTree]
+    # Create an iterator that yields the non-abstract classes that are derived from the CommandBase class
+    commandClasses = filter(lambda _: not inspect.isabstract(_), allSubClasses(classTree(MythicCommandBase.CommandBase)))
+    for cls in commandClasses:
         #if cls.__module__.split(".")[0].lower() == pt.name or pt.agent_code_path:
         logger.info(f"[*] Processing command {cls.cmd}")
         if pt.name not in MythicCommandBase.commands:
