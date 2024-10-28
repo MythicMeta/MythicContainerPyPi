@@ -1,4 +1,14 @@
 
+## [v0.4.15] - 2024-10-28
+
+### Changed
+
+- Added Evan McBroom's PR for multi-level inheritance (https://github.com/MythicMeta/MythicContainerPyPi/pull/12)
+- Added support for specifying username/password for proxy stop
+- Added support for specifying in the agent definition if original or display parameters should be used in the cli history
+  - This is an effort to reduce the amount of JSON users might see if they up/down arrow on the command line
+  - This defaults to false, but if you set it to true then you should make sure that your `response.DisplayParams` are a valid format for tasking
+  
 ## [v0.4.14] - 2024-10-11
 
 ### Changed

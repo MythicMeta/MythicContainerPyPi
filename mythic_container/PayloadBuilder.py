@@ -542,6 +542,8 @@ class PayloadType:
             Defaults to `json`, but you can optionally specify `xml` to have your messages parsed and returned as xml instead of JSON for Mythic
         agent_type (str):
             Defaults to `agent`, but you can optionally specify `service` to report back as a 3rd party service agent
+        use_display_params_for_cli_history (bool):
+            Defaults to False, but this dictates if the original params (potentially JSON) or the task's display params are used when doing up/down arrows through history on the command line
 
     Functions:
         build(self):
@@ -580,6 +582,7 @@ class PayloadType:
     agent_browserscript_path = None
     message_format: MessageFormat = MessageFormat.JSON
     agent_type: AgentType = AgentType.Agent
+    use_display_params_for_cli_history = False
     custom_rpc_functions: dict[
         str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
 
@@ -709,7 +712,8 @@ class PayloadType:
             "message_format": self.message_format,
             "agent_type": self.agent_type,
             "message_uuid_length": self.message_uuid_length,
-            "command_augment_supported_agents": self.command_augment_supported_agents
+            "command_augment_supported_agents": self.command_augment_supported_agents,
+            "use_display_params_for_cli_history": self.use_display_params_for_cli_history,
         }
 
     def __str__(self):

@@ -9,10 +9,14 @@ class MythicRPCProxyStopMessage:
                  TaskID: int,
                  Port: int,
                  PortType: str,
+                 Username: str = "",
+                 Password: str = "",
                  **kwargs):
         self.TaskID = TaskID
         self.Port = Port
         self.PortType = PortType
+        self.Username = Username
+        self.Password = Password
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -20,7 +24,9 @@ class MythicRPCProxyStopMessage:
         return {
             "task_id": self.TaskID,
             "port": self.Port,
-            "port_type": self.PortType
+            "port_type": self.PortType,
+            "username": self.Username,
+            "password": self.Password,
         }
 
 
