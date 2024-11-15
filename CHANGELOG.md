@@ -1,5 +1,11 @@
 
-## [v0.4.15] - 2024-10-28
+## [v0.5.16] - 2024-11-15
+
+### Changed
+
+- Merged Evan McBroom's PR to fix missing imports in the MythicGoRPC Folder
+
+## [v0.5.15] - 2024-10-28
 
 ### Changed
 
