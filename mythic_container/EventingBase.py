@@ -330,3 +330,20 @@ class Eventing:
 
 
 eventingServices: dict[str, Eventing] = {}
+
+
+async def SendMythicRPCSyncEventing(eventing_name: str) -> bool:
+    try:
+        eventing_services = Eventing.__subclasses__()
+        for cls in eventing_services:
+            event = cls()
+            if event.name == "":
+                continue
+            if event.name == eventing_name:
+                eventingServices.pop(eventing_name, None)
+                eventingServices[event.name] = event
+                await mythic_container.mythic_service.syncEventingData(event)
+                return True
+        return False
+    except Exception as e:
+        return False

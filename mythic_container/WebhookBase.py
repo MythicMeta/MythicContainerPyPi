@@ -364,3 +364,20 @@ async def sendWebhookMessage(contents: dict, url: str) -> (int, str):
         return 400, f"[-] Failed to send webhook: {e}"
 
 webhooks: dict[str, Webhook] = {}
+
+
+async def SendMythicRPCSyncWebhook(webhook_name: str) -> bool:
+    try:
+        webhook_services = Webhook.__subclasses__()
+        for cls in webhook_services:
+            web = cls()
+            if web.name == "":
+                continue
+            if web.name == webhook_name:
+                webhooks.pop(webhook_name, None)
+                webhooks[web.name] = web
+                await mythic_container.mythic_service.syncWebhookData(web)
+                return True
+        return False
+    except Exception as e:
+        return False

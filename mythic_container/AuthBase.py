@@ -297,3 +297,20 @@ class Auth:
 
 
 authServices: dict[str, Auth] = {}
+
+
+async def SendMythicRPCSyncAuth(auth_name: str) -> bool:
+    try:
+        auth_services = Auth.__subclasses__()
+        for cls in auth_services:
+            auth = cls()
+            if auth.name == "":
+                continue
+            if auth.name == auth_name:
+                authServices.pop(auth_name, None)
+                authServices[auth.name] = auth
+                await mythic_container.mythic_service.syncAuthData(auth)
+                return True
+        return False
+    except Exception as e:
+        return False

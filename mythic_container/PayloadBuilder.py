@@ -1,6 +1,7 @@
 from enum import Enum
 import base64
 
+import mythic_container
 from .MythicCommandBase import PTOnNewCallbackAllData, PTOnNewCallbackResponse, PTCheckIfCallbacksAliveMessage, \
     PTCheckIfCallbacksAliveMessageResponse
 from .logging import logger
@@ -721,3 +722,16 @@ class PayloadType:
 
 
 payloadTypes: dict[str, PayloadType] = {}
+
+
+async def SendMythicRPCSyncPayloadType(payload_type: str, extraCommands: [mythic_container.MythicCommandBase.CommandBase]) -> bool:
+    try:
+        for name, pt in payloadTypes.items():
+            if pt.name == payload_type:
+                mythic_container.MythicCommandBase.commands.pop(pt.name, None)
+                await mythic_container.mythic_service.syncPayloadData(pt, extraCommands)
+                return True
+        return False
+    except Exception as e:
+        logger.exception(f"Failed to re-sync payload type: {e}")
+        return False

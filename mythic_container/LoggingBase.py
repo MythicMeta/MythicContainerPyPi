@@ -770,3 +770,20 @@ class Log:
 
 
 loggers: dict[str, Log] = {}
+
+
+async def SendMythicRPCSyncLogger(logger_name: str) -> bool:
+    try:
+        logger_services = Log.__subclasses__()
+        for cls in logger_services:
+            log = cls()
+            if log.name == "":
+                continue
+            if log.name == logger_name:
+                loggers.pop(logger_name, None)
+                loggers[log.name] = log
+                await mythic_container.mythic_service.syncLoggingData(log)
+                return True
+        return False
+    except Exception as e:
+        return False

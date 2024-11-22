@@ -6,18 +6,24 @@ MYTHIC_RPC_CALLBACK_ADD_COMMAND = "mythic_rpc_callback_add_command"
 
 class MythicRPCCallbackAddCommandMessage:
     def __init__(self,
-                 TaskID: int,
                  Commands: list[str],
+                 TaskID: int = None,
+                 CallbackAgentUUID: str = None,
+                 PayloadType: str = None,
                  **kwargs):
         self.TaskID = TaskID
+        self.CallbackAgentUUID = CallbackAgentUUID
         self.Commands = Commands
+        self.PayloadType = PayloadType
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
             "task_id": self.TaskID,
-            "commands": self.Commands
+            "commands": self.Commands,
+            "callback_agent_id": self.CallbackAgentUUID,
+            "payload_type": self.PayloadType
         }
 
 

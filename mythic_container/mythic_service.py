@@ -311,7 +311,7 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
     )))
 
 
-async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
+async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [MythicCommandBase.CommandBase] = None) -> None:
     syncMessage = {
         "payload_type": pt.to_json(),
         "commands": [],
@@ -326,14 +326,38 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType) -> None:
     # Create an iterator that yields the non-abstract classes that are derived from the CommandBase class
     commandClasses = filter(lambda _: not inspect.isabstract(_), allSubClasses(classTree(MythicCommandBase.CommandBase)))
     for cls in commandClasses:
-        #if cls.__module__.split(".")[0].lower() == pt.name or pt.agent_code_path:
         logger.info(f"[*] Processing command {cls.cmd}")
         if pt.name not in MythicCommandBase.commands:
             MythicCommandBase.commands[pt.name] = []
+        existing = [x for x in MythicCommandBase.commands[pt.name] if x.cmd == cls.cmd]
+        if len(existing) != 0:
+            for x in existing:
+                MythicCommandBase.commands[pt.name].remove(x)
         MythicCommandBase.commands[pt.name].append(
             cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
+        existing = [x for x in syncMessage['commands'] if x['name'] == cls.cmd]
+        if len(existing) != 0:
+            for x in existing:
+                syncMessage['commands'].remove(x)
         syncMessage["commands"].append(
             cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
+    if explicitCommands is not None:
+        for cls in explicitCommands:
+            logger.info(f"[*] Processing command {cls.cmd}")
+            if pt.name not in MythicCommandBase.commands:
+                MythicCommandBase.commands[pt.name] = []
+            existing = [x for x in MythicCommandBase.commands[pt.name] if x.cmd == cls.cmd]
+            if len(existing) != 0:
+                for x in existing:
+                    MythicCommandBase.commands[pt.name].remove(x)
+            MythicCommandBase.commands[pt.name].append(
+                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path))
+            existing = [x for x in syncMessage['commands'] if x['name'] == cls.cmd]
+            if len(existing) != 0:
+                for x in existing:
+                    syncMessage['commands'].remove(x)
+            syncMessage["commands"].append(
+                cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
     while True:
         response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
             queue=mythic_container.PT_SYNC_ROUTING_KEY,

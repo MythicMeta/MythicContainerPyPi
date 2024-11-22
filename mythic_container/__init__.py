@@ -4,7 +4,7 @@ from .SharedClasses import *
 
 containerVersion = "v1.3.5"
 
-PyPi_version = "0.5.16"
+PyPi_version = "0.5.17"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 

@@ -499,8 +499,8 @@ async def createTasking(msg: bytes) -> None:
                                 )
                                 return
         response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
-            TaskID=msgDict["task"]["id"], Success=True,
-            Error="Payload Type or Command not found, passing by default",
+            TaskID=msgDict["task"]["id"], Success=False,
+            Error="Command not found in container",
         )
         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
             queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,

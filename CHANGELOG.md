@@ -1,4 +1,20 @@
 
+## [v0.5.17] - 2024-11
+
+### Changed
+
+- Added ReprocessAtNewCommandPayloadType option for create_go_tasking response
+- Added AgentCallbackID and PayloadType to MythicRPCCallbackAddCommand and MythicRPCCallbackRemoveCommand messages
+- Added more checks when syncing commands to make sure that duplicates aren't processed
+- Added new SendMythicRPCSync* functions in the base classes for the following classes
+  - PayloadBuilder
+    - This one in particular has you specify a set of additional commands (potentially dynamically created) to sync with Mythic
+  - WebhookBase
+  - AuthBase
+  - EventingBase
+  - LoggingBase
+  - This will allow you to make changes to your class definitions as needed and re-sync the updates to Mythic when you want
+
 ## [v0.5.16] - 2024-11-15
 
 ### Changed

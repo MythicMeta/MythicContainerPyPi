@@ -1275,6 +1275,7 @@ class PTTaskCreateTaskingMessageResponse:
                  CompletionFunctionName: str = None,
                  Params: str = None,
                  ParameterGroupName: str = None,
+                 ReprocessAtNewCommandPayloadType: str = "",
                  **kwargs):
         self.TaskID = TaskID
         self.Success = Success
@@ -1291,6 +1292,7 @@ class PTTaskCreateTaskingMessageResponse:
         self.CompletionFunctionName = CompletionFunctionName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
+        self.ReprocessAtNewCommandPayloadType = ReprocessAtNewCommandPayloadType
         for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
 
@@ -1308,7 +1310,8 @@ class PTTaskCreateTaskingMessageResponse:
             "token_id": self.TokenID,
             "completion_function_name": self.CompletionFunctionName,
             "params": self.Params,
-            "parameter_group_name": self.ParameterGroupName
+            "parameter_group_name": self.ParameterGroupName,
+            "reprocess_at_new_command_payload_type": self.ReprocessAtNewCommandPayloadType,
         }
 
     def __str__(self):
