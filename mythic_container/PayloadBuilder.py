@@ -729,7 +729,7 @@ async def SendMythicRPCSyncPayloadType(payload_type: str, extraCommands: [mythic
         for name, pt in payloadTypes.items():
             if pt.name == payload_type:
                 mythic_container.MythicCommandBase.commands.pop(pt.name, None)
-                await mythic_container.mythic_service.syncPayloadData(pt, extraCommands)
+                await mythic_container.mythic_service.syncPayloadData(pt, extraCommands, True)
                 return True
         return False
     except Exception as e:

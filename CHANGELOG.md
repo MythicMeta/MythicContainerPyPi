@@ -1,4 +1,11 @@
 
+## [v0.5.18] - 2024-12-13
+
+### Changed
+
+- Updated the SendMythicRPCSyncPayloadType functionality to force Mythic to NOT re-call the on_start functionality
+  - This needs Mythic v3.3.1-rc31+
+
 ## [v0.5.17] - 2024-11
 
 ### Changed

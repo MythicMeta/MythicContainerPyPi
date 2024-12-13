@@ -854,7 +854,7 @@ async def reSyncPayloadType(msg: bytes) -> bytes:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["payload_type"]:
                 mythic_container.MythicCommandBase.commands.pop(pt.name, None)
-                await mythic_container.mythic_service.syncPayloadData(pt)
+                await mythic_container.mythic_service.syncPayloadData(pt, None, True)
                 return ujson.dumps({"success": True}).encode()
         return ujson.dumps({"success": False, "error": "Failed to find payload type"}).encode()
     except Exception as e:

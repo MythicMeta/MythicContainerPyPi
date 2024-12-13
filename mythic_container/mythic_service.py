@@ -311,11 +311,13 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
     )))
 
 
-async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [MythicCommandBase.CommandBase] = None) -> None:
+async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [MythicCommandBase.CommandBase] = None,
+                          forced_resync: bool = False) -> None:
     syncMessage = {
         "payload_type": pt.to_json(),
         "commands": [],
-        "container_version": mythic_container.containerVersion
+        "container_version": mythic_container.containerVersion,
+        "forced_resync": forced_resync
     }
     # Create a list of trees representing the subclasses of a base class
     subClassTrees = lambda base: [(_, subClassTrees(_)) for _ in base.__subclasses__()]
