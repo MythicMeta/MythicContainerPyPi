@@ -10,11 +10,13 @@ class MythicRPCCallbackRemoveCommandMessage:
                  Commands: list[str],
                  CallbackAgentUUID: str = None,
                  PayloadType: str = None,
+                 CallbackIDs: list[int] = [],
                  **kwargs):
         self.TaskID = TaskID
         self.Commands = Commands
         self.CallbackAgentUUID = CallbackAgentUUID
         self.PayloadType = PayloadType
+        self.CallbackIDs = CallbackIDs
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -23,7 +25,8 @@ class MythicRPCCallbackRemoveCommandMessage:
             "task_id": self.TaskID,
             "commands": self.Commands,
             "callback_agent_id": self.CallbackAgentUUID,
-            "payload_type": self.PayloadType
+            "payload_type": self.PayloadType,
+            "callback_ids": self.CallbackIDs
         }
 
 

@@ -1,4 +1,11 @@
 
+## [v0.5.19] - 2024-12-14
+
+### Changed
+
+- Updated the MythicRPCCallbackSearch to allow specifying Payload Type names
+- Updated the MythicRPCCallbackAddCommand and MythicRPCCallbackRemoveCommand functions to allow specifying list of callback IDs
+
 ## [v0.5.18] - 2024-12-13
 
 ### Changed

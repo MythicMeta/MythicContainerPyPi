@@ -24,6 +24,7 @@ class MythicRPCCallbackSearchMessage:
                  SearchCallbackDomain: str = None,
                  SearchCallbackArchitecture: str = None,
                  SearchCallbackDescription: str = None,
+                 SearchCallbackPayloadTypes: [str] = None,
                  **kwargs):
         self.AgentCallbackID = AgentCallbackID
         self.AgentCallbackUUID = AgentCallbackUUID
@@ -42,6 +43,7 @@ class MythicRPCCallbackSearchMessage:
         self.SearchCallbackDomain = SearchCallbackDomain
         self.SearchCallbackArchitecture = SearchCallbackArchitecture
         self.SearchCallbackDescription = SearchCallbackDescription
+        self.SearchCallbackPayloadTypes = SearchCallbackPayloadTypes
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -63,7 +65,8 @@ class MythicRPCCallbackSearchMessage:
             "os": self.SearchCallbackOs,
             "domain": self.SearchCallbackDomain,
             "architecture": self.SearchCallbackArchitecture,
-            "description": self.SearchCallbackDescription
+            "description": self.SearchCallbackDescription,
+            "payload_types": self.SearchCallbackPayloadTypes
         }
 
 
@@ -83,7 +86,9 @@ class MythicRPCCallbackSearchMessageResult:
                  description: str = None,
                  operator_id: int = None,
                  active: bool = None,
+                 dead: bool = None,
                  registered_payload_uuid: str = None,
+                 payloadtype: str = None,
                  integrity_level: int = None,
                  locked: bool = None,
                  locked_operator_id: int = None,
@@ -126,6 +131,8 @@ class MythicRPCCallbackSearchMessageResult:
         self.ExtraInfo = extra_info
         self.SleepInfo = sleep_info
         self.Timestamp = timestamp
+        self.Dead = dead
+        self.PayloadType = payloadtype
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
     def to_json(self):
@@ -157,7 +164,9 @@ class MythicRPCCallbackSearchMessageResult:
             "domain": self.Domain,
             "extra_info": self.ExtraInfo,
             "sleep_info": self.SleepInfo,
-            "timestamp": self.Timestamp
+            "timestamp": self.Timestamp,
+            "dead": self.Dead,
+            "payloadtype": self.PayloadType
         }
 
 
