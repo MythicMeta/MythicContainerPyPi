@@ -1,4 +1,11 @@
 
+## [v0.5.20] - 2025-02-07
+
+### Changed
+
+- Updated CommandBase to have more explicit attributes instead of abstract properties
+- Adding Python pieces for CallbackUpdate time and c2 profile components via MythicRPC
+
 ## [v0.5.19] - 2024-12-14
 
 ### Changed

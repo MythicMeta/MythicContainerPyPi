@@ -2115,6 +2115,13 @@ class CommandBase(metaclass=ABCMeta):
             Optional additional processing of responses from the agent in any free-form format
 
     """
+    cmd = ""
+    needs_admin = False
+    help_cmd = ""
+    description = ""
+    version = 1
+    author = ""
+    attackmapping = []
     supported_ui_features: list[str] = []
     browser_script: BrowserScript = None
     script_only: bool = False
@@ -2131,41 +2138,6 @@ class CommandBase(metaclass=ABCMeta):
         self.agent_code_path = agent_code_path
         self.agent_browserscript_path = agent_browserscript_path
 
-    @property
-    @abstractmethod
-    def cmd(self):
-        pass
-
-    @property
-    @abstractmethod
-    def needs_admin(self):
-        pass
-
-    @property
-    @abstractmethod
-    def help_cmd(self):
-        pass
-
-    @property
-    @abstractmethod
-    def description(self):
-        pass
-
-    @property
-    @abstractmethod
-    def version(self):
-        pass
-
-    @property
-    @abstractmethod
-    def author(self):
-        pass
-
-    @property
-    @abstractmethod
-    def attackmapping(self):
-        pass
-
     async def opsec_pre(self, taskData: PTTaskMessageAllData) -> PTTTaskOPSECPreTaskMessageResponse:
         response = PTTTaskOPSECPreTaskMessageResponse(
             TaskID=taskData.Task.ID, Success=True, OpsecPreBlocked=False,
@@ -2180,11 +2152,16 @@ class CommandBase(metaclass=ABCMeta):
         )
         return response
 
-    async def create_tasking(self, task: MythicTask) -> MythicTask:
-        return task
+    async def create_go_tasking(self, taskData: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
+        response = PTTaskCreateTaskingMessageResponse(
+            TaskID=taskData.Task.ID,
+            Success=True,
+        )
+        return response
 
     async def process_response(self, task: PTTaskMessageAllData, response: any) -> PTTaskProcessResponseMessageResponse:
-        pass
+        resp = PTTaskProcessResponseMessageResponse(TaskID=task.Task.ID, Success=True)
+        return resp
 
     def to_json(self):
         params = self.argument_class("").to_json()

@@ -25,6 +25,8 @@ class MythicRPCCallbackUpdateMessage:
                  Architecture: str = None,
                  Description: str = None,
                  ProcessName: str = None,
+                 UpdateLastCheckinTime: bool = False,
+                 UpdateLastCheckinTimeViaC2Profile: str = None,
                  **kwargs):
         self.AgentCallbackUUID = AgentCallbackUUID
         self.CallbackID = CallbackID
@@ -45,6 +47,8 @@ class MythicRPCCallbackUpdateMessage:
         self.Architecture = Architecture
         self.Description = Description
         self.ProcessName = ProcessName
+        self.UpdateLastCheckinTime = UpdateLastCheckinTime
+        self.UpdateLastCheckinTimeViaC2Profile = UpdateLastCheckinTimeViaC2Profile
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -68,7 +72,9 @@ class MythicRPCCallbackUpdateMessage:
             "domain": self.Domain,
             "architecture": self.Architecture,
             "description": self.Description,
-            "process_name": self.ProcessName
+            "process_name": self.ProcessName,
+            "update_last_checkin_time": self.UpdateLastCheckinTime,
+            "update_last_checkin_time_via_c2_profile": self.UpdateLastCheckinTimeViaC2Profile
         }
 
 

@@ -26,10 +26,11 @@ async def messageProcessThread(message: aio_pika.abc.AbstractIncomingMessage,
                                trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
     try:
         logger.debug(f"Ack direct call to {message.routing_key}")
-        await message.ack()
         await trueFunction(message.body)
+        await message.ack()
     except Exception as d:
         logger.exception(f"inner error: {d}")
+        await message.nack(requeue=True)
 
 
 async def directExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
@@ -100,6 +101,10 @@ class rabbitmqConnectionClass:
                         password=settings.get("rabbitmq_password", "rabbitmq_password"),
                         virtualhost="mythic_vhost",
                         timeout=failedConnectTimeout,
+                        heartbeat=30,
+                        reconnect_interval=2,
+                        retry_delay=2.0,
+                        max_attempts=3,
                     )
                     logger.critical("[+] Successfully connected to rabbitmq")
                     return self.conn
@@ -144,9 +149,17 @@ class rabbitmqConnectionClass:
                 logger.debug(f"Sending RPC message to {queue}")
                 connection = await self.GetConnection()
                 async with connection.channel(on_return_raises=True) as chan:
+                    await chan.set_qos(
+                        prefetch_count=1,
+                        prefetch_size=0,
+                        global_=False
+                    )
                     exchange = await chan.declare_exchange("mythic_exchange",
                                                            durable=True,
-                                                           auto_delete=True)
+                                                           auto_delete=True,
+                                                           arguments={
+                                                               'x-dead-letter-exchange': 'dlx',  # Dead letter exchange
+                                                           })
                     callback_queue = await chan.declare_queue(name="amq.rabbitmq.reply-to",)
                     await callback_queue.consume(self.on_response,
                                                  no_ack=True)
@@ -166,6 +179,7 @@ class rabbitmqConnectionClass:
                     except Exception as err:
                         future.cancel()
                         logger.error("hit timeout trying to send RPC message, retrying...")
+                        continue
                     logger.debug(f"published RPC message to {queue}")
                     try:
                         result = await asyncio.wait_for(future, timeout=20)
@@ -253,7 +267,7 @@ class rabbitmqConnectionClass:
                         routing_key=routing_key,
                     )
                     await q.consume(
-                        callback=partial(directExchangeCallback, trueFunction=handler)
+                        callback=partial(directExchangeCallback, trueFunction=handler),
                     )
                     logger.info(f"[*] started listening for messages on {queue}")
                     try:
@@ -273,6 +287,11 @@ class rabbitmqConnectionClass:
             try:
                 connection = await self.GetConnection()
                 async with connection.channel() as chan:
+                    await chan.set_qos(
+                        prefetch_count=1,
+                        prefetch_size=0,
+                        global_=False
+                    )
                     exchange = await chan.declare_exchange(
                         name="mythic_exchange",
                         type="direct",
@@ -292,7 +311,8 @@ class rabbitmqConnectionClass:
                         routing_key=routing_key,
                     )
                     await q.consume(
-                        callback=partial(rpcExchangeCallback, trueFunction=handler)
+                        callback=partial(rpcExchangeCallback, trueFunction=handler),
+                        no_ack=False
                     )
                     logger.info(f"[*] started listening for messages on {queue}")
                     try:
