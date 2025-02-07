@@ -1,4 +1,10 @@
 
+## [v0.5.21] - 2025-02-07
+
+### Changed
+
+- Fixed a bug with instantiating classes
+
 ## [v0.5.20] - 2025-02-07
 
 ### Changed

@@ -2128,7 +2128,7 @@ class CommandBase(metaclass=ABCMeta):
     attributes: CommandAttributes = None
     completion_functions: dict[
         str, Callable[[PTTaskCompletionFunctionMessage], Awaitable[PTTaskCompletionFunctionMessageResponse]]] = {}
-    argument_class: TaskArguments.__class__
+    argument_class: TaskArguments.__class__ = None
     base_path: Path = Path(".")
     agent_code_path: Path = base_path / "agent_code"
     agent_browserscript_path: Path = base_path / "browser_scripts"
@@ -2164,7 +2164,10 @@ class CommandBase(metaclass=ABCMeta):
         return resp
 
     def to_json(self):
-        params = self.argument_class("").to_json()
+        if self.argument_class is not None:
+            params = self.argument_class("").to_json()
+        else:
+            params = []
         if self.browser_script is not None:
             if isinstance(self.browser_script, list):
                 logger.error(f"{self.cmd}'s browserscript attribute should not be an array, but a single script")

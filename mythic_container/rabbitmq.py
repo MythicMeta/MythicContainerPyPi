@@ -156,10 +156,7 @@ class rabbitmqConnectionClass:
                     )
                     exchange = await chan.declare_exchange("mythic_exchange",
                                                            durable=True,
-                                                           auto_delete=True,
-                                                           arguments={
-                                                               'x-dead-letter-exchange': 'dlx',  # Dead letter exchange
-                                                           })
+                                                           auto_delete=True)
                     callback_queue = await chan.declare_queue(name="amq.rabbitmq.reply-to",)
                     await callback_queue.consume(self.on_response,
                                                  no_ack=True)
