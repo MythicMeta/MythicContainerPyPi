@@ -811,32 +811,6 @@ async def start_services():
             continue
         LoggingBase.loggers[definedLog.name] = definedLog
         await syncLoggingData(definedLog)
-    payloadTypes = PayloadBuilder.PayloadType.__subclasses__()
-    for cls in payloadTypes:
-        payload_type = cls()
-        if payload_type.name == "":
-            logger.error("missing name for payload_type")
-            continue
-        if payload_type.name in PayloadBuilder.payloadTypes:
-            logger.error(f"[-] attempting to import {payload_type.name} multiple times - probably due to import issues")
-            continue
-        PayloadBuilder.payloadTypes[payload_type.name] = payload_type
-        logger.info(f"[*] Processing agent: {payload_type.name}")
-        await syncPayloadData(payload_type)
-        await startPayloadRabbitMQ(payload_type)
-    c2Profiles = C2ProfileBase.C2Profile.__subclasses__()
-    for cls in c2Profiles:
-        c2profile = cls()
-        if c2profile.name == "":
-            logger.error("missing name for c2profile")
-            continue
-        if c2profile.name in C2ProfileBase.c2Profiles:
-            logger.error(f"[-] attempting to import {c2profile.name} multiple times - probably due to import issues")
-            continue
-        C2ProfileBase.c2Profiles[c2profile.name] = c2profile
-        logger.info(f"[*] Processing c2 profile: {c2profile.name}")
-        await startC2RabbitMQ(c2profile)
-        await syncC2ProfileData(c2profile)
     translation_services = TranslationBase.TranslationContainer.__subclasses__()
     for cls in translation_services:
         translator = cls()
@@ -874,6 +848,34 @@ async def start_services():
         EventingBase.eventingServices[event.name] = event
         logger.info(f"[*] Processing eventing service: {event.name}")
         await syncEventingData(event)
+    payloadTypes = PayloadBuilder.PayloadType.__subclasses__()
+    for cls in payloadTypes:
+        payload_type = cls()
+        if payload_type.name == "":
+            logger.error("missing name for payload_type")
+            continue
+        if payload_type.name in PayloadBuilder.payloadTypes:
+            logger.error(f"[-] attempting to import {payload_type.name} multiple times - probably due to import issues")
+            continue
+        PayloadBuilder.payloadTypes[payload_type.name] = payload_type
+        logger.info(f"[*] Processing agent: {payload_type.name}")
+        await syncPayloadData(payload_type)
+        await startPayloadRabbitMQ(payload_type)
+    c2Profiles = C2ProfileBase.C2Profile.__subclasses__()
+    for cls in c2Profiles:
+        c2profile = cls()
+        if c2profile.name == "":
+            logger.error("missing name for c2profile")
+            continue
+        if c2profile.name in C2ProfileBase.c2Profiles:
+            logger.error(f"[-] attempting to import {c2profile.name} multiple times - probably due to import issues")
+            continue
+        C2ProfileBase.c2Profiles[c2profile.name] = c2profile
+        logger.info(f"[*] Processing c2 profile: {c2profile.name}")
+        await startC2RabbitMQ(c2profile)
+        await syncC2ProfileData(c2profile)
+
+
 
     logger.info("[+] All services synced with Mythic!")
     logger.info("[*] Starting services to listen...")

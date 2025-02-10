@@ -1,4 +1,11 @@
 
+## [v0.5.22] - 2025-02-10
+
+### Changed
+
+- Reverted some rabbitmq changes
+- Updated the ordering for syncing classes so that translation containers happen before payload types
+
 ## [v0.5.21] - 2025-02-07
 
 ### Changed

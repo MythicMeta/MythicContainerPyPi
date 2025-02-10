@@ -26,8 +26,8 @@ async def messageProcessThread(message: aio_pika.abc.AbstractIncomingMessage,
                                trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
     try:
         logger.debug(f"Ack direct call to {message.routing_key}")
-        await trueFunction(message.body)
         await message.ack()
+        await trueFunction(message.body)
     except Exception as d:
         logger.exception(f"inner error: {d}")
         await message.nack(requeue=True)
@@ -149,11 +149,6 @@ class rabbitmqConnectionClass:
                 logger.debug(f"Sending RPC message to {queue}")
                 connection = await self.GetConnection()
                 async with connection.channel(on_return_raises=True) as chan:
-                    await chan.set_qos(
-                        prefetch_count=1,
-                        prefetch_size=0,
-                        global_=False
-                    )
                     exchange = await chan.declare_exchange("mythic_exchange",
                                                            durable=True,
                                                            auto_delete=True)
@@ -284,11 +279,6 @@ class rabbitmqConnectionClass:
             try:
                 connection = await self.GetConnection()
                 async with connection.channel() as chan:
-                    await chan.set_qos(
-                        prefetch_count=1,
-                        prefetch_size=0,
-                        global_=False
-                    )
                     exchange = await chan.declare_exchange(
                         name="mythic_exchange",
                         type="direct",
@@ -309,7 +299,6 @@ class rabbitmqConnectionClass:
                     )
                     await q.consume(
                         callback=partial(rpcExchangeCallback, trueFunction=handler),
-                        no_ack=False
                     )
                     logger.info(f"[*] started listening for messages on {queue}")
                     try:
