@@ -1,4 +1,10 @@
 
+## [v0.5.24] - 2025-03-13
+
+### Changed
+
+- Fixed variable name usage
+
 ## [v0.5.23] - 2025-03-13
 
 ### Changed

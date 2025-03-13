@@ -13,10 +13,10 @@ async def ConditionalEventingCheck(msg: bytes) -> None:
                     if conditionalDef.Name == msgDict["function_name"]:
                         try:
                             response = await conditionalDef.Function(EventingBase.ConditionalCheckEventingMessage(**msgDict))
-                            response.EventStepInstanceID = msg["eventstepinstance_id"]
+                            response.EventStepInstanceID = msgDict["eventstepinstance_id"]
                         except Exception as e:
                             response = EventingBase.ConditionalCheckEventingMessageResponse(
-                                EventStepInstanceID=msg["eventstepinstance_id"],
+                                EventStepInstanceID=msgDict["eventstepinstance_id"],
                                 StdErr=f"Hit exception trying to call conditional check function: {traceback.format_exc()}\n{e}"
                             )
                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
@@ -42,10 +42,10 @@ async def CustomFunction(msg: bytes) -> None:
                     if conditionalDef.Name == msgDict["function_name"]:
                         try:
                             response = await conditionalDef.Function(EventingBase.NewCustomEventingMessage(**msgDict))
-                            response.EventStepInstanceID = msg["eventstepinstance_id"]
+                            response.EventStepInstanceID = msgDict["eventstepinstance_id"]
                         except Exception as e:
                             response = EventingBase.NewCustomEventingMessageResponse(
-                                EventStepInstanceID=msg["eventstepinstance_id"],
+                                EventStepInstanceID=msgDict["eventstepinstance_id"],
                                 StdErr=f"Hit exception trying to call custom function function: {traceback.format_exc()}\n{e}",
                             )
                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
@@ -70,10 +70,10 @@ async def TaskIntercept(msg: bytes) -> None:
                 if pt.task_intercept_function is not None:
                     try:
                         response = await pt.task_intercept_function(EventingBase.TaskInterceptMessage(**msgDict))
-                        response.EventStepInstanceID = msg["eventstepinstance_id"]
+                        response.EventStepInstanceID = msgDict["eventstepinstance_id"]
                     except Exception as e:
                         response = EventingBase.TaskInterceptMessageResponse(
-                            EventStepInstanceID=msg["eventstepinstance_id"],
+                            EventStepInstanceID=msgDict["eventstepinstance_id"],
                             BlockTask=True,
                             Success=False,
                             StdErr=f"Hit exception trying to call task intercept function: {traceback.format_exc()}\n{e}"
@@ -100,7 +100,7 @@ async def ResponseIntercept(msg: bytes) -> None:
                 if pt.response_intercept_function is not None:
                     try:
                         response = await pt.response_intercept_function(EventingBase.ResponseInterceptMessage(**msgDict))
-                        response.EventStepInstanceID = msg["eventstepinstance_id"]
+                        response.EventStepInstanceID = msgDict["eventstepinstance_id"]
                     except Exception as e:
                         response = EventingBase.ResponseInterceptMessageResponse(
                             Success=False,
