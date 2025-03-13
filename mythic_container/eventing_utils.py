@@ -17,6 +17,7 @@ async def ConditionalEventingCheck(msg: bytes) -> None:
                         except Exception as e:
                             response = EventingBase.ConditionalCheckEventingMessageResponse(
                                 EventStepInstanceID=msgDict["eventstepinstance_id"],
+                                Success=False,
                                 StdErr=f"Hit exception trying to call conditional check function: {traceback.format_exc()}\n{e}"
                             )
                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
@@ -46,6 +47,7 @@ async def CustomFunction(msg: bytes) -> None:
                         except Exception as e:
                             response = EventingBase.NewCustomEventingMessageResponse(
                                 EventStepInstanceID=msgDict["eventstepinstance_id"],
+                                Success=False,
                                 StdErr=f"Hit exception trying to call custom function function: {traceback.format_exc()}\n{e}",
                             )
                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
