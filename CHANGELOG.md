@@ -1,4 +1,10 @@
 
+## [v0.5.23] - 2025-03-13
+
+### Changed
+
+- Added checks around crashing Eventing functions to catch errors and update proper event steps
+
 ## [v0.5.22] - 2025-02-10
 
 ### Changed

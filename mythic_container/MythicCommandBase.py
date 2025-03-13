@@ -7,6 +7,7 @@ from pathlib import Path
 from .logging import logger
 import sys
 from collections.abc import Callable, Awaitable
+from typing import List
 from mythic_container.MythicGoRPC.send_mythic_rpc_payload_create_from_scratch import \
     MythicRPCPayloadConfigurationBuildParameter, MythicRPCPayloadConfigurationC2Profile
 
@@ -378,11 +379,11 @@ class CommandParameter:
             display_name: str = None,
             cli_name: str = None,
             description: str = "",
-            choices: [any] = None,
+            choices: List[str] = None,
             default_value: any = None,
             validation_func: callable = None,
             value: any = None,
-            supported_agents: [str] = None,
+            supported_agents: List[str] = None,
             supported_agent_build_parameters: dict = None,
             choice_filter_by_command_attributes: dict = None,
             choices_are_all_commands: bool = False,
@@ -392,7 +393,7 @@ class CommandParameter:
             typedarray_parse_function: Callable[
                 [PTRPCTypedArrayParseFunctionMessage], Awaitable[PTRPCTypedArrayParseFunctionMessageResponse]] = None,
             parameter_group_info: [ParameterGroupInfo] = None,
-            limit_credentials_by_type: [str] = None,
+            limit_credentials_by_type: List[str] = None,
     ):
         self.name = name
         if display_name is None:
@@ -1782,7 +1783,7 @@ class PTCallbacksToCheck:
                  initial_checkin: str = "",
                  last_checkin: str = "",
                  sleep_info: str = "",
-                 active_c2_profiles: [str] = []):
+                 active_c2_profiles: List[str] = []):
         self.ID = id
         self.DisplayID = display_id
         self.AgentCallbackID = agent_callback_id
