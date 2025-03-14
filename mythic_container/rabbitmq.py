@@ -63,7 +63,7 @@ async def rpcExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
         # _thread = Thread(target=asyncio.run,
         #                 args=(messageProcessThread(message=messageContext, trueFunction=trueFunction),))
         # _thread.start()  # start thread
-        logger.debug(f"Got RPC call to {message.routing_key}")
+        logger.debug(f"Got RPC call to {message.routing_key}, correlation_id: {message.correlation_id}")
         response = await messageProcessRPCThread(message=messageContext, trueFunction=trueFunction)
         await mythic_container.RabbitmqConnection.ReplyMessage(response=response, message=messageContext)
 
@@ -140,13 +140,12 @@ class rabbitmqConnectionClass:
         return await self.SendMessage(queue=queue, body=ujson.dumps(body).encode())
 
     async def SendRPCMessage(self, queue: str, body: bytes) -> dict:
-        correlation_id = str(uuid.uuid4())
-        future = None
         try:
             while True:
+                correlation_id = str(uuid.uuid4())
                 future = asyncio.get_event_loop().create_future()
                 self.futures[correlation_id] = future
-                logger.debug(f"Sending RPC message to {queue}")
+                logger.debug(f"Sending RPC message to {queue}, correlation_id: {correlation_id}")
                 connection = await self.GetConnection()
                 async with connection.channel(on_return_raises=True) as chan:
                     exchange = await chan.declare_exchange("mythic_exchange",
@@ -171,28 +170,30 @@ class rabbitmqConnectionClass:
                     except asyncio.TimeoutError:
                         # cancel the current future and move on to try again
                         future.cancel()
-                        logger.error("hit timeout waiting for RPC response, retrying...")
+                        self.futures.pop(message.correlation_id, None)
+                        logger.error(f"hit timeout waiting for RPC response in {queue} for correlation_id: {message.correlation_id}, retrying...")
+                        continue
                     except Exception as err:
                         future.cancel()
-                        logger.error("hit error trying to send RPC message, retrying...: %s", err)
+                        self.futures.pop(message.correlation_id, None)
+                        logger.error(f"hit error trying to send RPC message in {queue} for correlation_id: {message.correlation_id}, retrying...:\n{err}")
                         await asyncio.sleep(5)
                         continue
-                    logger.debug(f"published RPC message to {queue}")
+                    logger.debug(f"published RPC message to {queue}, correlation id: {message.correlation_id}")
                     try:
                         result = await asyncio.wait_for(future, timeout=10)
+                        logger.debug(f"got RPC result to {queue}, correlation id: {message.correlation_id}")
                         return result
                     except asyncio.TimeoutError:
                         # cancel the current future and move on to try again
                         future.cancel()
-                        logger.error("hit timeout waiting for RPC response, retrying...")
+                        logger.error(f"hit timeout waiting for RPC response on {queue} for correlation_id {message.correlation_id}, retrying...")
                     except Exception as sendError:
-                        logger.error(sendError)
+                        logger.error(f"got error on {queue} for correlation_id {message.correlation_id}:\n{sendError}")
                         await asyncio.sleep(5)
 
         except Exception as e:
             logger.error(f"[-] failed to send rpc message to {queue}: {e}")
-            if future:
-                future.set_result({})
             return {}
 
     def on_response(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
@@ -205,8 +206,12 @@ class rabbitmqConnectionClass:
             future: asyncio.Future = self.futures.pop(message.correlation_id, None)
             if future:
                 try:
-                    future.set_result(ujson.loads(message.body))
-                    logger.debug(f"got response for {message.routing_key}")
+                    if future.cancelled():
+                        logger.debug(f"got response for {message.correlation_id}, but it was cancelled")
+                    else:
+                        future.set_result(ujson.loads(message.body))
+                        logger.debug(f"got response for {message.correlation_id}")
+
                 except Exception as fe:
                     logger.exception(f"Failed to process response as json: {fe}")
                     future.set_result({})
@@ -236,6 +241,7 @@ class rabbitmqConnectionClass:
                     routing_key=message.reply_to,
                     mandatory=False
                 )
+                logger.debug(f"Send reply for correlation_id: {message.correlation_id}")
 
         except Exception as e:
             logger.exception(f"[-] failed to send reply message: {e}")

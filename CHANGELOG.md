@@ -1,4 +1,11 @@
 
+## [v0.5.26] - 2025-03-14
+
+### Changed
+
+- Updated some of the logging and looping for RPC calls in rabbitmq
+- Updated error message output for eventing response intercepts
+
 ## [v0.5.24] - 2025-03-13
 
 ### Changed

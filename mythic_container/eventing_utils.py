@@ -18,6 +18,7 @@ async def ConditionalEventingCheck(msg: bytes) -> None:
                             response = EventingBase.ConditionalCheckEventingMessageResponse(
                                 EventStepInstanceID=msgDict["eventstepinstance_id"],
                                 Success=False,
+                                SkipStep=False,
                                 StdErr=f"Hit exception trying to call conditional check function: {traceback.format_exc()}\n{e}"
                             )
                         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
@@ -73,11 +74,13 @@ async def TaskIntercept(msg: bytes) -> None:
                     try:
                         response = await pt.task_intercept_function(EventingBase.TaskInterceptMessage(**msgDict))
                         response.EventStepInstanceID = msgDict["eventstepinstance_id"]
+                        response.TaskID = msgDict["task_id"]
                     except Exception as e:
                         response = EventingBase.TaskInterceptMessageResponse(
                             EventStepInstanceID=msgDict["eventstepinstance_id"],
                             BlockTask=True,
                             Success=False,
+                            TaskID=msgDict["task_id"],
                             StdErr=f"Hit exception trying to call task intercept function: {traceback.format_exc()}\n{e}"
                         )
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
@@ -103,10 +106,13 @@ async def ResponseIntercept(msg: bytes) -> None:
                     try:
                         response = await pt.response_intercept_function(EventingBase.ResponseInterceptMessage(**msgDict))
                         response.EventStepInstanceID = msgDict["eventstepinstance_id"]
+                        response.ResponseID = msgDict["response_id"]
                     except Exception as e:
                         response = EventingBase.ResponseInterceptMessageResponse(
                             Success=False,
-                            StdErr=f"Hit exception trying to call get_idp_metadata function: {traceback.format_exc()}\n{e}"
+                            EventStepInstanceID=msgDict["eventstepinstance_id"],
+                            ResponseID=msgDict["response_id"],
+                            StdErr=f"Hit exception trying to call ResponseIntercept function: {traceback.format_exc()}\n{e}"
                         )
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                         queue=mythic_container.EVENTING_RESPONSE_INTERCEPT_RESPONSE,
@@ -117,6 +123,6 @@ async def ResponseIntercept(msg: bytes) -> None:
         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
             queue=mythic_container.EVENTING_RESPONSE_INTERCEPT_RESPONSE,
             body=EventingBase.ResponseInterceptMessageResponse(
-                StdErr=f"Hit exception trying to call get_idp_metadata function: {traceback.format_exc()}\n{e}"
+                StdErr=f"Hit exception trying to call ResponseIntercept function: {traceback.format_exc()}\n{e}"
             ).to_json()
         )
