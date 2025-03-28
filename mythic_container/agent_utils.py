@@ -242,6 +242,8 @@ async def verifyTaskArgs(
 ) -> bool:
     try:
         # if tasking came from the command_line or an unknown source, call parse_arguments to deal with unknown text
+        if task.Task.IsInteractiveTask:
+            return True
         if error_routing_key == mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE or \
                 error_routing_key == mythic_container.PT_TASK_CREATE_TASKING_RESPONSE:
             if hasattr(task.args, "parse_dictionary") and callable(task.args.parse_dictionary):
@@ -449,11 +451,14 @@ async def createTasking(msg: bytes) -> None:
                                                                 mythic_container.PT_TASK_CREATE_TASKING_RESPONSE):
                                         return
                                     createTaskingResponse = await cmd.create_go_tasking(taskData)
-                                    createTaskingResponse.Params = str(taskData.args)
-                                    if createTaskingResponse.Stdout is None:
-                                        createTaskingResponse.Stdout = await taskData.args.get_unused_args()
+                                    if taskData.Task.IsInteractiveTask:
+                                        createTaskingResponse.Params = taskData.args.get_interactive_task_final_args()
                                     else:
-                                        createTaskingResponse.Stdout += await taskData.args.get_unused_args()
+                                        createTaskingResponse.Params = str(taskData.args)
+                                        if createTaskingResponse.Stdout is None:
+                                            createTaskingResponse.Stdout = await taskData.args.get_unused_args()
+                                        else:
+                                            createTaskingResponse.Stdout += await taskData.args.get_unused_args()
                                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                                         queue=mythic_container.PT_TASK_CREATE_TASKING_RESPONSE,
                                         body=createTaskingResponse.to_json()

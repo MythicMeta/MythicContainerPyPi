@@ -6,6 +6,15 @@
 - Updated some of the logging and looping for RPC calls in rabbitmq
 - Updated error message output for eventing response intercepts
 
+## [v0.5.25] - 2025-03-28
+
+### Changed
+
+- Added SearchParentTaskID options for MythicRPCTaskSearch
+- Added MythicRPCTagCreate, MythicRPCTagSearch, and MythicRPCTagTypeGetOrCreate
+- Added support for intercepting interactive task sub tasks for processing
+- Added support to dynamic query functions to access "other_parameters" for context about what the other parameters have set
+
 ## [v0.5.24] - 2025-03-13
 
 ### Changed

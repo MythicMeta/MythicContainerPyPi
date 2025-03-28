@@ -15,6 +15,7 @@ class MythicRPCTaskSearchMessage:
                  SearchCompleted: bool = None,
                  SearchCommandNames: list[str] = None,
                  SearchParams: str = None,
+                 SearchParentTaskID: int = None,
                  **kwargs):
         self.TaskID = TaskID
         self.SearchTaskID = SearchTaskID
@@ -25,6 +26,7 @@ class MythicRPCTaskSearchMessage:
         self.SearchCompleted = SearchCompleted
         self.SearchCommandNames = SearchCommandNames
         self.SearchParams = SearchParams
+        self.SearchParentTaskID = SearchParentTaskID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -38,7 +40,8 @@ class MythicRPCTaskSearchMessage:
             "callback_id": self.SearchCallbackID,
             "completed": self.SearchCompleted,
             "command_names": self.SearchCommandNames,
-            "params": self.SearchParams
+            "params": self.SearchParams,
+            "parent_task_id": self.SearchParentTaskID
         }
 
 

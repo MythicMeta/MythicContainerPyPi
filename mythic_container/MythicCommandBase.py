@@ -33,6 +33,30 @@ class SupportedOS:
         return self.os
 
 
+class SupportedUIFeature:
+    """Supported UI Features
+    If you don't want to use a listed value, supply your own with SupportedUIFeature("my feature")
+    """
+    SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS = "task:process_interactive_tasks"
+    SUPPORTED_UI_FEATURE_TASK_RESPONSE_INTERACTIVE      = "task_response:interactive"
+    SUPPORTED_UI_FEATURE_CALLBACK_TABLE_EXIT            = "callback_table:exit"
+    SUPPORTED_UI_FEATURE_FILE_BROWSER_LIST              = "file_browser:list"
+    SUPPORTED_UI_FEATURE_FILE_BROWSER_REMOVE            = "file_browser:remove"
+    SUPPORTED_UI_FEATURE_FILE_BROWSER_UPLOAD            = "file_browser:upload"
+    SUPPORTED_UI_FEATURE_FILE_BROWSER_DOWNLOAD          = "file_browser:download"
+    SUPPORTED_UI_FEATURE_PROCESS_BROWSER_LIST           = "process_browser:list"
+    SUPPORTED_UI_FEATURE_PROCESS_BROWSER_KILL           = "process_browser:kill"
+    SUPPORTED_UI_FEATURE_PROCESS_BROWSER_INJECT         = "process_browser:inject"
+    SUPPORTED_UI_FEATURE_PROCESS_BROWSER_STEAL_TOKEN    = "process_browser:steal_token"
+    SUPPORTED_UI_FEATURE_PROCESS_BROWSER_LIST_TOKENS    = "process_browser:list_tokens"
+
+    def __init__(self, feature: str):
+        self.feature = feature
+
+    def __str__(self):
+        return self.feature
+
+
 class MythicStatus:
     Error = "error"
     Completed = "completed"
@@ -213,6 +237,7 @@ class PTRPCDynamicQueryFunctionMessage:
                  agent_callback_id: str = "",
                  callback_display_id: int = 0,
                  secrets: dict = {},
+                 other_parameters: dict = {},
                  **kwargs
                  ):
         self.Command = command
@@ -225,6 +250,7 @@ class PTRPCDynamicQueryFunctionMessage:
         self.AgentCallbackID = agent_callback_id
         self.CallbackDisplayID = callback_display_id
         self.Secrets = secrets
+        self.OtherParameters = other_parameters
 
     def to_json(self):
         return {
@@ -237,7 +263,8 @@ class PTRPCDynamicQueryFunctionMessage:
             "payload_uuid": self.PayloadUUID,
             "agent_callback_id": self.AgentCallbackID,
             "callback_display_id": self.CallbackDisplayID,
-            "secrets": self.Secrets
+            "secrets": self.Secrets,
+            "other_parameters": self.OtherParameters
         }
 
     def __str__(self):
@@ -954,6 +981,14 @@ class TaskArguments(metaclass=ABCMeta):
             return f"The following args aren't being used because they don't belong to the {groupName} parameter group: \n{json.dumps(temp, indent=2)}\n{caughtException}"
         else:
             return ""
+
+    def get_interactive_task_final_args(self) -> str:
+        if self.manual_args is not None:
+            if isinstance(self.manual_args, dict):
+                return json.dumps(self.manual_args)
+            else:
+                return str(self.manual_args)
+        return self.command_line
 
     def __str__(self) -> str:
         if self.manual_args is not None:
@@ -2185,13 +2220,16 @@ class CommandBase(metaclass=ABCMeta):
             attributes = CommandAttributes()
         else:
             attributes = self.attributes
+        ui_features = []
+        if self.supported_ui_features is not None:
+            ui_features = [str(x) for x in self.supported_ui_features]
         return {
             "name": self.cmd,
             "needs_admin_permission": self.needs_admin,
             "help_string": self.help_cmd,
             "description": self.description,
             "version": self.version,
-            "supported_ui_features": self.supported_ui_features if self.supported_ui_features is not None else [],
+            "supported_ui_features": ui_features,
             "author": self.author,
             "attack": self.attackmapping,
             "parameters": params,

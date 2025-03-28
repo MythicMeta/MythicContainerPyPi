@@ -54,3 +54,6 @@ from .send_mythic_rpc_task_update import *
 from .send_mythic_rpc_token_create import *
 from .send_mythic_rpc_token_remove import *
 from .task_display_to_real_id import *
+from .send_mythic_rpc_tag_create import *
+from .send_mythic_rpc_tag_search import *
+from .send_mythic_rpc_tagtype_get_or_create import *
