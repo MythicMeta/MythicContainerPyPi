@@ -1,4 +1,10 @@
 
+## [v0.5.28] - 2025-04-03
+
+### Changed
+
+- Fixed the RabbitMQ endpoint name for the SendMythicRPCTagTypeGetOrCreate function
+
 ## [v0.5.26] - 2025-03-14
 
 ### Changed

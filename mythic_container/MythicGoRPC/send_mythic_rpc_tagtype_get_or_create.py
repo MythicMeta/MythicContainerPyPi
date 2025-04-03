@@ -1,7 +1,7 @@
 import mythic_container
 from mythic_container.logging import logger
 
-MYTHIC_RPC_TAGTYPE_GET_OR_CREATE = "mythic_rpc_tagtype_get_or_create"
+MYTHIC_RPC_TAGTYPE_GET_OR_CREATE = "mythic_rpc_tag_type_get_or_create"
 
 
 class MythicRPCTagTypeGetOrCreateMessage:
