@@ -198,10 +198,16 @@ async def legacyAddCommandsToCallback(x: dict) -> RPCResponse:
 
 
 async def legacyGetCallbackInfo(x: dict) -> RPCResponse:
+    cb_id = x.pop("callback_id")
+    
     resp = await SendMythicRPCCallbackSearch(MythicRPCCallbackSearchMessage(
-        AgentCallbackID=x.pop("callback_id"),
-        SearchCallbackID=x.pop("callback_id")
+        AgentCallbackID=cb_id,
+        SearchCallbackID=cb_id
     ))
+    # resp = await SendMythicRPCCallbackSearch(MythicRPCCallbackSearchMessage(
+    #     AgentCallbackID=x.pop("callback_id"),
+    #     SearchCallbackID=x.pop("callback_id")
+    # ))
     return RPCResponse({
         "status": "success" if resp.Success else "error",
         "error": resp.Error,
