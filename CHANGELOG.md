@@ -1,4 +1,10 @@
 
+## [v0.5.29] - 2025-04-08
+
+### Changed
+
+- Merged a PR to fix an issue with a legacy RPC call
+
 ## [v0.5.28] - 2025-04-03
 
 ### Changed
