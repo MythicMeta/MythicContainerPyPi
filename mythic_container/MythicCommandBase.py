@@ -1754,7 +1754,7 @@ class PTTaskMessageAllData:
     Note: Lowercase names are used in the __init__ function to auto-populate from JSON, but attributes are upper case.
 
     Attributes:
-        Task (PTTaskMessageTaskData): The information about this task and its callback, payload, build params, etc
+        Task (PTTaskMessageTaskData): The information about this task
         Callback (PTTaskMessageCallbackData): The information about this task's callback
         Payload (PTTaskMessagePayloadData): The information about this task's associated payload
         Commands (list[str]): The names of all the commands currently loaded into this callback
