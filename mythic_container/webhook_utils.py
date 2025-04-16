@@ -6,9 +6,7 @@ from .WebhookBase import *
 async def new_startup(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        webhookServices = Webhook.__subclasses__()
-        for cls in webhookServices:
-            webhook = cls()
+        for name, webhook in webhooks.items():
             if webhook.new_startup is not None and callable(webhook.new_startup):
                 await webhook.new_startup(WebhookMessage(**msgDict))
             else:
@@ -20,9 +18,7 @@ async def new_startup(msg: bytes) -> None:
 async def new_callback(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        webhookServices = Webhook.__subclasses__()
-        for cls in webhookServices:
-            webhook = cls()
+        for name, webhook in webhooks.items():
             if webhook.new_callback is not None and callable(webhook.new_callback):
                 await webhook.new_callback(WebhookMessage(**msgDict))
             else:
@@ -34,9 +30,7 @@ async def new_callback(msg: bytes) -> None:
 async def new_feedback(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        webhookServices = Webhook.__subclasses__()
-        for cls in webhookServices:
-            webhook = cls()
+        for name, webhook in webhooks.items():
             if webhook.new_feedback is not None and callable(webhook.new_feedback):
                 await webhook.new_feedback(WebhookMessage(**msgDict))
             else:
@@ -48,9 +42,7 @@ async def new_feedback(msg: bytes) -> None:
 async def new_alert(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        webhookServices = Webhook.__subclasses__()
-        for cls in webhookServices:
-            webhook = cls()
+        for name, webhook in webhooks.items():
             if webhook.new_alert is not None and callable(webhook.new_alert):
                 await webhook.new_alert(WebhookMessage(**msgDict))
             else:
@@ -62,9 +54,7 @@ async def new_alert(msg: bytes) -> None:
 async def new_custom(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        webhookServices = Webhook.__subclasses__()
-        for cls in webhookServices:
-            webhook = cls()
+        for name, webhook in webhooks.items():
             if webhook.new_custom is not None and callable(webhook.new_custom):
                 await webhook.new_custom(WebhookMessage(**msgDict))
             else:

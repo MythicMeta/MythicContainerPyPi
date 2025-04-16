@@ -1,4 +1,11 @@
 
+## [v0.5.30] - 2025-04-16
+
+### Changed
+
+- Updated the custom logger code to not reinstantiate each time
+- Updated the custom webhook code to not reinstantiate each time
+
 ## [v0.5.29] - 2025-04-08
 
 ### Changed

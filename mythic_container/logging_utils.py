@@ -6,9 +6,7 @@ from .LoggingBase import *
 async def new_callback(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_callback is not None and callable(definedLogger.new_callback):
                 await definedLogger.new_callback(LoggingMessage(**msgDict))
             else:
@@ -20,9 +18,7 @@ async def new_callback(msg: bytes) -> None:
 async def new_credential(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_credential is not None and callable(definedLogger.new_credential):
                 await definedLogger.new_credential(LoggingMessage(**msgDict))
             else:
@@ -34,9 +30,7 @@ async def new_credential(msg: bytes) -> None:
 async def new_keylog(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_keylog is not None and callable(definedLogger.new_keylog):
                 await definedLogger.new_keylog(LoggingMessage(**msgDict))
             else:
@@ -48,9 +42,7 @@ async def new_keylog(msg: bytes) -> None:
 async def new_file(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_file is not None and callable(definedLogger.new_file):
                 await definedLogger.new_file(LoggingMessage(**msgDict))
             else:
@@ -62,9 +54,7 @@ async def new_file(msg: bytes) -> None:
 async def new_payload(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_payload is not None and callable(definedLogger.new_payload):
                 await definedLogger.new_payload(LoggingMessage(**msgDict))
             else:
@@ -76,9 +66,7 @@ async def new_payload(msg: bytes) -> None:
 async def new_artifact(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_artifact is not None and callable(definedLogger.new_artifact):
                 await definedLogger.new_artifact(LoggingMessage(**msgDict))
             else:
@@ -90,9 +78,7 @@ async def new_artifact(msg: bytes) -> None:
 async def new_task(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_task is not None and callable(definedLogger.new_task):
                 await definedLogger.new_task(LoggingMessage(**msgDict))
             else:
@@ -104,9 +90,7 @@ async def new_task(msg: bytes) -> None:
 async def new_response(msg: bytes) -> None:
     try:
         msgDict = ujson.loads(msg)
-        loggingServices = Log.__subclasses__()
-        for cls in loggingServices:
-            definedLogger = cls()
+        for name, definedLogger in loggers.items():
             if definedLogger.new_response is not None and callable(definedLogger.new_response):
                 await definedLogger.new_response(LoggingMessage(**msgDict))
             else:
