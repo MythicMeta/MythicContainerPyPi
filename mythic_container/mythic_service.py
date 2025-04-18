@@ -328,7 +328,9 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [Myt
     # Create an iterator that yields the non-abstract classes that are derived from the CommandBase class
     commandClasses = filter(lambda _: not inspect.isabstract(_), allSubClasses(classTree(MythicCommandBase.CommandBase)))
     for cls in commandClasses:
-        logger.info(f"[*] Processing command {cls.cmd}")
+        if len(cls.supported_payload_types) > 0 and pt.name not in cls.supported_payload_types:
+            continue
+        logger.info(f"[*] Processing command {cls.cmd} for {pt.name}")
         if pt.name not in MythicCommandBase.commands:
             MythicCommandBase.commands[pt.name] = []
         existing = [x for x in MythicCommandBase.commands[pt.name] if x.cmd == cls.cmd]

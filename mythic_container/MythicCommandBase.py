@@ -2137,6 +2137,9 @@ class CommandBase(metaclass=ABCMeta):
         argument_class (TaskArguments.__class__): The class that's used to parse the future task's arguments into the command's parameters
         agent_code_path (Path): The Path to the code for the agent (helpful for building and loading commands dynamically)
         agent_browserscript_path (Path): The Path to where browser scripts are located for your payload type
+        supported_payload_types (list[str]): If you have multiple Payload Types defined within one container, you can use this list of payload
+            type names to restrict which commands are associated with which payload types. Not supplying this (or leaving it empty [])
+            means that _every_ payload type within this container will be associated with this command.
 
     Functions:
         to_json:
@@ -2168,6 +2171,7 @@ class CommandBase(metaclass=ABCMeta):
     base_path: Path = Path(".")
     agent_code_path: Path = base_path / "agent_code"
     agent_browserscript_path: Path = base_path / "browser_scripts"
+    supported_payload_types: list[str] = []
 
     def __init__(self, agent_path: Path, agent_code_path: Path, agent_browserscript_path: Path):
         self.base_path = agent_path

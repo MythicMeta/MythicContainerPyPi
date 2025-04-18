@@ -1,4 +1,11 @@
 
+## [v0.5.31] - 2025-04-18
+
+### Changed
+
+- Updated CommandBase to have an optional `supported_payload_types` attribute
+  - this can be used if multiple payload types are defined within one container to restrict which commands are associated with each payload type
+  
 ## [v0.5.30] - 2025-04-16
 
 ### Changed
