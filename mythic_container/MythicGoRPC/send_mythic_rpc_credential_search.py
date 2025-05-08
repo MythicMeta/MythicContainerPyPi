@@ -12,6 +12,7 @@ class MythicRPCCredentialData:
                  credential: str = None,
                  comment: str = None,
                  metadata: str = None,
+                 task_id: int = 0,
                  **kwargs):
         self.CredentialType = credential_type
         self.Realm = realm
@@ -19,6 +20,7 @@ class MythicRPCCredentialData:
         self.Credential = credential
         self.Comment = comment
         self.ExtraData = metadata
+        self.taskID = task_id
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
     def to_json(self):
@@ -28,7 +30,8 @@ class MythicRPCCredentialData:
             "account": self.Account,
             "credential": self.Credential,
             "comment": self.Comment,
-            "metadata": self.ExtraData
+            "metadata": self.ExtraData,
+            "task_id": self.taskID
         }
 
 class MythicRPCCredentialSearchMessage:
