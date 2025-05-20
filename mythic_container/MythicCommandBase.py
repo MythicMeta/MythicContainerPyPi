@@ -12,6 +12,19 @@ from mythic_container.MythicGoRPC.send_mythic_rpc_payload_create_from_scratch im
     MythicRPCPayloadConfigurationBuildParameter, MythicRPCPayloadConfigurationC2Profile
 
 
+class BytesEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            # Create a more readable representation of bytes
+            result = "[bytes]"
+            for byte in obj:
+                if 32 <= byte <= 126:  # Printable ASCII range
+                    result += chr(byte)
+                else:
+                    result += f"\\x{byte:02x}"
+            return result
+        return super().default(obj)
+
 class SupportedOS:
     """Supported Operating System
 
@@ -1808,7 +1821,7 @@ class PTTaskMessageAllData:
                          raw_command_line=self.Task.OriginalParams, )
 
     def __str__(self):
-        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+        return json.dumps(self.to_json(), sort_keys=True, indent=2, cls=BytesEncoder)
 
 
 class PTCallbacksToCheck:
