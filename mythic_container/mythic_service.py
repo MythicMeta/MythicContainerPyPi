@@ -326,7 +326,7 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [Myt
     # Create a flattened list of a class tree
     allSubClasses = lambda tree: [tree[0]] + [child for subTree in [allSubClasses(child) for child in tree[1]] for child in subTree]
     # Create an iterator that yields the non-abstract classes that are derived from the CommandBase class
-    commandClasses = filter(lambda _: not inspect.isabstract(_), allSubClasses(classTree(MythicCommandBase.CommandBase)))
+    commandClasses = filter(lambda _: not inspect.isabstract(_) and _ != MythicCommandBase.CommandBase, allSubClasses(classTree(MythicCommandBase.CommandBase)))
     for cls in commandClasses:
         if len(cls.supported_payload_types) > 0 and pt.name not in cls.supported_payload_types:
             continue
