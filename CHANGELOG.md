@@ -1,4 +1,10 @@
 
+## [v0.5.32] - 2025-05-30
+
+### Changed
+
+- Updating for the PR adjusting how abstract classes are processed for command discovery in payload types
+
 ## [v0.5.31] - 2025-04-18
 
 ### Changed
