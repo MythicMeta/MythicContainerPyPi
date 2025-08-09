@@ -26,7 +26,7 @@ class C2OPSECMessage:
         self.Name = c2_profile_name
         self.Parameters = parameters
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self) -> dict:
         return {
@@ -61,7 +61,7 @@ class C2OPSECMessageResponse:
         self.Message = Message
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -92,7 +92,7 @@ class C2ConfigCheckMessage:
         self.Name = c2_profile_name
         self.Parameters = parameters
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -127,7 +127,7 @@ class C2ConfigCheckMessageResponse:
         self.Message = Message
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -158,7 +158,7 @@ class C2GetIOCMessage:
         self.Name = c2_profile_name
         self.Parameters = parameters
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -213,7 +213,7 @@ class C2GetIOCMessageResponse:
         self.IOCs = IOCs
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -244,7 +244,7 @@ class C2SampleMessageMessage:
         self.Name = c2_profile_name
         self.Parameters = parameters
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -279,7 +279,7 @@ class C2SampleMessageMessageResponse:
         self.Message = Message
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -307,7 +307,7 @@ class C2GetDebugOutputMessage:
                  **kwargs):
         self.Name = c2_profile_name
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -344,7 +344,7 @@ class C2GetDebugOutputMessageResponse:
         self.InternalServerRunning = InternalServerRunning
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -376,7 +376,7 @@ class C2GetRedirectorRulesMessage:
         self.Name = c2_profile_name
         self.Parameters = parameters
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -411,7 +411,7 @@ class C2GetRedirectorRulesMessageResponse:
         self.Message = Message
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -439,7 +439,7 @@ class C2StartServerMessage:
                  **kwargs):
         self.Name = c2_profile_name
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -474,7 +474,7 @@ class C2StartServerMessageResponse:
         self.Message = Message
         self.InternalServerRunning = InternalServerRunning
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -503,7 +503,7 @@ class C2StopServerMessage:
                  **kwargs):
         self.Name = c2_profile_name
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -538,7 +538,7 @@ class C2StopServerMessageResponse:
         self.Message = Message
         self.InternalServerRunning = InternalServerRunning
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -582,7 +582,7 @@ class C2OtherServiceRPCMessage:
         if self.ServiceRPCFunctionArguments is None:
             self.ServiceRPCFunctionArguments = service_arguments
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -627,7 +627,7 @@ class C2OtherServiceRPCMessageResponse:
             self.Result = result
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -664,7 +664,7 @@ class C2HostFileMessage:
         self.HostURL = host_url
         self.Remove = remove
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -698,7 +698,7 @@ class C2HostFileMessageResponse:
         self.Error = Error
         self.RestartInternalServer = RestartInternalServer
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {

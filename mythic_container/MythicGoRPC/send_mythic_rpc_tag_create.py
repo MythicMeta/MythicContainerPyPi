@@ -24,7 +24,7 @@ class MythicRPCTagCreateMessage:
         self.CredentialID = CredentialID
         self.MythicTreeID = MythicTreeID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -53,7 +53,7 @@ class MythicRPCTagTypeData:
         self.Color = color
         self.OperationID = operation_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -89,7 +89,7 @@ class MythicRPCTagData:
         self.CredentialID = credential_id
         self.MythicTreeID = mythic_tree_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -116,7 +116,7 @@ class MythicRPCTagCreateMessageResponse:
         self.Error = error
         self.Tag = MythicRPCTagData(**tag) if tag is not None else None
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCTagCreate(

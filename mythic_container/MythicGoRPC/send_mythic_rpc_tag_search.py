@@ -26,7 +26,7 @@ class MythicRPCTagSearchMessage:
         self.SearchTagData = SearchTagData
         self.SearchTagURL = SearchTagURL
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -56,7 +56,7 @@ class MythicRPCTagTypeData:
         self.Color = color
         self.OperationID = operation_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -92,7 +92,7 @@ class MythicRPCTagData:
         self.CredentialID = credential_id
         self.MythicTreeID = mythic_tree_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -121,7 +121,7 @@ class MythicRPCTagSearchMessageResponse:
         self.Error = error
         self.Tags = [MythicRPCTagData(**x) for x in tags] if tags is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCTagSearch(

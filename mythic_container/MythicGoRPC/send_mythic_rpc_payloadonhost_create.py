@@ -15,7 +15,7 @@ class MythicRPCPayloadOnHostCreateData:
         self.PayloadId = PayloadId
         self.PayloadUUID = PayloadUUID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "host": self.Host,
@@ -31,7 +31,7 @@ class MythicRPCPayloadOnHostCreateMessage:
         self.TaskID = TaskID
         self.PayloadOnHost = PayloadOnHost
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -48,7 +48,7 @@ class MythicRPCPayloadOnHostCreateMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCPayloadOnHostCreate(

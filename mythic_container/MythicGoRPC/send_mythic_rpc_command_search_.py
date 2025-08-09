@@ -19,7 +19,7 @@ class MythicRPCCommandSearchMessage:
         self.SearchScriptOnly = SearchScriptOnly
         self.SearchAttributes = SearchAttributes
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -54,7 +54,7 @@ class MythicRPCCommandSearchData:
         self.Author = author
         self.ScriptOnly = script_only
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "cmd": self.Name,
@@ -80,7 +80,7 @@ class MythicRPCCommandSearchMessageResponse:
         self.Error = error
         self.Commands = [MythicRPCCommandSearchData(**x) for x in commands] if commands is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCommandSearch(

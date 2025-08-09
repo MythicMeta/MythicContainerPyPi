@@ -11,7 +11,7 @@ class MythicRPCAgentStorageSearchMessage:
                  **kwargs):
         self.SearchUniqueID = SearchUniqueID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -27,7 +27,7 @@ class MythicRPCAgentStorageSearchResult:
         self.UniqueID = unique_id
         self.Data = base64.b64decode(data)
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 class MythicRPCAgentStorageSearchMessageResponse:
@@ -40,7 +40,7 @@ class MythicRPCAgentStorageSearchMessageResponse:
         self.Error = error
         self.AgentStorageMessages = agentstorage_messages
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCAgentStorageSearch(

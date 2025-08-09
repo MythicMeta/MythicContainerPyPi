@@ -16,7 +16,7 @@ class MythicRPCArtifactSearchArtifactData:
         self.ArtifactMessage = artifact_message
         self.TaskID = task_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -35,7 +35,7 @@ class MythicRPCArtifactSearchMessage:
         self.TaskID = TaskID
         self.SearchArtifacts = SearchArtifacts
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -54,7 +54,7 @@ class MythicRPCArtifactSearchMessageResponse:
         self.Error = error
         self.Artifacts = [MythicRPCArtifactSearchArtifactData(**x) for x in artifacts]
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCArtifactSearch(

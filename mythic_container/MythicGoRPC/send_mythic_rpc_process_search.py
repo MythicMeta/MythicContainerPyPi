@@ -104,7 +104,7 @@ class MythicRPCProcessesSearchMessage:
         self.TaskID = TaskID
         self.Process = Process
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -125,7 +125,7 @@ class MythicRPCProcessesSearchMessageResponse:
         self.Error = error
         self.Processes = [MythicRPCProcessSearchResponseData(**x) for x in processes] if processes is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCProcessSearch(

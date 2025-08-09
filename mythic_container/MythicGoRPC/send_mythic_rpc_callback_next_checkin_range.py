@@ -15,7 +15,7 @@ class MythicRPCCallbackNextCheckinRangeMessage:
         self.SleepJitter = SleepJitter
         self.LastCheckin = LastCheckin
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -37,7 +37,7 @@ class MythicRPCCallbackNextCheckinRangeMessageResponse:
         self.Min = min
         self.Max = max
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {

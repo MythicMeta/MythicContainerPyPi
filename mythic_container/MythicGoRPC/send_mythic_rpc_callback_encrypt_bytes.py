@@ -19,7 +19,7 @@ class MythicRPCCallbackEncryptBytesMessage:
         self.IsBase64Encoded = IsBase64Encoded
         self.C2Profile = C2Profile
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -41,7 +41,7 @@ class MythicRPCCallbackEncryptBytesMessageResponse:
         self.Error = error
         self.Message = base64.b64decode(message)
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCallbackEncryptBytes(

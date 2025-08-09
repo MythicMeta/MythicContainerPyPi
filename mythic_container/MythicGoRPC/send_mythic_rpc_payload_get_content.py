@@ -11,7 +11,7 @@ class MythicRPCPayloadGetContentMessage:
                  **kwargs):
         self.PayloadUUID = PayloadUUID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -29,7 +29,7 @@ class MythicRPCPayloadGetContentMessageResponse:
         self.Error = error
         self.Content = content
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCPayloadGetContent(

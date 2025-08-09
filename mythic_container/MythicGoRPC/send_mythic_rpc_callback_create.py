@@ -49,7 +49,7 @@ class MythicRPCCallbackCreateMessage:
         self.Domain = Domain
         self.Architecture = Architecture
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -82,7 +82,7 @@ class MythicRPCCallbackCreateMessageResponse:
         self.Error = error
         self.CallbackUUID = callback_uuid
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCallbackCreate(

@@ -45,7 +45,7 @@ class MythicRPCCallbackSearchMessage:
         self.SearchCallbackDescription = SearchCallbackDescription
         self.SearchCallbackPayloadTypes = SearchCallbackPayloadTypes
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -134,7 +134,7 @@ class MythicRPCCallbackSearchMessageResult:
         self.Dead = dead
         self.PayloadType = payloadtype
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "id": self.ID,
@@ -182,7 +182,7 @@ class MythicRPCCallbackSearchMessageResponse:
         self.Error = error
         self.Results = [MythicRPCCallbackSearchMessageResult(**x) for x in results] if results is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCallbackSearch(

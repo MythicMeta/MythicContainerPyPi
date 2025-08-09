@@ -11,7 +11,7 @@ class MythicRPCRemoveFileData:
         self.Host = Host
         self.Path = Path
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -28,7 +28,7 @@ class MythicRPCFileBrowserRemoveMessage:
         self.TaskID = TaskID
         self.RemovedFiles = RemovedFiles
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -45,7 +45,7 @@ class MythicRPCFileBrowserRemoveMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCFileBrowserRemove(

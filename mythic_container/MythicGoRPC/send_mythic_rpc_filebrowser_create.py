@@ -19,7 +19,7 @@ class MythicRPCFileBrowserDataChildren:
         self.ModifyTime = ModifyTime
         self.Size = Size
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "is_file": self.IsFile,
@@ -55,7 +55,7 @@ class MythicRPCFileBrowserData:
         self.UpdateDeleted = UpdateDeleted
         self.Files = Files
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -81,7 +81,7 @@ class MythicRPCFileBrowserCreateMessage:
         self.TaskID = TaskID
         self.FileBrowser = FileBrowser
         for k, v in kwargs:
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -98,7 +98,7 @@ class MythicRPCFileBrowserCreateMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCFileBrowserCreate(

@@ -105,7 +105,7 @@ class NewCallbackLoggingData:
         self.LockedOperatorID = locked_operator_id
         self.Timestamp = timestamp
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -182,7 +182,7 @@ class NewArtifactLoggingData:
         self.OperationID = operation_id
         self.Host = host
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -252,7 +252,7 @@ class NewCredentialLoggingData:
         self.Comment = comment
         self.Deleted = deleted
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -371,7 +371,7 @@ class NewFileLoggingData:
         self.SHA1 = sha1
         self.Comment = comment
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -442,7 +442,7 @@ class NewKeylogLoggingData:
         self.Window = window
         self.User = user
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -548,7 +548,7 @@ class NewPayloadLoggingData:
         self.TaskID = task_id
         self.FileID = file_id
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -606,7 +606,7 @@ class NewResponseLoggingData:
         self.Response = base64.b64decode(response).decode()
         self.Timestamp = timestamp
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -675,7 +675,7 @@ class LoggingMessage:
         else:
             self.Data = data
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {

@@ -18,7 +18,7 @@ class MythicRPCTagTypeGetOrCreateMessage:
         self.GetOrCreateTagTypeDescription = GetOrCreateTagTypeDescription
         self.GetOrCreateTagTypeColor = GetOrCreateTagTypeColor
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -44,7 +44,7 @@ class MythicRPCTagTypeData:
         self.Color = color
         self.OperationID = operation_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -66,7 +66,7 @@ class MythicRPCTagTypeGetOrCreateMessageResponse:
         self.Error = error
         self.TagType = MythicRPCTagTypeData(**tagtype) if tagtype is not None else None
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCTagTypeGetOrCreate(

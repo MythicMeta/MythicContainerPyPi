@@ -13,7 +13,7 @@ class MythicRPCResponseSearchMessage:
         self.TaskID = TaskID
         self.Response = Response
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -32,7 +32,7 @@ class MythicRPCResponseSearchData:
         self.Response = base64.b64decode(response).decode()
         self.TaskID = task_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return{
             "id": self.ResponseID,
@@ -52,7 +52,7 @@ class MythicRPCResponseSearchMessageResponse:
         self.Error = error
         self.Responses = [MythicRPCResponseSearchData(**x) for x in responses] if responses is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCResponseSearch(

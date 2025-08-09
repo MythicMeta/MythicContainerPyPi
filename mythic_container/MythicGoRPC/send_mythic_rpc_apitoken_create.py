@@ -17,7 +17,7 @@ class MythicRPCAPITokenCreateMessage:
         self.PayloadUUID = PayloadUUID
         self.OperationID = OperationID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -38,7 +38,7 @@ class MythicRPCAPITokenCreateMessageResponse:
         self.Error = error
         self.APIToken = apitoken
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCAPITokenCreate(

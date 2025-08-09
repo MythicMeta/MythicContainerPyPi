@@ -112,7 +112,7 @@ class NewFeedbackWebhookData:
         self.FeedbackType = feedback_type
         self.DisplayID = display_id
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -139,7 +139,7 @@ class NewStartupWebhookData:
                  **kwargs):
         self.StartupMessage = startup_message
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -175,7 +175,7 @@ class NewAlertWebhookData:
         self.Count = count
         self.Timestamp = timestamp
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -239,7 +239,7 @@ class WebhookMessage:
         else:
             self.Data = data
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {

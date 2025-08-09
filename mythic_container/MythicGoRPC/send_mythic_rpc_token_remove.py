@@ -14,7 +14,7 @@ class MythicRPCTokenRemoveMessage:
         self.TaskID = TaskID
         self.Tokens = Tokens
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -31,7 +31,7 @@ class MythicRPCTokenRemoveMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCTokenRemove(

@@ -1218,7 +1218,7 @@ class PTTTaskOPSECPreTaskMessageResponse:
         self.OpsecPreBypassed = OpsecPreBypassed
         self.OpsecPreBypassRole = OpsecPreBypassRole
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -1270,7 +1270,7 @@ class PTTTaskOPSECPostTaskMessageResponse:
         self.OpsecPostBypassed = OpsecPostBypassed
         self.OpsecPostBypassRole = OpsecPostBypassRole
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -1343,7 +1343,7 @@ class PTTaskCreateTaskingMessageResponse:
         self.ParameterGroupName = ParameterGroupName
         self.ReprocessAtNewCommandPayloadType = ReprocessAtNewCommandPayloadType
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -1674,7 +1674,7 @@ class PTTaskMessageCallbackData:
         self.SleepInfo = sleep_info
         self.RegisteredPayloadID = registered_payload_id
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -1735,7 +1735,7 @@ class PTTaskMessagePayloadData:
         self.UUID = uuid
         self.PayloadType = payload_type
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -1800,7 +1800,7 @@ class PTTaskMessageAllData:
         else:
             self.args = args
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -1929,7 +1929,7 @@ class PTOnNewCallbackAllData:
         self.Secrets = secrets
 
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -2009,7 +2009,7 @@ class PTTaskCompletionFunctionMessage:
         else:
             self.SubtaskData = None
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -2076,7 +2076,7 @@ class PTTaskCompletionFunctionMessageResponse:
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {

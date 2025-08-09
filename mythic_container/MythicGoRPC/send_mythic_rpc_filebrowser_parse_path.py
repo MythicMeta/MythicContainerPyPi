@@ -11,7 +11,7 @@ class MythicRPCFileBrowserParsePathMessage:
                  **kwargs):
         self.Path = Path
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -43,7 +43,7 @@ class MythicRPCFileBrowserParsePathMessageResponse:
         self.Error = error
         self.AnalyzedPath = AnalyzedPath(**analyzed_path)
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
