@@ -86,7 +86,7 @@ async def opsecChecks(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2OPSECMessageResponse(
                             Success=False,
-                            Error=f"Failed to call opsec function: No result returned"
+                            Error="Failed to call opsec function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -138,7 +138,7 @@ async def configChecks(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2ConfigCheckMessageResponse(
                             Success=False,
-                            Error=f"Failed to call config check function: No result returned"
+                            Error="Failed to call config check function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -190,7 +190,7 @@ async def getIOC(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
                             Success=False,
-                            Error=f"Failed to call config check function: No result returned"
+                            Error="Failed to call config check function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -242,7 +242,7 @@ async def sampleMessage(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
                             Success=False,
-                            Error=f"Failed to call sample message function: No result returned"
+                            Error="Failed to call sample message function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -333,7 +333,7 @@ async def getRedirectorRules(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse(
                             Success=False,
-                            Error=f"Failed to call get redirector rules function: No result returned"
+                            Error="Failed to call get redirector rules function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -458,7 +458,7 @@ async def stopServer(msg: bytes) -> bytes:
                         if mythic_container.C2ProfileBase.runningServers[c2.name]["process"] is None:
                             # process isn't running, so we need to start it
                             response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                                Success=True, Error="", Message=f"The server is not running",
+                                Success=True, Error="", Message="The server is not running",
                                 InternalServerRunning=False
                             )
                             return ujson.dumps(response.to_json()).encode()
@@ -488,7 +488,7 @@ async def stopServer(msg: bytes) -> bytes:
                     else:
                         # just means we've never started it before, so start it now
                         response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                            Success=True, Error="", Message=f"The server was never started",
+                            Success=True, Error="", Message="The server was never started",
                             InternalServerRunning=False
                         )
                         return ujson.dumps(response.to_json()).encode()
@@ -574,7 +574,7 @@ async def hostFile(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
                             Success=False,
-                            Error=f"Failed to call host file: No result returned"
+                            Error="Failed to call host file: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):

@@ -555,7 +555,7 @@ async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
         routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
         handler=consumingContainerReSync
     )))
-    logger.info(f"Successfully started webhook service")
+    logger.info("Successfully started webhook service")
 
 
 async def syncLoggingData(wb: LoggingBase.Log) -> None:
@@ -642,7 +642,7 @@ async def syncLoggingData(wb: LoggingBase.Log) -> None:
         routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
         handler=consumingContainerReSync
     )))
-    logger.info(f"Successfully started logging service")
+    logger.info("Successfully started logging service")
 
 
 async def syncAuthData(wb: AuthBase.Auth) -> None:
@@ -703,7 +703,7 @@ async def syncAuthData(wb: AuthBase.Auth) -> None:
         routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
         handler=consumingContainerReSync
     )))
-    logger.info(f"Successfully started auth service")
+    logger.info("Successfully started auth service")
 
 
 async def syncEventingData(wb: EventingBase.Eventing) -> None:
@@ -754,7 +754,7 @@ async def syncEventingData(wb: EventingBase.Eventing) -> None:
         routing_key=getRoutingKey(wb.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
         handler=consumingContainerReSync
     )))
-    logger.info(f"Successfully started Eventing service")
+    logger.info("Successfully started Eventing service")
 
 
 async def startSharedServices(containerName: str):
@@ -791,7 +791,7 @@ async def start_services():
         f"[+] Starting Services with version {mythic_container.containerVersion} and PyPi version {mythic_container.PyPi_version}\n")
     webhook_services = WebhookBase.Webhook.__subclasses__()
     for cls in webhook_services:
-        logger.info(f"[*] Processing webhook service")
+        logger.info("[*] Processing webhook service")
         webhook = cls()
         if webhook.name == "":
             logger.error("missing name for webhook")
@@ -803,7 +803,7 @@ async def start_services():
         await syncWebhookData(webhook)
     logging_services = LoggingBase.Log.__subclasses__()
     for cls in logging_services:
-        logger.info(f"[*] Processing logging services")
+        logger.info("[*] Processing logging services")
         definedLog = cls()
         if definedLog.name == "":
             logger.error("missing name for logger")
@@ -892,8 +892,8 @@ async def test_command(payload_type_name: str,
                        parameters_dictionary: dict = None):
     logger.info(f"[*] Started testing {payload_type_name}'s {command_name} command")
     if operation_name is None or task_id is None:
-        logger.info(f"[*] Specify an operation_name and task_id to get real data for testing."
-                    f"\nThis does not adjust your specified command/parameters, but allows MythicRPC calls to work properly")
+        logger.info("[*] Specify an operation_name and task_id to get real data for testing."
+                    "\nThis does not adjust your specified command/parameters, but allows MythicRPC calls to work properly")
     params = parameters_string
     if parameters_dictionary is not None:
         params = json.dumps(parameters_dictionary)
@@ -935,7 +935,7 @@ async def test_command(payload_type_name: str,
                         )
                         if operation_name is None or task_id is None:
                             logger.info(
-                                f"[*] operation_name is None, testing with fake data. Some MythicRPC functions might not work")
+                                "[*] operation_name is None, testing with fake data. Some MythicRPC functions might not work")
                         else:
                             logger.info(f"[*] Fetching information for task {task_id} of operation {operation_name}")
                             fetchResp = await MythicGoRPC.SendMythicRPCTaskDisplayToRealIdSearch(
@@ -955,7 +955,7 @@ async def test_command(payload_type_name: str,
                                     logger.error(f"[-] Failed to get task information: {taskResp.Error}")
                                     sys.exit(1)
                                 elif len(taskResp.Tasks) == 0:
-                                    logger.error(f"[-] Failed to search for task information")
+                                    logger.error("[-] Failed to search for task information")
                                     sys.exit(1)
                                 else:
                                     opsecPre.Task = MythicCommandBase.PTTaskMessageTaskData(
@@ -976,7 +976,7 @@ async def test_command(payload_type_name: str,
                                     createTasking.Task.Params = params
                                     createTasking.Task.OriginalParams = params
                                     createTasking.Task.TaskingLocation = tasking_location
-                        logger.info(f"[*] Testing OPSEC PRE")
+                        logger.info("[*] Testing OPSEC PRE")
                         if not await agent_utils.verifyTaskArgs(opsecPre, ""):
                             return
                         else:
@@ -985,7 +985,7 @@ async def test_command(payload_type_name: str,
                                 logger.info(f"[+] Finished OPSEC PRE:\n{json.dumps(response.to_json(), indent=4)}")
                             except Exception as e:
                                 logger.exception(f"[*] Hit exception: {e}")
-                        logger.info(f"[*] Testing Create Tasking")
+                        logger.info("[*] Testing Create Tasking")
                         task = await agent_utils.initialize_task(commandInstance, {
                             "task": createTasking.Task.to_json(),
                             "callback": createTasking.Callback.to_json()
@@ -1011,7 +1011,7 @@ async def test_command(payload_type_name: str,
                                         f"[+] Finished Create Tasking (legacy):\n{json.dumps(createTaskingResponse.to_json(), indent=4)}")
                             except Exception as createTaskingException:
                                 logger.exception(f"[*] Hit exception: {createTaskingException}")
-                        logger.info(f"[*] Testing OPSEC Post")
+                        logger.info("[*] Testing OPSEC Post")
                         if not await agent_utils.verifyTaskArgs(opsecPost, ""):
                             return
                         else:

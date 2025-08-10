@@ -328,7 +328,7 @@ class Webhook:
         elif self.webhook_channel is not None:
             return self.webhook_channel
         else:
-            logger.error(f"No webhook channel found")
+            logger.error("No webhook channel found")
             return ""
 
     async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:

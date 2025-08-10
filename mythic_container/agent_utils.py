@@ -85,7 +85,7 @@ async def buildWrapper(msg: bytes) -> None:
                     )
 
     except Exception as e:
-        logger.exception(f"[-] Failed to process build request")
+        logger.exception("[-] Failed to process build request")
         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
             queue=mythic_container.PT_BUILD_RESPONSE_ROUTING_KEY,
             body={"status": "error", "build_stderr": f"{traceback.format_exc()}\n{e}"}
@@ -113,7 +113,7 @@ async def onNewCallback(msg: bytes) -> None:
                               "agent_callback_id": msgDict["callback"]["agent_callback_id"]}
                     )
     except Exception as e:
-        logger.exception(f"[-] Failed to process on_new_callback request")
+        logger.exception("[-] Failed to process on_new_callback request")
         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
             queue=mythic_container.PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
             body={"success": False, "build_stderr": f"{traceback.format_exc()}\n{e}"}
@@ -135,7 +135,7 @@ async def checkIfCallbacksAlive(msg: bytes) -> bytes:
                     response = {"success": False, "error": f"{traceback.format_exc()}\n{b}"}
                     return ujson.dumps(response.to_json()).encode()
     except Exception as e:
-        logger.exception(f"[-] Failed to process check_if_callbacks_alive request")
+        logger.exception("[-] Failed to process check_if_callbacks_alive request")
         response = {"success": False, "error": f"{traceback.format_exc()}\n{e}"}
         return ujson.dumps(response).encode()
 
@@ -335,7 +335,7 @@ async def opsecPreCheck(msg: bytes) -> None:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
-                    logger.error(f"[-] no commands for payload type, can't do opsec pre-check")
+                    logger.error("[-] no commands for payload type, can't do opsec pre-check")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["command_name"]:
@@ -374,7 +374,7 @@ async def opsecPreCheck(msg: bytes) -> None:
 
         return
     except Exception as e:
-        logger.exception(f"[-] Failed to process OPSEC request")
+        logger.exception("[-] Failed to process OPSEC request")
         await mythic_container.RabbitmqConnection.SendDictDirectMessage(
             queue=mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE,
             body={"status": "error", "error": f"{traceback.format_exc()}\n{e}"}
@@ -387,7 +387,7 @@ async def opsecPostCheck(msg: bytes) -> None:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
-                    logger.error(f"[-] no commands for payload type, can't do opsec post-check")
+                    logger.error("[-] no commands for payload type, can't do opsec post-check")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["command_name"]:
@@ -423,7 +423,7 @@ async def opsecPostCheck(msg: bytes) -> None:
         )
         return
     except Exception as e:
-        logger.exception(f"[-] Failed to process OPSEC request")
+        logger.exception("[-] Failed to process OPSEC request")
         response = MythicCommandBase.PTTTaskOPSECPostTaskMessageResponse(
             TaskID=0, Success=False, Error=str(traceback.format_exc()),
         )
@@ -439,7 +439,7 @@ async def createTasking(msg: bytes) -> None:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
-                    logger.error(f"[-] no commands for payload type, can't do create tasking")
+                    logger.error("[-] no commands for payload type, can't do create tasking")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["command_name"]:
@@ -513,7 +513,7 @@ async def createTasking(msg: bytes) -> None:
         )
         return
     except Exception as e:
-        logger.exception(f"[-] Failed to process create tasking request")
+        logger.exception("[-] Failed to process create tasking request")
         response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
             TaskID=0,
             Error=f"{traceback.format_exc()}\n{e}",
@@ -531,7 +531,7 @@ async def completionFunction(msg: bytes) -> None:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["task"]["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
-                    logger.error(f"[-] no commands for payload type, can't do completion function")
+                    logger.error("[-] no commands for payload type, can't do completion function")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["task"]["command_name"]:
@@ -607,7 +607,7 @@ async def processResponse(msg: bytes) -> None:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["task"]["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
-                    logger.error(f"[-] no commands for payload type, can't do process response")
+                    logger.error("[-] no commands for payload type, can't do process response")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["task"]["task"]["command_name"]:
@@ -655,7 +655,7 @@ async def dynamicQueryFunction(msg: bytes) -> bytes:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
-                    logger.error(f"[-] no commands for payload type, can't do dynamic query function")
+                    logger.error("[-] no commands for payload type, can't do dynamic query function")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["command"]:
@@ -678,7 +678,7 @@ async def dynamicQueryFunction(msg: bytes) -> bytes:
                                             if result is None:
                                                 response = mythic_container.MythicCommandBase.PTRPCDynamicQueryFunctionMessageResponse(
                                                     Success=False,
-                                                    Error=f"Failed to call dynamic query function: No result returned"
+                                                    Error="Failed to call dynamic query function: No result returned"
                                                 )
                                                 return ujson.dumps(response.to_json()).encode()
                                             elif isinstance(result, list):
@@ -733,7 +733,7 @@ async def typedTaskParseFunction(msg: bytes) -> bytes:
         for name, pt in PayloadBuilder.payloadTypes.items():
             if pt.name == msgDict["command_payload_type"]:
                 if pt.name not in MythicCommandBase.commands:
-                    logger.error(f"[-] no commands for payload type, can't do typedarray parse function")
+                    logger.error("[-] no commands for payload type, can't do typedarray parse function")
                 else:
                     for cmd in MythicCommandBase.commands[pt.name]:
                         if cmd.cmd == msgDict["command"]:
@@ -756,7 +756,7 @@ async def typedTaskParseFunction(msg: bytes) -> bytes:
                                             if result is None:
                                                 response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
                                                     Success=False,
-                                                    Error=f"Failed to call typedarray parse function: No result returned"
+                                                    Error="Failed to call typedarray parse function: No result returned"
                                                 )
                                                 return ujson.dumps(response.to_json()).encode()
                                             elif isinstance(result, list):
