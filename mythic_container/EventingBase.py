@@ -345,5 +345,5 @@ async def SendMythicRPCSyncEventing(eventing_name: str) -> bool:
                 await mythic_container.mythic_service.syncEventingData(event)
                 return True
         return False
-    except Exception as e:
+    except:
         return False

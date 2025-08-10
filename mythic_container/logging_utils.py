@@ -11,8 +11,8 @@ async def new_callback(msg: bytes) -> None:
                 await definedLogger.new_callback(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_callback from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_callback log: {e}")
+    except:
+        logger.exception("Failed to execute new_callback log")
 
 
 async def new_credential(msg: bytes) -> None:
@@ -23,8 +23,8 @@ async def new_credential(msg: bytes) -> None:
                 await definedLogger.new_credential(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_credential from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_credential log: {e}")
+    except:
+        logger.exception("Failed to execute new_credential log")
 
 
 async def new_keylog(msg: bytes) -> None:
@@ -35,8 +35,8 @@ async def new_keylog(msg: bytes) -> None:
                 await definedLogger.new_keylog(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_keylog from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_keylog log: {e}")
+    except:
+        logger.exception("Failed to execute new_keylog log")
 
 
 async def new_file(msg: bytes) -> None:
@@ -47,8 +47,8 @@ async def new_file(msg: bytes) -> None:
                 await definedLogger.new_file(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_file from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_file log: {e}")
+    except:
+        logger.exception("Failed to execute new_file log")
 
 
 async def new_payload(msg: bytes) -> None:
@@ -59,8 +59,8 @@ async def new_payload(msg: bytes) -> None:
                 await definedLogger.new_payload(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_payload from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_payload log: {e}")
+    except:
+        logger.exception("Failed to execute new_payload log")
 
 
 async def new_artifact(msg: bytes) -> None:
@@ -71,8 +71,8 @@ async def new_artifact(msg: bytes) -> None:
                 await definedLogger.new_artifact(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_artifact from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_artifact log: {e}")
+    except:
+        logger.exception("Failed to execute new_artifact log:")
 
 
 async def new_task(msg: bytes) -> None:
@@ -83,8 +83,8 @@ async def new_task(msg: bytes) -> None:
                 await definedLogger.new_task(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_task from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_task log: {e}")
+    except:
+        logger.exception("Failed to execute new_task log")
 
 
 async def new_response(msg: bytes) -> None:
@@ -95,5 +95,5 @@ async def new_response(msg: bytes) -> None:
                 await definedLogger.new_response(LoggingMessage(**msgDict))
             else:
                 logger.error("No valid function for new_response from logger")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_response log: {e}")
+    except:
+        logger.exception("Failed to execute new_response log")

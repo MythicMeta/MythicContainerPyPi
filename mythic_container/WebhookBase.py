@@ -360,7 +360,7 @@ async def sendWebhookMessage(contents: dict, url: str) -> (int, str):
             async with session.post(url, json=contents, ssl=False) as resp:
                 return resp.status, await resp.text()
     except Exception as e:
-        logger.exception(f"[-] Failed to send webhook: {e}")
+        logger.exception("[-] Failed to send webhook")
         return 400, f"[-] Failed to send webhook: {e}"
 
 webhooks: dict[str, Webhook] = {}
@@ -379,5 +379,5 @@ async def SendMythicRPCSyncWebhook(webhook_name: str) -> bool:
                 await mythic_container.mythic_service.syncWebhookData(web)
                 return True
         return False
-    except Exception as e:
+    except:
         return False

@@ -11,8 +11,8 @@ async def new_startup(msg: bytes) -> None:
                 await webhook.new_startup(WebhookMessage(**msgDict))
             else:
                 logger.error("No valid function for new_startup from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_startup webhook: {e}")
+    except:
+        logger.exception("Failed to execute new_startup webhook")
 
 
 async def new_callback(msg: bytes) -> None:
@@ -23,8 +23,8 @@ async def new_callback(msg: bytes) -> None:
                 await webhook.new_callback(WebhookMessage(**msgDict))
             else:
                 logger.error("No valid function for new_callback from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_callback webhook: {e}")
+    except:
+        logger.exception("Failed to execute new_callback webhook")
 
 
 async def new_feedback(msg: bytes) -> None:
@@ -35,8 +35,8 @@ async def new_feedback(msg: bytes) -> None:
                 await webhook.new_feedback(WebhookMessage(**msgDict))
             else:
                 logger.error("No valid function for new_feedback from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_feedback webhook: {e}")
+    except:
+        logger.exception("Failed to execute new_feedback webhook")
 
 
 async def new_alert(msg: bytes) -> None:
@@ -47,8 +47,8 @@ async def new_alert(msg: bytes) -> None:
                 await webhook.new_alert(WebhookMessage(**msgDict))
             else:
                 logger.error("No valid function for new_alert from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_alert webhook: {e}")
+    except:
+        logger.exception("Failed to execute new_alert webhook")
 
 
 async def new_custom(msg: bytes) -> None:
@@ -59,5 +59,5 @@ async def new_custom(msg: bytes) -> None:
                 await webhook.new_custom(WebhookMessage(**msgDict))
             else:
                 logger.error("No valid function for new_custom from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_custom webhook: {e}")
+    except:
+        logger.exception("Failed to execute new_custom webhook")

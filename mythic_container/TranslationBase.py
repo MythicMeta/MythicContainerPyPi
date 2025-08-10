@@ -277,7 +277,7 @@ async def handleTranslationServices(tr_name: str):
     maxInt = 2**31 - 1
     while True:
         try:
-            logger.info(f"Attempting connection to gRPC for {tr_name}...")
+            logger.info("Attempting connection to gRPC for %s...", tr_name)
             channel = grpc.aio.insecure_channel(
                 f'{settings.get("mythic_server_host", "127.0.0.1")}:{settings.get("mythic_server_grpc_port", 17444)}',
                 options=[
@@ -289,10 +289,10 @@ async def handleTranslationServices(tr_name: str):
             genKeys = handleGenerateKeys(tr_name, client)
             customToMythic = handleCustomToMythic(tr_name, client)
             mythicToCustom = handleMythicToCustom(tr_name, client)
-            logger.info(f"[+] Successfully connected to gRPC for {tr_name}")
+            logger.info("[+] Successfully connected to gRPC for %s", tr_name)
             await asyncio.gather(genKeys, customToMythic, mythicToCustom)
-        except Exception as e:
-            logger.exception(f"Translation gRPC services closed for {tr_name}: {e}")
+        except:
+            logger.exception("Translation gRPC services closed for %s", tr_name)
 
 
 async def handleGenerateKeys(tr_name: str, client):
@@ -303,7 +303,7 @@ async def handleGenerateKeys(tr_name: str, client):
                 Success=True,
                 TranslationContainerName=tr_name
             ))
-            logger.info(f"Connected to gRPC for generating encryption keys for {tr_name}")
+            logger.info("Connected to gRPC for generating encryption keys for %s", tr_name)
             async for request in stream:
                 try:
                     result = await translationServices[tr_name].generate_keys(TrGenerateEncryptionKeysMessage(
@@ -320,15 +320,15 @@ async def handleGenerateKeys(tr_name: str, client):
                         DecryptionKey=result.DecryptionKey
                     ))
                 except Exception as d:
-                    logger.exception(f"Failed to process handleGenerateKeys message:\n{d}")
+                    logger.exception("Failed to process handleGenerateKeys message")
                     await stream.write(grpcFuncs.TrGenerateEncryptionKeysMessageResponse(
                         Success=False,
                         TranslationContainerName=tr_name,
                         Error=f"Failed to process handleGenerateKeys message:\n{d}"
                     ))
-            logger.error(f"disconnected from gRPC for generating encryption keys for {tr_name}")
-    except Exception as e:
-        logger.exception(f"[-] exception in handleGenerateKeys for {tr_name}")
+            logger.error("disconnected from gRPC for generating encryption keys for %s", tr_name)
+    except:
+        logger.exception("[-] exception in handleGenerateKeys for %s", tr_name)
 
 
 async def handleCustomToMythic(tr_name: str, client):
@@ -339,7 +339,7 @@ async def handleCustomToMythic(tr_name: str, client):
                 Success=True,
                 TranslationContainerName=tr_name
             ))
-            logger.info(f"Connected to gRPC for handling CustomC2 to MythicC2 Translations for {tr_name}")
+            logger.info("Connected to gRPC for handling CustomC2 to MythicC2 Translations for %s", tr_name)
             async for request in stream:
                 try:
                     grpcCryptoKeys = request.CryptoKeys
@@ -367,15 +367,15 @@ async def handleCustomToMythic(tr_name: str, client):
                     )
                     await stream.write(response)
                 except Exception as d:
-                    logger.exception(f"Failed to process handleCustomToMythic message:\n{d}")
+                    logger.exception("Failed to process handleCustomToMythic message")
                     await stream.write(grpcFuncs.TrCustomMessageToMythicC2FormatMessageResponse(
                         Success=False,
                         TranslationContainerName=tr_name,
                         Error=f"Failed to process handleCustomToMythic message:\n{d}"
                     ))
-            logger.error(f"disconnected from gRPC for doing custom->mythic c2 for {tr_name}")
-    except Exception as e:
-        logger.exception(f"[-] exception in handleCustomToMythic for {tr_name}")
+            logger.error("disconnected from gRPC for doing custom->mythic c2 for %s", tr_name)
+    except:
+        logger.exception("[-] exception in handleCustomToMythic for %s", tr_name)
 
 
 async def handleMythicToCustom(tr_name: str, client):
@@ -386,7 +386,7 @@ async def handleMythicToCustom(tr_name: str, client):
                 Success=True,
                 TranslationContainerName=tr_name
             ))
-            logger.info(f"Connected to gRPC for handling MythicC2 to CustomC2 Translations for {tr_name}")
+            logger.info("Connected to gRPC for handling MythicC2 to CustomC2 Translations for %s", tr_name)
             async for request in stream:
                 try:
                     grpcCryptoKeys = request.CryptoKeys
@@ -414,12 +414,12 @@ async def handleMythicToCustom(tr_name: str, client):
                     )
                     await stream.write(response)
                 except Exception as d:
-                    logger.exception(f"Failed to process handleMythicToCustom message:\n{d}")
+                    logger.exception("Failed to process handleMythicToCustom message")
                     await stream.write(grpcFuncs.TrMythicC2ToCustomMessageFormatMessageResponse(
                         Success=False,
                         TranslationContainerName=tr_name,
                         Error=f"Failed to process handleMythicToCustom message:\n{d}"
                     ))
-            logger.error(f"disconnected from gRPC for doing mythic->custom c2 for {tr_name}")
-    except Exception as e:
-        logger.exception(f"[-] exception in handleMythicToCustom for {tr_name}")
+            logger.error("disconnected from gRPC for doing mythic->custom c2 for %s", tr_name)
+    except:
+        logger.exception("[-] exception in handleMythicToCustom for %s", tr_name)

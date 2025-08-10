@@ -153,7 +153,7 @@ async def writeFile(msg: bytes) -> bytes:
         response = writeFileOfPath(path, inputMsg.Contents)
         return ujson.dumps(response.to_json()).encode()
     except Exception as e:
-        logger.exception(f"[-] Failed to write to file with exception: {e}")
+        logger.exception("[-] Failed to write to file with exception")
         response = mythic_container.SharedClasses.WriteFileMessageResponse(
             Success=False,
             Error=f"Hit exception trying to call write file function function: {traceback.format_exc()}\n{e}"
@@ -169,7 +169,7 @@ def writeFileOfPath(path: str, bytesToWrite: bytes) -> mythic_container.SharedCl
         response.Success = True
         response.Message = "Successfully wrote file"
     except Exception as e:
-        logger.exception(f"[-] Failed to write to file: {e}")
+        logger.exception("[-] Failed to write to file")
         response.Error = f"{traceback.format_exc()}\n{e}"
     return response
 
@@ -236,8 +236,8 @@ async def onStart(msg: bytes) -> None:
                     body=response.to_json()
                 )
                 return
-    except Exception as e:
-        logger.exception(f"[-] Failed to call container on start with exception: {e}")
+    except:
+        logger.exception("[-] Failed to call container on start with exception")
         return
 
 
@@ -330,7 +330,7 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [Myt
     for cls in commandClasses:
         if len(cls.supported_payload_types) > 0 and pt.name not in cls.supported_payload_types:
             continue
-        logger.info(f"[*] Processing command {cls.cmd} for {pt.name}")
+        logger.info("[*] Processing command %s for %s", cls.cmd, pt.name)
         if pt.name not in MythicCommandBase.commands:
             MythicCommandBase.commands[pt.name] = []
         existing = [x for x in MythicCommandBase.commands[pt.name] if x.cmd == cls.cmd]
@@ -347,7 +347,7 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [Myt
             cls(pt.agent_path, pt.agent_code_path, pt.agent_browserscript_path).to_json())
     if explicitCommands is not None:
         for cls in explicitCommands:
-            logger.info(f"[*] Processing command {cls.cmd}")
+            logger.info("[*] Processing command %s", cls.cmd)
             if pt.name not in MythicCommandBase.commands:
                 MythicCommandBase.commands[pt.name] = []
             existing = [x for x in MythicCommandBase.commands[pt.name] if x.cmd == cls.cmd]
@@ -373,10 +373,10 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [Myt
             logger.error("[-] RPC response doesn't contain success, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
         elif not response["success"]:
-            logger.error(f"[-] Failed to sync {pt.name}: {response['error']}, trying again...")
+            logger.error("[-] Failed to sync %s: %s, trying again...", pt.name, response['error'])
             await asyncio.sleep(failedConnectRetryDelay)
         else:
-            logger.info(f"[+] Successfully synced {pt.name}")
+            logger.info("[+] Successfully synced %s", pt.name)
             return
 
 
@@ -457,10 +457,10 @@ async def syncC2ProfileData(c2: C2ProfileBase.C2Profile) -> None:
             logger.error("[-] RPC response doesn't contain success, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
         elif not response["success"]:
-            logger.error(f"[-] Failed to sync {c2.name}: {response['error']}, trying again...")
+            logger.error("[-] Failed to sync %s: %s, trying again...", c2.name, response['error'])
             await asyncio.sleep(failedConnectRetryDelay)
         else:
-            logger.info(f"[+] Successfully synced {c2.name}")
+            logger.info("[+] Successfully synced %s", c2.name)
             return
 
 
@@ -485,10 +485,10 @@ async def syncTranslatorData(tr: TranslationBase.TranslationContainer) -> None:
             logger.error("[-] RPC response doesn't contain success, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
         elif not response["success"]:
-            logger.error(f"[-] Failed to sync {tr.name}: {response['error']}, trying again...")
+            logger.error("[-] Failed to sync %s: %s, trying again...", tr.name, response['error'])
             await asyncio.sleep(failedConnectRetryDelay)
         else:
-            logger.info(f"[+] Successfully synced {tr.name}")
+            logger.info("[+] Successfully synced %s", tr.name)
             return
 
 
@@ -509,10 +509,10 @@ async def syncWebhookData(wb: WebhookBase.Webhook) -> None:
             logger.error("[-] RPC response doesn't contain success, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
         elif not response["success"]:
-            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            logger.error("[-] Failed to sync %s: %s, trying again...", wb.name, response['error'])
             await asyncio.sleep(failedConnectRetryDelay)
         else:
-            logger.info(f"[+] Successfully synced {wb.name}")
+            logger.info("[+] Successfully synced %s", wb.name)
             break
 
     if wb.new_startup is not None and callable(wb.new_startup):
@@ -575,10 +575,10 @@ async def syncLoggingData(wb: LoggingBase.Log) -> None:
             logger.error("[-] RPC response doesn't contain success, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
         elif not response["success"]:
-            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            logger.error("[-] Failed to sync %s: %s, trying again...", wb.name, response['error'])
             await asyncio.sleep(failedConnectRetryDelay)
         else:
-            logger.info(f"[+] Successfully synced {wb.name}")
+            logger.info("[+] Successfully synced %s", wb.name)
             break
 
     if wb.new_callback is not None and callable(wb.new_callback):
@@ -662,10 +662,10 @@ async def syncAuthData(wb: AuthBase.Auth) -> None:
             logger.error("[-] RPC response doesn't contain success, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
         elif not response["success"]:
-            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            logger.error("[-] Failed to sync %s: %s, trying again...", wb.name, response['error'])
             await asyncio.sleep(failedConnectRetryDelay)
         else:
-            logger.info(f"[+] Successfully synced {wb.name}")
+            logger.info("[+] Successfully synced %s", wb.name)
             break
 
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
@@ -723,10 +723,10 @@ async def syncEventingData(wb: EventingBase.Eventing) -> None:
             logger.error("[-] RPC response doesn't contain success, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
         elif not response["success"]:
-            logger.error(f"[-] Failed to sync {wb.name}: {response['error']}, trying again...")
+            logger.error("[-] Failed to sync %s: %s, trying again...", wb.name, response['error'])
             await asyncio.sleep(failedConnectRetryDelay)
         else:
-            logger.info(f"[+] Successfully synced {wb.name}")
+            logger.info("[+] Successfully synced %s", wb.name)
             break
 
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
@@ -787,8 +787,8 @@ async def startSharedServices(containerName: str):
 
 async def start_services():
     initialize()
-    logger.info(
-        f"[+] Starting Services with version {mythic_container.containerVersion} and PyPi version {mythic_container.PyPi_version}\n")
+    logger.info("[+] Starting Services with version %s and PyPi version %s",
+                mythic_container.containerVersion, mythic_container.PyPi_version)
     webhook_services = WebhookBase.Webhook.__subclasses__()
     for cls in webhook_services:
         logger.info("[*] Processing webhook service")
@@ -797,7 +797,7 @@ async def start_services():
             logger.error("missing name for webhook")
             continue
         if webhook.name in WebhookBase.webhooks:
-            logger.error(f"[-] attempting to import {webhook.name} multiple times - probably due to import issues")
+            logger.error("[-] attempting to import %s multiple times - probably due to import issues", webhook.name)
             continue
         WebhookBase.webhooks[webhook.name] = webhook
         await syncWebhookData(webhook)
@@ -809,7 +809,7 @@ async def start_services():
             logger.error("missing name for logger")
             continue
         if definedLog.name in LoggingBase.loggers:
-            logger.error(f"[-] attempting to import {definedLog.name} multiple times - probably due to import issues")
+            logger.error("[-] attempting to import %s multiple times - probably due to import issues", definedLog.name)
             continue
         LoggingBase.loggers[definedLog.name] = definedLog
         await syncLoggingData(definedLog)
@@ -820,10 +820,10 @@ async def start_services():
             logger.error("missing name for translator")
             continue
         if translator.name in TranslationBase.translationServices:
-            logger.error(f"[-] attempting to import {translator.name} multiple times - probably due to import issues")
+            logger.error("[-] attempting to import %s multiple times - probably due to import issues", translator.name)
             continue
         TranslationBase.translationServices[translator.name] = translator
-        logger.info(f"[*] Processing translation service: {translator.name}")
+        logger.info("[*] Processing translation service: %s", translator.name)
         await syncTranslatorData(translator)
         await startTranslatorRabbitMQ(translator)
     auth_services = AuthBase.Auth.__subclasses__()
@@ -833,10 +833,10 @@ async def start_services():
             logger.error("missing name for auth service")
             continue
         if auth.name in AuthBase.authServices:
-            logger.error(f"[-] attempting to import {auth.name} multiple times - probably due to import issues")
+            logger.error("[-] attempting to import %s multiple times - probably due to import issues", auth.name)
             continue
         AuthBase.authServices[auth.name] = auth
-        logger.info(f"[*] Processing auth service: {auth.name}")
+        logger.info("[*] Processing auth service: %s", auth.name)
         await syncAuthData(auth)
     eventing_services = EventingBase.Eventing.__subclasses__()
     for cls in eventing_services:
@@ -845,10 +845,10 @@ async def start_services():
             logger.error("missing name for event service")
             continue
         if event.name in EventingBase.eventingServices:
-            logger.error(f"[-] attempting to import {event.name} multiple times - probably due to import issues")
+            logger.error("[-] attempting to import %s multiple times - probably due to import issues", event.name)
             continue
         EventingBase.eventingServices[event.name] = event
-        logger.info(f"[*] Processing eventing service: {event.name}")
+        logger.info("[*] Processing eventing service: %s", event.name)
         await syncEventingData(event)
     payloadTypes = PayloadBuilder.PayloadType.__subclasses__()
     for cls in payloadTypes:
@@ -857,10 +857,10 @@ async def start_services():
             logger.error("missing name for payload_type")
             continue
         if payload_type.name in PayloadBuilder.payloadTypes:
-            logger.error(f"[-] attempting to import {payload_type.name} multiple times - probably due to import issues")
+            logger.error("[-] attempting to import %s multiple times - probably due to import issues", payload_type.name)
             continue
         PayloadBuilder.payloadTypes[payload_type.name] = payload_type
-        logger.info(f"[*] Processing agent: {payload_type.name}")
+        logger.info("[*] Processing agent: %s", payload_type.name)
         await syncPayloadData(payload_type)
         await startPayloadRabbitMQ(payload_type)
     c2Profiles = C2ProfileBase.C2Profile.__subclasses__()
@@ -870,10 +870,10 @@ async def start_services():
             logger.error("missing name for c2profile")
             continue
         if c2profile.name in C2ProfileBase.c2Profiles:
-            logger.error(f"[-] attempting to import {c2profile.name} multiple times - probably due to import issues")
+            logger.error("[-] attempting to import %s multiple times - probably due to import issues", c2profile.name)
             continue
         C2ProfileBase.c2Profiles[c2profile.name] = c2profile
-        logger.info(f"[*] Processing c2 profile: {c2profile.name}")
+        logger.info("[*] Processing c2 profile: %s", c2profile.name)
         await startC2RabbitMQ(c2profile)
         await syncC2ProfileData(c2profile)
 
@@ -890,7 +890,7 @@ async def test_command(payload_type_name: str,
                        tasking_location: str = "command_line",
                        parameters_string: str = None,
                        parameters_dictionary: dict = None):
-    logger.info(f"[*] Started testing {payload_type_name}'s {command_name} command")
+    logger.info("[*] Started testing %s's %s command", payload_type_name, command_name)
     if operation_name is None or task_id is None:
         logger.info("[*] Specify an operation_name and task_id to get real data for testing."
                     "\nThis does not adjust your specified command/parameters, but allows MythicRPC calls to work properly")
@@ -901,13 +901,13 @@ async def test_command(payload_type_name: str,
     for cls in payloadTypes:
         payload_type = cls()
         if payload_type.name == payload_type_name:
-            logger.info(f"[+] Found payload type: {payload_type.name}")
+            logger.info("[+] Found payload type: %s", payload_type.name)
             for cmdcls in MythicCommandBase.CommandBase.__subclasses__():
                 if cmdcls.__module__.split(".")[0] == payload_type.name:
                     if cmdcls.cmd == command_name:
                         commandInstance = cmdcls(payload_type.agent_path, payload_type.agent_code_path,
                                                  payload_type.agent_browserscript_path)
-                        logger.info(f"[+] Found command: {commandInstance.cmd}")
+                        logger.info("[+] Found command: %s", commandInstance.cmd)
                         opsecPre = MythicCommandBase.PTTaskMessageAllData(
                             task={
                                 "tasking_location": tasking_location,
@@ -937,14 +937,14 @@ async def test_command(payload_type_name: str,
                             logger.info(
                                 "[*] operation_name is None, testing with fake data. Some MythicRPC functions might not work")
                         else:
-                            logger.info(f"[*] Fetching information for task {task_id} of operation {operation_name}")
+                            logger.info("[*] Fetching information for task %s of operation %s", task_id, operation_name)
                             fetchResp = await MythicGoRPC.SendMythicRPCTaskDisplayToRealIdSearch(
                                 MythicGoRPC.MythicRPCTaskDisplayToRealIdSearchMessage(
                                     TaskDisplayID=task_id,
                                     OperationName=operation_name
                                 ))
                             if not fetchResp.Success:
-                                logger.error(f"[-] Failed to find task: {fetchResp.Error}")
+                                logger.error("[-] Failed to find task: %s", fetchResp.Error)
                                 sys.exit(1)
                             else:
                                 taskResp = await MythicGoRPC.SendMythicRPCTaskSearch(
@@ -952,7 +952,7 @@ async def test_command(payload_type_name: str,
                                         TaskID=fetchResp.TaskID,
                                     ))
                                 if not taskResp.Success:
-                                    logger.error(f"[-] Failed to get task information: {taskResp.Error}")
+                                    logger.error("[-] Failed to get task information: %s", taskResp.Error)
                                     sys.exit(1)
                                 elif len(taskResp.Tasks) == 0:
                                     logger.error("[-] Failed to search for task information")
@@ -982,9 +982,9 @@ async def test_command(payload_type_name: str,
                         else:
                             try:
                                 response = await commandInstance.opsec_pre(taskData=opsecPre)
-                                logger.info(f"[+] Finished OPSEC PRE:\n{json.dumps(response.to_json(), indent=4)}")
-                            except Exception as e:
-                                logger.exception(f"[*] Hit exception: {e}")
+                                logger.info("[+] Finished OPSEC PRE:\n%s", json.dumps(response.to_json(), indent=4))
+                            except:
+                                logger.exception("[*] Hit exception")
                         logger.info("[*] Testing Create Tasking")
                         task = await agent_utils.initialize_task(commandInstance, {
                             "task": createTasking.Task.to_json(),
@@ -1003,23 +1003,23 @@ async def test_command(payload_type_name: str,
                                     if createTaskingResponse.Params is None:
                                         # no manual args were set, so parse them from the task.args
                                         createTaskingResponse.Params = str(task.args)
-                                    logger.info(
-                                        f"[+] Finished Create Tasking (new):\n{json.dumps(createTaskingResponse.to_json(), indent=4)}")
+                                    logger.info("[+] Finished Create Tasking (new):\n%s",
+                                                json.dumps(createTaskingResponse.to_json(), indent=4))
                                 else:
                                     createTaskingResponse = await commandInstance.create_tasking(task=task)
-                                    logger.info(
-                                        f"[+] Finished Create Tasking (legacy):\n{json.dumps(createTaskingResponse.to_json(), indent=4)}")
-                            except Exception as createTaskingException:
-                                logger.exception(f"[*] Hit exception: {createTaskingException}")
+                                    logger.info("[+] Finished Create Tasking (legacy):\n%s",
+                                                json.dumps(createTaskingResponse.to_json(), indent=4))
+                            except:
+                                logger.exception("[*] Hit exception")
                         logger.info("[*] Testing OPSEC Post")
                         if not await agent_utils.verifyTaskArgs(opsecPost, ""):
                             return
                         else:
                             try:
                                 response = await commandInstance.opsec_post(taskData=opsecPost)
-                                logger.info(f"[+] Finished OPSEC POST:\n{json.dumps(response.to_json(), indent=4)}")
-                            except Exception as e:
-                                logger.exception(f"[*] Hit exception: {e}")
+                                logger.info("[+] Finished OPSEC POST:\n%s", json.dumps(response.to_json(), indent=4))
+                            except:
+                                logger.exception("[*] Hit exception")
                         return
-            logger.error(f"[-] Failed to find command: {command_name}")
-    logger.error(f"[-] Failed to find payload type: {payload_type_name}")
+            logger.error("[-] Failed to find command: %s", command_name)
+    logger.error("[-] Failed to find payload type: %s", payload_type_name)

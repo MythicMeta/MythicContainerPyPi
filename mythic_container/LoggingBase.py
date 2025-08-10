@@ -785,5 +785,5 @@ async def SendMythicRPCSyncLogger(logger_name: str) -> bool:
                 await mythic_container.mythic_service.syncLoggingData(log)
                 return True
         return False
-    except Exception as e:
+    except:
         return False

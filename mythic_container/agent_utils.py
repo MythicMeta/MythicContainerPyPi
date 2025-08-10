@@ -30,8 +30,8 @@ async def makePayloadBuildResponse(buildMessage: dict, buildResponse: PayloadBui
                 response["build_stderr"] = response["build_message"]
         await uploadPayloadBuildResponse(buildMessage, buildResponse)
         return response
-    except Exception as e:
-        logger.exception(f"Failed to generate payload build response: {e}")
+    except:
+        logger.exception("Failed to generate payload build response")
         return {}
 
 
@@ -77,7 +77,7 @@ async def buildWrapper(msg: bytes) -> None:
                     )
 
                 except Exception as b:
-                    logger.exception(f"[-] Failed to process build function for agent {pt.name}")
+                    logger.exception("[-] Failed to process build function for agent %s", pt.name)
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                         queue=mythic_container.PT_BUILD_RESPONSE_ROUTING_KEY,
                         body={"status": "error", "build_stderr": f"{traceback.format_exc()}\n{b}",
@@ -106,7 +106,7 @@ async def onNewCallback(msg: bytes) -> None:
                         body=callback_response.to_json()
                     )
                 except Exception as b:
-                    logger.exception(f"[-] Failed to process on_new_callback for agent {pt.name}")
+                    logger.exception("[-] Failed to process on_new_callback for agent %s", pt.name)
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                         queue=mythic_container.PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
                         body={"success": False, "error": f"{traceback.format_exc()}\n{b}",
@@ -131,7 +131,7 @@ async def checkIfCallbacksAlive(msg: bytes) -> bytes:
                     callback_response = await agent_builder.check_if_callbacks_alive(callbackData)
                     return ujson.dumps(callback_response.to_json()).encode()
                 except Exception as b:
-                    logger.exception(f"[-] Failed to process check_if_callbacks_alive for agent {pt.name}")
+                    logger.exception("[-] Failed to process check_if_callbacks_alive for agent %s", pt.name)
                     response = {"success": False, "error": f"{traceback.format_exc()}\n{b}"}
                     return ujson.dumps(response.to_json()).encode()
     except Exception as e:
@@ -214,7 +214,7 @@ async def initialize_task(
             queue=error_routing_key,
             body=message
         )
-        logger.error(f"failed to parse arguments and hit exception: {pa}")
+        logger.exception("failed to parse arguments and hit exception")
         return None
     try:
         if error_routing_key == mythic_container.PT_TASK_OPSEC_PRE_CHECK_RESPONSE or \
@@ -222,7 +222,7 @@ async def initialize_task(
             await task.args.verify_required_args_have_values()
             task.parameter_group_name = task.args.get_parameter_group_name()
     except Exception as va:
-        logger.error(f"failed to verify args have values and hit exception: {va}")
+        logger.exception("failed to verify args have values and hit exception")
         message = {
             "task_id": message_json["task"]["id"],
             "message": f"[-] {message_json['task']['command_name']} has arguments with invalid values: {va} \n"
@@ -299,7 +299,7 @@ async def verifyTaskArgs(
                      + str(traceback.format_exc()),
         }
         if error_routing_key == "":
-            logger.exception(f"{ujson.dumps(message, indent=4)}")
+            logger.exception(ujson.dumps(message, indent=4))
         else:
             await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                 queue=error_routing_key,
@@ -318,7 +318,7 @@ async def verifyTaskArgs(
                      + str(traceback.format_exc()),
         }
         if error_routing_key == "":
-            logger.exception(f"{ujson.dumps(message, indent=4)}")
+            logger.exception(ujson.dumps(message, indent=4))
         else:
             await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                 queue=error_routing_key,
@@ -353,8 +353,8 @@ async def opsecPreCheck(msg: bytes) -> None:
                                         body=response.to_json()
                                     )
                                     return
-                                except Exception as opsecError:
-                                    logger.exception(f"Failed to run opsec pre check: {opsecError}")
+                                except:
+                                    logger.exception("Failed to run opsec pre check")
                                     response = MythicCommandBase.PTTTaskOPSECPreTaskMessageResponse(
                                         TaskID=msgDict["task"]["id"], Success=False, Error=str(traceback.format_exc())
                                     )
@@ -403,8 +403,8 @@ async def opsecPostCheck(msg: bytes) -> None:
                                     body=response.to_json()
                                 )
                                 return
-                            except Exception as opsecError:
-                                logger.exception(f"Failed to run opsec post check: {opsecError}")
+                            except:
+                                logger.exception("Failed to run opsec post check")
                                 response = MythicCommandBase.PTTTaskOPSECPostTaskMessageResponse(
                                     TaskID=msgDict["task"]["id"], Success=False, Error=str(traceback.format_exc())
                                 )
@@ -491,8 +491,8 @@ async def createTasking(msg: bytes) -> None:
                                         body=response.to_json()
                                     )
                                     return
-                            except Exception as opsecError:
-                                logger.exception(f"Failed to run create tasking: {opsecError}")
+                            except:
+                                logger.exception("Failed to run create tasking")
                                 response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(
                                     TaskID=msgDict["task"]["id"],
                                     Success=False,
@@ -588,7 +588,7 @@ async def completionFunction(msg: bytes) -> None:
                                 )
 
     except Exception as e:
-        logger.error(f"Failed to call completion function: {traceback.format_exc()}\n{e}")
+        logger.exception("Failed to call completion function")
         response = mythic_container.MythicCommandBase.PTTaskCompletionFunctionMessageResponse(
             Success=False,
             TaskID=0,
@@ -622,8 +622,8 @@ async def processResponse(msg: bytes) -> None:
                                     body=response.to_json()
                                 )
                                 return
-                            except Exception as opsecError:
-                                logger.exception(f"Failed to run process response: {opsecError}")
+                            except:
+                                logger.exception("Failed to run process response")
                                 response = MythicCommandBase.PTTaskProcessResponseMessageResponse(
                                     TaskID=msgDict["task"]["task"]["id"], Success=False,
                                     Error=str(traceback.format_exc())
@@ -668,8 +668,7 @@ async def dynamicQueryFunction(msg: bytes) -> bytes:
                                                     mythic_container.MythicCommandBase.PTRPCDynamicQueryFunctionMessage(
                                                         **msgDict))
                                             except Exception as callEx:
-                                                logger.exception(
-                                                    f"Failed to call dynamic query function for {cmd.cmd}")
+                                                logger.exception("Failed to call dynamic query function for %s", cmd.cmd)
                                                 result = mythic_container.MythicCommandBase.PTRPCDynamicQueryFunctionMessageResponse(
                                                     Success=False,
                                                     Error=f"Failed to call dynamic query function: {traceback.format_exc()}"
@@ -697,7 +696,7 @@ async def dynamicQueryFunction(msg: bytes) -> bytes:
                                                 )
                                                 return ujson.dumps(response.to_json()).encode()
                                         else:
-                                            logger.error(f"dynamic query function for {cmd.cmd} isn't callable")
+                                            logger.error("dynamic query function for %s isn't callable", cmd.cmd)
                                             response = mythic_container.MythicCommandBase.PTRPCDynamicQueryFunctionMessageResponse(
                                                 Success=False,
                                                 Error=f"dynamic query function for {cmd.cmd} isn't callable"
@@ -746,8 +745,7 @@ async def typedTaskParseFunction(msg: bytes) -> bytes:
                                                     mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessage(
                                                         **msgDict))
                                             except Exception as callEx:
-                                                logger.exception(
-                                                    f"Failed to call typedarray parse function for {cmd.cmd}")
+                                                logger.exception("Failed to call typedarray parse function for %s", cmd.cmd)
                                                 result = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
                                                     Success=False,
                                                     Error=f"Failed to call typedarray parse function: {traceback.format_exc()}"
@@ -775,7 +773,7 @@ async def typedTaskParseFunction(msg: bytes) -> bytes:
                                                 )
                                                 return ujson.dumps(response.to_json()).encode()
                                         else:
-                                            logger.error(f"typedarray parse function for {cmd.cmd} isn't callable")
+                                            logger.error("typedarray parse function for %s isn't callable", cmd.cmd)
                                             response = mythic_container.MythicCommandBase.PTRPCTypedArrayParseFunctionMessageResponse(
                                                 Success=False,
                                                 Error=f"typedarray parse function for {cmd.cmd} isn't callable"
@@ -863,5 +861,5 @@ async def reSyncPayloadType(msg: bytes) -> bytes:
                 return ujson.dumps({"success": True}).encode()
         return ujson.dumps({"success": False, "error": "Failed to find payload type"}).encode()
     except Exception as e:
-        logger.exception(f"Failed to re-sync payload type: {e}")
+        logger.exception("Failed to re-sync payload type")
         return ujson.dumps({"success": False, "error": f"Failed to sync: {traceback.format_exc()}\n{e}"}).encode()

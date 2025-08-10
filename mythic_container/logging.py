@@ -32,7 +32,7 @@ def update_log_to_file(filename: str, maxSizeInMB: int, maxBackups: int, debugLe
         logger.setLevel(logging.WARNING)
         handler.setLevel(logging.WARNING)
     logger.addHandler(handler)
-    logger.info(f"[*] Using debug level: {debugLevel}")
+    logger.info("[*] Using debug level: %s", debugLevel)
 
 
 def update_log_to_stdout(debugLevel: str):
@@ -53,4 +53,4 @@ def update_log_to_stdout(debugLevel: str):
     formatter = logging.Formatter(LOG_FORMAT)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    logger.info(f"[*] Using debug level: {settingLogLevel}")
+    logger.info("[*] Using debug level: %s", settingLogLevel)

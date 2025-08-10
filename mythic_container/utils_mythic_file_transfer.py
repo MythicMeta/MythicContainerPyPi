@@ -18,8 +18,8 @@ async def sendFileToMythic(contents: bytes, agentFileId: str) -> bool:
                     else:
                         logger.error("[-] Failed to upload file contents to Mythic")
                         return False
-    except Exception as e:
-        logger.exception(f"[-] Failed to upload payload contents: {e}")
+    except:
+        logger.exception("[-] Failed to upload payload contents")
         return False
 
 
@@ -31,6 +31,6 @@ async def getFileFromMythic(agentFileId: str) -> bytes:
                 if resp.status == 200:
                     responseData = await resp.read()
                     return responseData
-    except Exception as e:
-        logger.exception(f"[-] Failed to upload payload contents: {e}")
+    except:
+        logger.exception("[-] Failed to upload payload contents")
         return None

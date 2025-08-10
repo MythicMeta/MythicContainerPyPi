@@ -617,10 +617,10 @@ class PayloadType:
         self.secrets = secrets
         if self.agent_path is None:
             self.agent_path = pathlib.Path(".") / self.name
-            logger.error(f"{self.name} has no agent_path set, setting to {self.agent_path}")
+            logger.error("%s has no agent_path set, setting to %s", self.name, self.agent_path)
         if self.agent_code_path is None:
             self.agent_code_path = self.agent_path / "agent_code"
-            logger.error(f"{self.name} has no agent_code_path set, setting to {self.agent_code_path}")
+            logger.error("%s has no agent_code_path set, setting to %s", self.name, self.agent_code_path)
         if self.agent_browserscript_path is None:
             self.agent_browserscript_path = self.agent_path / "browser_scripts"
 
@@ -649,9 +649,7 @@ class PayloadType:
             if bp.name in buildinfo and buildinfo[bp.name] is not None:
                 bp.value = buildinfo[bp.name]
             if bp.required and bp.value is None:
-                raise ValueError(
-                    "{} is a required parameter but has no value".format(bp.name)
-                )
+                raise ValueError(f"{bp.name} is a required parameter but has no value")
 
     def get_build_instance_values(self):
         values = {}
@@ -670,20 +668,19 @@ class PayloadType:
                 try:
                     with open(self.agent_icon_path, "rb") as f:
                         agent_bytes = f.read()
-                except Exception as e:
-                    logger.exception(f"failed to read agent icon from ({self.agent_icon_path}): {e}")
+                except:
+                    logger.exception("failed to read agent icon from (%s)", self.agent_icon_path)
                     agent_bytes = b""
             else:
-                logger.error(f"{self.name} has no agent_icon_bytes or agent_icon_path specified, no icon will be used")
+                logger.error("%s has no agent_icon_bytes or agent_icon_path specified, no icon will be used", self.name)
                 agent_bytes = b""
         if dark_mode_agent_bytes is None:
             if self.dark_mode_agent_icon_path is not None:
                 try:
                     with open(self.dark_mode_agent_icon_path, "rb") as f:
                         dark_mode_agent_bytes = f.read()
-                except Exception as e:
-                    logger.exception(
-                        f"failed to read dark mode agent icon from ({self.dark_mode_agent_icon_path}): {e}")
+                except:
+                    logger.exception("failed to read dark mode agent icon from (%s)", self.dark_mode_agent_icon_path)
                     dark_mode_agent_bytes = b""
             else:
                 dark_mode_agent_bytes = agent_bytes
@@ -732,6 +729,6 @@ async def SendMythicRPCSyncPayloadType(payload_type: str, extraCommands: [mythic
                 await mythic_container.mythic_service.syncPayloadData(pt, extraCommands, True)
                 return True
         return False
-    except Exception as e:
-        logger.exception(f"Failed to re-sync payload type: {e}")
+    except:
+        logger.exception("Failed to re-sync payload type")
         return False

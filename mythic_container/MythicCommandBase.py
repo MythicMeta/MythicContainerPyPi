@@ -567,12 +567,8 @@ class CommandParameter:
                 try:
                     self.validation_func(type_validated)
                     self._value = type_validated
-                except Exception as e:
-                    raise ValueError(
-                        "Failed validation check for parameter {} with value {}".format(
-                            self.name, str(value)
-                        )
-                    )
+                except:
+                    raise ValueError(f"Failed validation check for parameter {self.name} with value {value}")
                 self.user_supplied = True
                 return
             else:
@@ -860,9 +856,8 @@ class TaskArguments(metaclass=ABCMeta):
                         self.add_arg(key=k, value=v, type=ParameterType.Array)
                     else:
                         self.add_arg(key=k, value=v, type=ParameterType.String)
-        except Exception as e:
-            logger.error(e)
-            logger.error("Tried parsing command line as JSON when it's not")
+        except:
+            logger.exception("Tried parsing command line as JSON when it's not")
             return
 
     def load_args_from_dictionary(self, dictionary, add_unknown_args: bool = False) -> None:
@@ -977,7 +972,7 @@ class TaskArguments(metaclass=ABCMeta):
                 else:
                     groupName = self.get_parameter_group_name()
             except Exception as e:
-                logger.error(f"Failed to get group name for tasking: {e}\n")
+                logger.error("Failed to get group name for tasking")
                 caughtException = f"Failed to get group name for tasking: {e}\n"
                 groupName = "N/A"
             temp = {}
@@ -1012,7 +1007,7 @@ class TaskArguments(metaclass=ABCMeta):
         if len(self.args) > 0:
             try:
                 groupName = self.get_parameter_group_name()
-            except Exception as e:
+            except:
                 return self.command_line
             temp = {}
             for arg in self.args:
@@ -1026,7 +1021,7 @@ class TaskArguments(metaclass=ABCMeta):
                     elif arg.value is not None:
                         temp[arg.name] = arg.value
                     else:
-                        logger.debug(f"Argument {arg.name} has a Null value, not adding it to JSON")
+                        logger.debug("Argument %s has a Null value, not adding it to JSON", arg.name)
             return json.dumps(temp)
         else:
             return self.command_line
@@ -1057,25 +1052,23 @@ class BrowserScript:
         self.author = author
 
     def to_json(self, base_path: Path):
-        try:
-            code_file = (
-                    base_path
-                    / "{}.js".format(self.script_name)
-            )
-            if code_file.exists():
-                code = code_file.read_bytes().decode()
-                # code = base64.b64encode(code).decode()
-                return {"script": code, "name": self.script_name, "author": self.author}
-            elif Path(self.script_name).exists():
-                code = Path(self.script_name).read_bytes().decode()
-                # code = base64.b64encode(code).decode()
-                return {"script": code, "name": self.script_name, "author": self.author}
-            else:
-                raise Exception(
-                    "Code for Browser Script, " + self.script_name + ", does not exist on disk at path: " + str(
-                        code_file))
-        except Exception as e:
-            raise e
+        code_file = (
+                base_path
+                / "{}.js".format(self.script_name)
+        )
+        if code_file.exists():
+            code = code_file.read_bytes().decode()
+            # code = base64.b64encode(code).decode()
+            return {"script": code, "name": self.script_name, "author": self.author}
+        elif Path(self.script_name).exists():
+            code = Path(self.script_name).read_bytes().decode()
+            # code = base64.b64encode(code).decode()
+            return {"script": code, "name": self.script_name, "author": self.author}
+        else:
+            raise Exception(
+                "Code for Browser Script, " + self.script_name + ", does not exist on disk at path: " + str(
+                    code_file))
+
 
 
 class MythicTask:
@@ -2223,13 +2216,13 @@ class CommandBase(metaclass=ABCMeta):
             params = []
         if self.browser_script is not None:
             if isinstance(self.browser_script, list):
-                logger.error(f"{self.cmd}'s browserscript attribute should not be an array, but a single script")
+                logger.error("%s's browserscript attribute should not be an array, but a single script", self.cmd)
                 sys.exit(1)
             else:
                 try:
                     bscript = {"browserscript": self.browser_script.to_json(self.agent_browserscript_path)}
-                except Exception as e:
-                    logger.error(f"Failed to get browser script for {self.cmd}:\n{e}")
+                except:
+                    logger.exception("Failed to get browser script for %s", self.cmd)
                     bscript = {}
         else:
             bscript = {"browser_script": {}}
