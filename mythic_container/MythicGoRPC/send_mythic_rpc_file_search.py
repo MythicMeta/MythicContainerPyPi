@@ -29,7 +29,7 @@ class MythicRPCFileSearchMessage:
         self.IsPayload = IsPayload
         self.AgentFileID = AgentFileID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -80,7 +80,7 @@ class FileData:
         self.Tags = tags
         self.Complete = complete
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} with value {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "agent_file_id": self.AgentFileId,
@@ -113,7 +113,7 @@ class MythicRPCFileSearchMessageResponse:
         self.Error = error
         self.Files = [FileData(**x) for x in files] if files is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCFileSearch(

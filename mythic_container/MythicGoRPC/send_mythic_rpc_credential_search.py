@@ -20,7 +20,7 @@ class MythicRPCCredentialData:
         self.Comment = comment
         self.ExtraData = metadata
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.info("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "credential_type": self.CredentialType,
@@ -39,7 +39,7 @@ class MythicRPCCredentialSearchMessage:
         self.TaskID = TaskID
         self.Credential = Credential
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.info("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -60,7 +60,7 @@ class MythicRPCCredentialSearchMessageResponse:
         self.Error = error
         self.Credentials = [MythicRPCCredentialData(**x) for x in credentials] if credentials is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.info("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCredentialSearch(

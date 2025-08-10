@@ -312,5 +312,5 @@ async def SendMythicRPCSyncAuth(auth_name: str) -> bool:
                 await mythic_container.mythic_service.syncAuthData(auth)
                 return True
         return False
-    except Exception as e:
+    except:
         return False

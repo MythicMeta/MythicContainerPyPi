@@ -112,7 +112,7 @@ class NewFeedbackWebhookData:
         self.FeedbackType = feedback_type
         self.DisplayID = display_id
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -139,7 +139,7 @@ class NewStartupWebhookData:
                  **kwargs):
         self.StartupMessage = startup_message
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -175,7 +175,7 @@ class NewAlertWebhookData:
         self.Count = count
         self.Timestamp = timestamp
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -239,7 +239,7 @@ class WebhookMessage:
         else:
             self.Data = data
         for k, v in kwargs.items():
-            logger.info(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -328,7 +328,7 @@ class Webhook:
         elif self.webhook_channel is not None:
             return self.webhook_channel
         else:
-            logger.error(f"No webhook channel found")
+            logger.error("No webhook channel found")
             return ""
 
     async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
@@ -360,7 +360,7 @@ async def sendWebhookMessage(contents: dict, url: str) -> (int, str):
             async with session.post(url, json=contents, ssl=False) as resp:
                 return resp.status, await resp.text()
     except Exception as e:
-        logger.exception(f"[-] Failed to send webhook: {e}")
+        logger.exception("[-] Failed to send webhook")
         return 400, f"[-] Failed to send webhook: {e}"
 
 webhooks: dict[str, Webhook] = {}
@@ -379,5 +379,5 @@ async def SendMythicRPCSyncWebhook(webhook_name: str) -> bool:
                 await mythic_container.mythic_service.syncWebhookData(web)
                 return True
         return False
-    except Exception as e:
+    except:
         return False

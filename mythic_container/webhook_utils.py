@@ -10,9 +10,9 @@ async def new_startup(msg: bytes) -> None:
             if webhook.new_startup is not None and callable(webhook.new_startup):
                 await webhook.new_startup(WebhookMessage(**msgDict))
             else:
-                logger.error(f"No valid function for new_startup from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_startup webhook: {e}")
+                logger.error("No valid function for new_startup from webhook")
+    except:
+        logger.exception("Failed to execute new_startup webhook")
 
 
 async def new_callback(msg: bytes) -> None:
@@ -22,9 +22,9 @@ async def new_callback(msg: bytes) -> None:
             if webhook.new_callback is not None and callable(webhook.new_callback):
                 await webhook.new_callback(WebhookMessage(**msgDict))
             else:
-                logger.error(f"No valid function for new_callback from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_callback webhook: {e}")
+                logger.error("No valid function for new_callback from webhook")
+    except:
+        logger.exception("Failed to execute new_callback webhook")
 
 
 async def new_feedback(msg: bytes) -> None:
@@ -34,9 +34,9 @@ async def new_feedback(msg: bytes) -> None:
             if webhook.new_feedback is not None and callable(webhook.new_feedback):
                 await webhook.new_feedback(WebhookMessage(**msgDict))
             else:
-                logger.error(f"No valid function for new_feedback from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_feedback webhook: {e}")
+                logger.error("No valid function for new_feedback from webhook")
+    except:
+        logger.exception("Failed to execute new_feedback webhook")
 
 
 async def new_alert(msg: bytes) -> None:
@@ -46,9 +46,9 @@ async def new_alert(msg: bytes) -> None:
             if webhook.new_alert is not None and callable(webhook.new_alert):
                 await webhook.new_alert(WebhookMessage(**msgDict))
             else:
-                logger.error(f"No valid function for new_alert from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_alert webhook: {e}")
+                logger.error("No valid function for new_alert from webhook")
+    except:
+        logger.exception("Failed to execute new_alert webhook")
 
 
 async def new_custom(msg: bytes) -> None:
@@ -58,6 +58,6 @@ async def new_custom(msg: bytes) -> None:
             if webhook.new_custom is not None and callable(webhook.new_custom):
                 await webhook.new_custom(WebhookMessage(**msgDict))
             else:
-                logger.error(f"No valid function for new_custom from webhook")
-    except Exception as e:
-        logger.exception(f"Failed to execute new_custom webhook: {e}")
+                logger.error("No valid function for new_custom from webhook")
+    except:
+        logger.exception("Failed to execute new_custom webhook")

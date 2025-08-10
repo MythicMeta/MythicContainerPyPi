@@ -23,7 +23,7 @@ class MythicRPCOtherServiceRPCMessage:
         if self.ServiceRPCFunctionArguments is None:
             self.ServiceRPCFunctionArguments = service_arguments
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "service_name": self.ServiceName,
@@ -49,7 +49,7 @@ class MythicRPCOtherServiceRPCMessageResponse:
         if self.Result is None:
             self.Result = result
         for k, v in kwargs.items():
-            logger.error(f"unknown kwarg {k} {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "success": self.Success,

@@ -14,7 +14,7 @@ class MythicRPCCallbackDisplayToRealIdSearchMessage:
         self.OperationName = OperationName
         self.OperationID = OperationID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -34,7 +34,7 @@ class MythicRPCCallbackDisplayToRealIdSearchMessageResponse:
         self.Error = error
         self.CallbackID = callback_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCallbackDisplayToRealIdSearch(

@@ -28,7 +28,7 @@ class MythicRPCTaskSearchMessage:
         self.SearchParams = SearchParams
         self.SearchParentTaskID = SearchParentTaskID
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -127,7 +127,7 @@ class MythicRPCTaskSearchData:
         self.IsInteractiveTask = is_interactive_task
         self.InteractiveTaskType = interactive_task_type
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "id": self.TaskID,
@@ -183,7 +183,7 @@ class MythicRPCTaskSearchMessageResponse:
         self.Error = error
         self.Tasks = [MythicRPCTaskSearchData(**x) for x in tasks] if tasks is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCTaskSearch(

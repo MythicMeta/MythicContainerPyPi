@@ -18,7 +18,7 @@ class MythicRPCPayloadCreateFromUUIDMessage:
         self.NewFilename = NewFilename
         self.RemoteHost = RemoteHost
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -40,7 +40,7 @@ class MythicRPCPayloadCreateFromUUIDMessageResponse:
         self.Error = error
         self.NewPayloadUUID = new_payload_uuid
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCPayloadCreateFromUUID(

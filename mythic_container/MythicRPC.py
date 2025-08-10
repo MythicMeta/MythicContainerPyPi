@@ -743,12 +743,12 @@ class MythicRPC:
     }
 
     async def execute(self, function_name: str, **func_kwargs) -> RPCResponse:
-        logger.warning(f"[-] MythicRPC().execute and this function, {function_name}, are deprecated and will be removed in the next major "
-                        f"release. Please update to the corresponding SendMythicRPC* function")
+        logger.warning("[-] MythicRPC().execute and this function, %s, are deprecated and will be removed in the next"
+                       " major release. Please update to the corresponding SendMythicRPC* function", function_name)
         if function_name in self.queueMap:
             return await self.queueMap[function_name](func_kwargs)
         else:
-            logger.error(f"[-] Unknown legacy RPC function {function_name} or function was completely removed")
+            logger.error("[-] Unknown legacy RPC function %s or function was completely removed", function_name)
             return RPCResponse({"status": "error", "error": "Unknown RPC Function name"})
 
     async def call_c2rpc(self, n: dict, receiver: str = None) -> RPCResponse:
@@ -758,8 +758,9 @@ class MythicRPC:
 
     async def execute_c2rpc(self, c2_profile: str, function_name: str, message: str, task_id: int) -> RPCResponse:
         try:
-            logger.warning(f"[-] MythicRPC().execute_c2rpc and this function, {function_name}, are deprecated and will be removed in the next major "
-                            f"release. Please update to the corresponding SendMythicRPC* function")
+            logger.warning("[-] MythicRPC().execute_c2rpc and this function, {}, are deprecated and will be removed in"
+                           " the next major release. Please update to the corresponding SendMythicRPC* function",
+                           function_name)
             resp = await self.call_c2rpc(
                 {"action": function_name,
                  "message": message,

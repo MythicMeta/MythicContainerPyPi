@@ -50,7 +50,7 @@ class MythicRPCCallbackUpdateMessage:
         self.UpdateLastCheckinTime = UpdateLastCheckinTime
         self.UpdateLastCheckinTimeViaC2Profile = UpdateLastCheckinTimeViaC2Profile
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -86,7 +86,7 @@ class MythicRPCCallbackUpdateMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCallbackUpdate(

@@ -20,7 +20,7 @@ class MythicRPCPayloadConfigurationC2Profile:
         if c2_profile_parameters is not None:
             self.Parameters = c2_profile_parameters
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -44,7 +44,7 @@ class MythicRPCPayloadConfigurationBuildParameter:
         if value is not None:
             self.Value = value
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -77,7 +77,7 @@ class MythicRPCPayloadConfiguration:
         self.UUID = UUID
         self.AgentFileId = AgentFileId
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -104,7 +104,7 @@ class MythicRPCPayloadCreateFromScratchMessage:
         self.PayloadConfiguration = PayloadConfiguration
         self.RemoteHost = RemoteHost
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -124,7 +124,7 @@ class MythicRPCPayloadCreateFromScratchMessageResponse:
         self.Error = error
         self.NewPayloadUUID = new_payload_uuid
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCPayloadCreateFromScratch(

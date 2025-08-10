@@ -21,8 +21,8 @@ def kill(proc_pid):
         target_processes.kill()
     except psutil.NoSuchProcess:
         pass
-    except Exception as e:
-        logger.exception(f"[-] Failed to kill process: {e}")
+    except:
+        logger.exception("[-] Failed to kill process")
 
 
 async def keep_reading_stdout(c2_profile: str):
@@ -48,8 +48,8 @@ async def keep_reading_stdout(c2_profile: str):
         except TimeoutError:
             await asyncio.sleep(1)
             continue
-        except Exception as e:
-            logger.exception(f"hit exception trying to get server output: {traceback.format_exc()}")
+        except:
+            logger.exception("hit exception trying to get server output")
             del mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"]
             return
 
@@ -62,8 +62,8 @@ async def deal_with_stdout(c2_profile: str) -> str:
                 output += mythic_container.C2ProfileBase.runningServers[c2_profile]["output"].popleft()
         except IndexError:
             pass
-        except Exception as e:
-            logger.exception(f"hit exception trying to read server output: {traceback.format_exc()}")
+        except:
+            logger.exception("hit exception trying to read server output")
     return output
 
 
@@ -76,8 +76,7 @@ async def opsecChecks(msg: bytes) -> bytes:
                     try:
                         result = await c2.opsec(mythic_container.C2ProfileBase.C2OPSECMessage(**msgDict))
                     except Exception as callEx:
-                        logger.exception(
-                            f"Failed to call opsec for {c2.name}")
+                        logger.exception("Failed to call opsec for %s", c2.name)
                         response = mythic_container.C2ProfileBase.C2OPSECMessageResponse(
                             Success=False,
                             Error=f"Failed to call opsec function: {traceback.format_exc()}\n{callEx}"
@@ -86,7 +85,7 @@ async def opsecChecks(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2OPSECMessageResponse(
                             Success=False,
-                            Error=f"Failed to call opsec function: No result returned"
+                            Error="Failed to call opsec function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -105,7 +104,7 @@ async def opsecChecks(msg: bytes) -> bytes:
                         )
                         return ujson.dumps(response.to_json()).encode()
                 else:
-                    logger.error(f"opsec function for {c2.name} isn't callable")
+                    logger.error("opsec function for %s isn't callable", c2.name)
                     response = mythic_container.C2ProfileBase.C2OPSECMessageResponse(
                         Success=False,
                         Error=f"opsec function for {c2.name} isn't callable"
@@ -128,8 +127,7 @@ async def configChecks(msg: bytes) -> bytes:
                     try:
                         result = await c2.config_check(mythic_container.C2ProfileBase.C2ConfigCheckMessage(**msgDict))
                     except Exception as callEx:
-                        logger.exception(
-                            f"Failed to call config check for {c2.name}")
+                        logger.exception("Failed to call config check for %s", c2.name)
                         response = mythic_container.C2ProfileBase.C2ConfigCheckMessageResponse(
                             Success=False,
                             Error=f"Failed to call config check function: {traceback.format_exc()}\n{callEx}"
@@ -138,7 +136,7 @@ async def configChecks(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2ConfigCheckMessageResponse(
                             Success=False,
-                            Error=f"Failed to call config check function: No result returned"
+                            Error="Failed to call config check function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -157,7 +155,7 @@ async def configChecks(msg: bytes) -> bytes:
                         )
                         return ujson.dumps(response.to_json()).encode()
                 else:
-                    logger.error(f"config check function for {c2.name} isn't callable")
+                    logger.error("config check function for %s isn't callable", c2.name)
                     response = mythic_container.C2ProfileBase.C2ConfigCheckMessageResponse(
                         Success=False,
                         Error=f"config check function for {c2.name} isn't callable"
@@ -180,8 +178,7 @@ async def getIOC(msg: bytes) -> bytes:
                     try:
                         result = await c2.config_check(mythic_container.C2ProfileBase.C2GetIOCMessage(**msgDict))
                     except Exception as callEx:
-                        logger.exception(
-                            f"Failed to call get_ioc for {c2.name}")
+                        logger.exception("Failed to call get_ioc for %s", c2.name)
                         response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
                             Success=False,
                             Error=f"Failed to call config check function: {traceback.format_exc()}\n{callEx}"
@@ -190,7 +187,7 @@ async def getIOC(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
                             Success=False,
-                            Error=f"Failed to call config check function: No result returned"
+                            Error="Failed to call config check function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -209,7 +206,7 @@ async def getIOC(msg: bytes) -> bytes:
                         )
                         return ujson.dumps(response.to_json()).encode()
                 else:
-                    logger.error(f"get_ioc function for {c2.name} isn't callable")
+                    logger.error("get_ioc function for %s isn't callable", c2.name)
                     response = mythic_container.C2ProfileBase.C2GetIOCMessageResponse(
                         Success=False,
                         Error=f"get ioc function for {c2.name} isn't callable"
@@ -232,8 +229,7 @@ async def sampleMessage(msg: bytes) -> bytes:
                     try:
                         result = await c2.config_check(mythic_container.C2ProfileBase.C2SampleMessageMessage(**msgDict))
                     except Exception as callEx:
-                        logger.exception(
-                            f"Failed to call get_ioc for {c2.name}")
+                        logger.exception("Failed to call get_ioc for %s", c2.name)
                         response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
                             Success=False,
                             Error=f"Failed to call sample_message function: {traceback.format_exc()}\n{callEx}"
@@ -242,7 +238,7 @@ async def sampleMessage(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
                             Success=False,
-                            Error=f"Failed to call sample message function: No result returned"
+                            Error="Failed to call sample message function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -261,7 +257,7 @@ async def sampleMessage(msg: bytes) -> bytes:
                         )
                         return ujson.dumps(response.to_json()).encode()
                 else:
-                    logger.error(f"sample_message function for {c2.name} isn't callable")
+                    logger.error("sample_message function for %s isn't callable", c2.name)
                     response = mythic_container.C2ProfileBase.C2SampleMessageMessageResponse(
                         Success=False,
                         Error=f"sample message function for {c2.name} isn't callable"
@@ -287,7 +283,7 @@ async def getDebugOutput(msg: bytes) -> bytes:
                         running = False
                         try:
                             kill(mythic_container.C2ProfileBase.runningServers[c2.name]["process"].pid)
-                        except Exception as e:
+                        except:
                             pass
                     response = mythic_container.C2ProfileBase.C2GetDebugOutputMessageResponse(
                         Success=True, Error="", Message=f"{await deal_with_stdout(c2.name)}",
@@ -323,8 +319,7 @@ async def getRedirectorRules(msg: bytes) -> bytes:
                         result = await c2.redirect_rules(
                             mythic_container.C2ProfileBase.C2GetRedirectorRulesMessage(**msgDict))
                     except Exception as callEx:
-                        logger.exception(
-                            f"Failed to call get redirector rules for {c2.name}")
+                        logger.exception("Failed to call get redirector rules for %s", c2.name)
                         response = mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse(
                             Success=False,
                             Error=f"Failed to call get redirector rules function: {traceback.format_exc()}\n{callEx}"
@@ -333,7 +328,7 @@ async def getRedirectorRules(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse(
                             Success=False,
-                            Error=f"Failed to call get redirector rules function: No result returned"
+                            Error="Failed to call get redirector rules function: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -352,7 +347,7 @@ async def getRedirectorRules(msg: bytes) -> bytes:
                         )
                         return ujson.dumps(response.to_json()).encode()
                 else:
-                    logger.error(f"get redirector rules function for {c2.name} isn't callable")
+                    logger.error("get redirector rules function for %s isn't callable", c2.name)
                     response = mythic_container.C2ProfileBase.C2GetRedirectorRulesMessageResponse(
                         Success=False,
                         Error=f"get redirector rules function for {c2.name} isn't callable"
@@ -425,7 +420,7 @@ async def startServer(msg: bytes) -> bytes:
                         else:
                             try:
                                 kill(mythic_container.C2ProfileBase.runningServers[c2.name]["process"].pid)
-                            except Exception as e:
+                            except:
                                 pass
                             # now try to start it again
                             response = await startServerBinary(c2)
@@ -458,7 +453,7 @@ async def stopServer(msg: bytes) -> bytes:
                         if mythic_container.C2ProfileBase.runningServers[c2.name]["process"] is None:
                             # process isn't running, so we need to start it
                             response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                                Success=True, Error="", Message=f"The server is not running",
+                                Success=True, Error="", Message="The server is not running",
                                 InternalServerRunning=False
                             )
                             return ujson.dumps(response.to_json()).encode()
@@ -473,7 +468,7 @@ async def stopServer(msg: bytes) -> bytes:
                         else:
                             try:
                                 kill(mythic_container.C2ProfileBase.runningServers[c2.name]["process"].pid)
-                            except Exception as e:
+                            except:
                                 pass
                             # now try to start it again
                             await asyncio.sleep(3)
@@ -488,7 +483,7 @@ async def stopServer(msg: bytes) -> bytes:
                     else:
                         # just means we've never started it before, so start it now
                         response = mythic_container.C2ProfileBase.C2StopServerMessageResponse(
-                            Success=True, Error="", Message=f"The server was never started",
+                            Success=True, Error="", Message="The server was never started",
                             InternalServerRunning=False
                         )
                         return ujson.dumps(response.to_json()).encode()
@@ -551,7 +546,7 @@ async def reSyncC2Profile(msg: bytes) -> bytes:
                 return ujson.dumps({"success": True}).encode()
         return ujson.dumps({"success": False, "error": "Failed to find c2 profile"}).encode()
     except Exception as e:
-        logger.exception(f"Failed to re-sync c2 profile: {e}")
+        logger.exception("Failed to re-sync c2 profile")
         return ujson.dumps({"success": False, "error": f"Failed to sync: {traceback.format_exc()}\n{e}"}).encode()
 
 
@@ -564,8 +559,7 @@ async def hostFile(msg: bytes) -> bytes:
                     try:
                         result = await c2.host_file(mythic_container.C2ProfileBase.C2HostFileMessage(**msgDict))
                     except Exception as callEx:
-                        logger.exception(
-                            f"Failed to call host_file for {c2.name}")
+                        logger.exception("Failed to call host_file for %s", c2.name)
                         response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
                             Success=False,
                             Error=f"Failed to call config check function: {traceback.format_exc()}\n{callEx}"
@@ -574,7 +568,7 @@ async def hostFile(msg: bytes) -> bytes:
                     if result is None:
                         response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
                             Success=False,
-                            Error=f"Failed to call host file: No result returned"
+                            Error="Failed to call host file: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     elif isinstance(result, dict):
@@ -593,7 +587,7 @@ async def hostFile(msg: bytes) -> bytes:
                         )
                         return ujson.dumps(response.to_json()).encode()
                 else:
-                    logger.error(f"host_file function for {c2.name} isn't callable")
+                    logger.error("host_file function for %s isn't callable", c2.name)
                     response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
                         Success=False,
                         Error=f"host file function for {c2.name} isn't callable"

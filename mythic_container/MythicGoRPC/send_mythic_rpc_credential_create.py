@@ -20,7 +20,7 @@ class MythicRPCCredentialData:
         self.Comment = Comment
         self.ExtraData = ExtraData
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "credential_type": self.CredentialType,
@@ -39,7 +39,7 @@ class MythicRPCCredentialCreateMessage:
         self.TaskID = TaskID
         self.Credentials = Credentials
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -56,7 +56,7 @@ class MythicRPCCredentialCreateMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCredentialCreate(

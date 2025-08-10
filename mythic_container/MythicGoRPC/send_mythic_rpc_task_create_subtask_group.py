@@ -18,7 +18,7 @@ class MythicRPCTaskCreateSubtaskGroupTasks:
         self.ParameterGroupName = ParameterGroupName
         self.Token = Token
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
     def to_json(self):
         return {
             "subtask_callback_function": self.SubtaskCallbackFunction,
@@ -40,7 +40,7 @@ class MythicRPCTaskCreateSubtaskGroupMessage:
         self.GroupCallbackFunction = GroupCallbackFunction
         self.Tasks = Tasks
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -61,7 +61,7 @@ class MythicRPCTaskCreateSubtaskGroupMessageResponse:
         self.Error = error
         self.TaskIDs = task_ids
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCTaskCreateSubtaskGroup(

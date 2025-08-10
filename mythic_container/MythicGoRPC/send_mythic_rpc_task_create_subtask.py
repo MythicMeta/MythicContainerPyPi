@@ -20,7 +20,7 @@ class MythicRPCTaskCreateSubtaskMessage:
         self.ParameterGroupName = ParameterGroupName
         self.Token = Token
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -43,7 +43,7 @@ class MythicRPCTaskCreateSubtaskMessageResponse:
         self.Error = error
         self.TaskID = task_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCTaskCreateSubtask(

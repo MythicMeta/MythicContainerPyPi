@@ -13,7 +13,7 @@ class MythicRPCKeylogData:
         self.User = User
         self.Keystrokes = Keystrokes
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -31,7 +31,7 @@ class MythicRPCKeylogCreateMessage:
         self.TaskID = TaskID
         self.Keylogs = Keylogs
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -48,7 +48,7 @@ class MythicRPCKeylogCreateMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCKeylogCreate(

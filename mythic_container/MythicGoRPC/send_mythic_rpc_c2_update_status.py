@@ -18,7 +18,7 @@ class MythicRPCC2UpdateStatusMessage:
         self.InternalServerRunning = InternalServerRunning
         self.Error = Error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -36,7 +36,7 @@ class MythicRPCC2UpdateStatusMessageResponse:
         self.Success = success
         self.Error = error
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCC2UpdateStatus(

@@ -18,7 +18,7 @@ class MythicRPCCallbackEdgeSearchMessage:
         self.SearchC2ProfileName = SearchC2ProfileName
         self.SearchActiveEdgesOnly = SearchActiveEdgesOnly
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -46,7 +46,7 @@ class MythicRPCCallbackEdgeSearchMessageResult:
         self.C2ProfileName = c2profile
 
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -71,7 +71,7 @@ class MythicRPCCallbackEdgeSearchMessageResponse:
         self.Error = error
         self.Results = [MythicRPCCallbackEdgeSearchMessageResult(**x) for x in results] if results is not None else []
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCCallbackEdgeSearch(

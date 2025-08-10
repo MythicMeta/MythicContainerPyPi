@@ -18,7 +18,7 @@ class MythicRPCTaskCreateMessage:
         self.ParameterGroupName = ParameterGroupName
         self.Token = Token
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -42,7 +42,7 @@ class MythicRPCTaskCreateMessageResponse:
         self.TaskID = task_id
         self.TaskDisplayID = task_display_id
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {

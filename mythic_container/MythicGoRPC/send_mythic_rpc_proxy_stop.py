@@ -18,7 +18,7 @@ class MythicRPCProxyStopMessage:
         self.Username = Username
         self.Password = Password
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
     def to_json(self):
         return {
@@ -40,7 +40,7 @@ class MythicRPCProxyStopMessageResponse:
         self.Error = error
         self.LocalPort = local_port
         for k, v in kwargs.items():
-            logger.info(f"Unknown kwarg {k} - {v}")
+            logger.debug("Unknown kwarg %s: %s", k, v)
 
 
 async def SendMythicRPCProxyStopCommand(
