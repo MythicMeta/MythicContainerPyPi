@@ -284,7 +284,7 @@ class Webhook:
     """
     name: str = ""
     description: str = ""
-
+    semver: str = ""
     webhook_url: str = ""
     webhook_channel: str = ""
 
@@ -350,7 +350,8 @@ class Webhook:
             "name": self.name,
             "type": "webhook",
             "description": self.description,
-            "subscriptions": subscriptions
+            "subscriptions": subscriptions,
+            "semver": self.semver
         }
 
 

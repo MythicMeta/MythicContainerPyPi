@@ -11,7 +11,8 @@ class MythicRPCOperationEventLogCreateMessage:
                  CallbackAgentId: str = None,
                  OperationId: int = None,
                  Message: str = None,
-                 MessageLevel: str = "info",  # only info or warning available for now
+                 MessageLevel: str = "info",  # info, debug, auth, api, agent_message
+                 Warning: bool = False,
                  **kwargs):
         self.TaskID = TaskID
         self.CallbackId = CallbackId
@@ -19,6 +20,7 @@ class MythicRPCOperationEventLogCreateMessage:
         self.OperationId = OperationId
         self.Message = Message
         self.MessageLevel = MessageLevel
+        self.Warning = Warning
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -29,7 +31,8 @@ class MythicRPCOperationEventLogCreateMessage:
             "callback_agent_id": self.CallbackAgentId,
             "operation_id": self.OperationId,
             "message": self.Message,
-            "level": self.MessageLevel
+            "level": self.MessageLevel,
+            "warning": self.Warning
         }
 
 

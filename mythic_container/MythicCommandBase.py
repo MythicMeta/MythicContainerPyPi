@@ -1608,7 +1608,8 @@ class PTTaskMessageCallbackData:
         Domain (str): The domain associated with the callback if there is one
         ExtraInfo (str): Freeform field of extra data that can be stored and retrieved with a callback
         SleepInfo (str): Freeform sleep information that can be stored and retrieved as part of a callback (this isn't pre-populated, the agent or command files must set it)
-
+        Cwd (str): Current working directory
+        ImpersonationContext (str): Current impersonation context if any
     Functions:
         to_json(self): return dictionary form of class
     """
@@ -1643,6 +1644,8 @@ class PTTaskMessageCallbackData:
                  dec_key: str = None,
                  enc_key: str = None,
                  registered_payload_id: int = 0,
+                 cwd: str = "",
+                 impersonation_context: str = "",
                  **kwargs):
         self.ID = id
         self.DisplayID = display_id
@@ -1673,6 +1676,8 @@ class PTTaskMessageCallbackData:
         self.ExtraInfo = extra_info
         self.SleepInfo = sleep_info
         self.RegisteredPayloadID = registered_payload_id
+        self.Cwd = cwd
+        self.ImpersonationContext = impersonation_context
         for k, v in kwargs.items():
             logger.info(f"unknown kwarg {k} with value {v}")
 
@@ -1705,7 +1710,9 @@ class PTTaskMessageCallbackData:
             "architecture": self.Architecture,
             "domain": self.Domain,
             "extra_info": self.ExtraInfo,
-            "sleep_info": self.SleepInfo
+            "sleep_info": self.SleepInfo,
+            "cwd": self.Cwd,
+            "impersonation_context": self.ImpersonationContext
         }
 
     def __str__(self):

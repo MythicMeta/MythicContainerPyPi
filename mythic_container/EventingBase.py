@@ -296,7 +296,7 @@ class Eventing:
     """
     name: str = ""
     description: str = ""
-
+    semver: str = ""
     task_intercept_function: Callable[[TaskInterceptMessage], Awaitable[TaskInterceptMessageResponse]] = None
     response_intercept_function: Callable[
         [ResponseInterceptMessage], Awaitable[ResponseInterceptMessageResponse]] = None
@@ -325,7 +325,8 @@ class Eventing:
             "name": self.name,
             "type": "eventing",
             "description": self.description,
-            "subscriptions": subscriptions
+            "subscriptions": subscriptions,
+            "semver": self.semver
         }
 
 

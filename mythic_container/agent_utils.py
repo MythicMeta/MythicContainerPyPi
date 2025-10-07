@@ -182,6 +182,7 @@ async def initialize_task(
                         command=command_class.cmd,
                         parameter_name=arg.name,
                         payload_type="",
+                        command_payload_type="",
                         callback=message_json["callback"]["id"],
                         input_array=[x[1] for x in arg.value]
                     ))
@@ -195,6 +196,7 @@ async def initialize_task(
                         command=command_class.cmd,
                         parameter_name=arg.name,
                         payload_type="",
+                        command_payload_type="",
                         callback=message_json["callback"]["id"],
                         input_array=arg.value
                     ))
@@ -836,6 +838,55 @@ async def customRPCFunction(msg: bytes) -> bytes:
         response = mythic_container.PayloadBuilder.PTOtherServiceRPCMessageResponse(
             Success=False,
             Error=f"Failed to call custom RPC function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
+async def commandHelpFunction(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, pt in PayloadBuilder.payloadTypes.items():
+            if pt.name == msgDict["payload_type"]:
+                if pt.command_help_function is not None and callable(pt.command_help_function):
+                    try:
+                        result = await pt.command_help_function(mythic_container.PayloadBuilder.HelpFunctionMessage(
+                            **msgDict
+                        ))
+                    except Exception:
+                        logger.exception(f"Failed to call command help function for {pt.name}")
+                        result = mythic_container.PayloadBuilder.HelpFunctionMessageResponse(
+                            success=False, error=f"failed to call help function: {traceback.format_exc()}"
+                        )
+                        return ujson.dumps(result.to_json()).encode()
+                    if result is None:
+                        result = mythic_container.PayloadBuilder.HelpFunctionMessageResponse(
+                            success=False, error=f"No output returned from help function"
+                        )
+                        return ujson.dumps(result.to_json()).encode()
+                    if isinstance(result,
+                                  mythic_container.PayloadBuilder.HelpFunctionMessageResponse):
+                        return ujson.dumps(result.to_json()).encode()
+                    else:
+                        response = mythic_container.PayloadBuilder.HelpFunctionMessageResponse(
+                            Success=False,
+                            Error=f"unknown result type from function: {result}"
+                        )
+                        return ujson.dumps(response.to_json()).encode()
+                else:
+                    response = mythic_container.PayloadBuilder.HelpFunctionMessageResponse(
+                        Success=False,
+                        Error=f"Failed to find command_help_function to call"
+                    )
+                    return ujson.dumps(response.to_json()).encode()
+        response = mythic_container.PayloadBuilder.HelpFunctionMessageResponse(
+            Success=False,
+            Error=f"Failed to find payload type, {msgDict['command_payload_type']}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.PayloadBuilder.HelpFunctionMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call command help function: {traceback.format_exc()}\n{e}"
         )
         return ujson.dumps(response.to_json()).encode()
 

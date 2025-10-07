@@ -726,7 +726,7 @@ class Log:
     """
     name: str = ""
     description: str = ""
-
+    semver: str = ""
     LogToFilePath: str
     LogLevel: str
     LogMaxSizeInMB: int
@@ -765,7 +765,8 @@ class Log:
             "name": self.name,
             "type": "logging",
             "description": self.description,
-            "subscriptions": subscriptions
+            "subscriptions": subscriptions,
+            "semver": self.semver
         }
 
 

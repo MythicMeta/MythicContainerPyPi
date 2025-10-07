@@ -6,7 +6,7 @@ from .logging import logger
 import sys
 from typing import List
 from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
-
+import base64
 
 class C2OPSECMessage:
     """Payload's C2 Profile configuration for OPSEC checking
@@ -854,7 +854,7 @@ class C2Profile:
         server_folder_path (pathlib.Path): Path to the folder that contains `config.json`
         server_binary_path (pathlib.Path): Path to the binary that gets executed when "Start" is clicked in the UI
         custom_rpc_functions: Dictionary of RPC name to awaitable RPC function that other services can call
-
+        semver (str): Semantic Version of the profile
     Functions:
         opsec
 
@@ -875,6 +875,11 @@ class C2Profile:
     author: str = ""
     is_p2p: bool = False
     is_server_routed: bool = True
+    semver: str = ""
+    agent_icon_path: str = None
+    agent_icon_bytes: bytes = None
+    dark_mode_agent_icon_path: str = None
+    dark_mode_agent_icon_bytes: bytes = None
     parameters: [C2ProfileParameter] = []
 
     async def opsec(self, inputMsg: C2OPSECMessage) -> C2OPSECMessageResponse:
@@ -950,6 +955,32 @@ class C2Profile:
     server_binary_path: pathlib.Path
 
     def to_json(self):
+        agent_bytes = self.agent_icon_bytes
+        dark_mode_agent_bytes = self.dark_mode_agent_icon_bytes
+        self.name = self.name.lower()
+        if agent_bytes is None:
+            if self.agent_icon_path is not None:
+                # read agent icon path
+                try:
+                    with open(self.agent_icon_path, "rb") as f:
+                        agent_bytes = f.read()
+                except Exception as e:
+                    logger.exception(f"failed to read agent icon from ({self.agent_icon_path}): {e}")
+                    agent_bytes = None
+            else:
+                logger.error(f"{self.name} has no agent_icon_bytes or agent_icon_path specified, no icon will be used")
+                agent_bytes = b""
+        if dark_mode_agent_bytes is None:
+            if self.dark_mode_agent_icon_path is not None:
+                try:
+                    with open(self.dark_mode_agent_icon_path, "rb") as f:
+                        dark_mode_agent_bytes = f.read()
+                except Exception as e:
+                    logger.exception(
+                        f"failed to read dark mode agent icon from ({self.dark_mode_agent_icon_path}): {e}")
+                    dark_mode_agent_bytes = None
+            else:
+                dark_mode_agent_bytes = agent_bytes
         if self.server_binary_path is None:
             logger.exception(
                 "Must supply server_binary_path as pathlib.Path pointing to the binary to run when the server starts")
@@ -972,6 +1003,9 @@ class C2Profile:
                 "author": self.author,
                 "is_p2p": self.is_p2p,
                 "is_server_routed": self.is_server_routed,
+                "semver": self.semver,
+                "agent_icon": base64.b64encode(agent_bytes).decode() if agent_bytes is not None else None,
+                "dark_mode_agent_icon": base64.b64encode(dark_mode_agent_bytes).decode() if dark_mode_agent_bytes is not None else None,
             },
             "parameters": [x.to_json() for x in self.parameters]
         }

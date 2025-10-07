@@ -309,6 +309,11 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
         routing_key=getRoutingKey(pt.name, mythic_container.PT_CHECK_IF_CALLBACKS_ALIVE),
         handler=agent_utils.checkIfCallbacksAlive
     )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(pt.name, mythic_container.PT_COMMAND_HELP_FUNCTION),
+        routing_key=getRoutingKey(pt.name, mythic_container.PT_COMMAND_HELP_FUNCTION),
+        handler=agent_utils.commandHelpFunction
+    )))
 
 
 async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [MythicCommandBase.CommandBase] = None,

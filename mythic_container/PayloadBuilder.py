@@ -142,6 +142,38 @@ class DictionaryChoice:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class HideConditionOperand(str, Enum):
+    """Operand to apply when checking if the build parameter should be hidden or not
+    """
+    EQ = "eq"
+    NotEQ = "neq"
+    IN = "in"
+    NotIN = "nin"
+
+class HideCondition:
+    def __init__(self,
+                 name: str,
+                 operand: HideConditionOperand,
+                 value: any = None,
+                 choices: list[str] = None,
+                 ):
+        self.name = name
+        self.operand = operand
+        self.value = value
+        self.choices = choices
+
+    def to_json(self):
+        return {
+            "name": self.name,
+            "operand": self.operand,
+            "value": self.value,
+            "choices": self.choices
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class BuildParameter:
     """Build Parameter Definition for use when generating payloads
 
@@ -168,7 +200,12 @@ class BuildParameter:
             Configuration options for the Dictionary parameter type
         crypto_type (bool):
             Indicate if this value should be used to generate a crypto key or not
-
+        group_name (str):
+            An optional name used to group parameters together in the UI
+        supported_os (list[str]):
+            An optional list of supported operating systems where this parameter applies
+        hide_conditions (list[HideCondition]):
+            An optional list of conditions where this parameter should be hidden from view (this is a series of OR not AND conditions)
     """
 
     def __init__(
@@ -186,6 +223,9 @@ class BuildParameter:
             dictionary_choices: list[DictionaryChoice] = None,
             value: any = None,
             verifier_func: callable = None,
+            group_name: str = None,
+            supported_os: list[str] = None,
+            hide_conditions: list[HideCondition] = None,
     ):
         self.name = name
         self.verifier_func = verifier_func
@@ -205,6 +245,9 @@ class BuildParameter:
         self.crypto_type = crypto_type
         self.randomize = randomize
         self.format_string = format_string
+        self.group_name = group_name
+        self.supported_os = supported_os
+        self.hide_conditions = hide_conditions
 
     def to_json(self):
         return {
@@ -219,7 +262,10 @@ class BuildParameter:
             "crypto_type": self.crypto_type,
             "choices": self.choices,
             "dictionary_choices": [x.to_json() for x in
-                                   self.dictionary_choices] if self.dictionary_choices is not None else None
+                                   self.dictionary_choices] if self.dictionary_choices is not None else None,
+            "group_name": self.group_name,
+            "supported_os": self.supported_os,
+            "hide_conditions": [x.to_json() for x in self.hide_conditions] if self.hide_conditions is not None else None
         }
 
     def __str__(self):
@@ -263,12 +309,12 @@ class CommandList:
            Get a list of the command names
    """
 
-    def __init__(self, commands: [str] = None):
+    def __init__(self, commands: list[str] = None):
         self.commands = []
         if commands is not None:
             self.commands = commands
 
-    def get_commands(self) -> [str]:
+    def get_commands(self) -> list[str]:
         return self.commands
 
     def remove_command(self, command: str):
@@ -473,6 +519,76 @@ class PTOtherServiceRPCMessageResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class HelpFunctionMessage:
+    def __init__(self,
+                 payload_type: str = "",
+                 command_names: list[str] = None,
+                 **kwargs):
+        self.CommandNames = command_names
+        self.PayloadType = payload_type
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "command_names": self.CommandNames,
+            "payload_type": self.PayloadType
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class HelpFunctionMessageResponse:
+    def __init__(self,
+                 output: str = "",
+                 success: bool = True,
+                 error: str = None,
+                 **kwargs):
+        self.Output = output
+        self.Success = success
+        self.Error = error
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "output": self.Output,
+            "success": self.Success,
+            "error": self.Error
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2ParameterDeviation:
+    def __init__(self,
+                 supported: bool,
+                 choices: list[str] = None,
+                 dictionary_choices: list[DictionaryChoice] = None,
+                 default_value: any = None,
+                 **kwargs):
+        self.Supported = supported
+        self.Choices = choices
+        self.DefaultValue = default_value
+        self.DictionaryChoices = dictionary_choices
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "supported": self.Supported,
+            "choices": self.Choices,
+            "default_value": self.DefaultValue,
+            "dictionary_choices": [x.to_json() for x in
+                                   self.DictionaryChoices] if self.DictionaryChoices is not None else None,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class PayloadType:
     """Payload Type to import and sync with Mythic
 
@@ -545,7 +661,17 @@ class PayloadType:
             Defaults to `agent`, but you can optionally specify `service` to report back as a 3rd party service agent
         use_display_params_for_cli_history (bool):
             Defaults to False, but this dictates if the original params (potentially JSON) or the task's display params are used when doing up/down arrows through history on the command line
-
+        supports_multiple_c2_in_build (bool):
+            Defaults to True, but this dictates if agents support multiple c2 profiles in a single build
+        supports_multiple_c2_instances_in_build (bool):
+            Defaults to False, but this dictates if agents support multiple instances of a single c2 profile at build time
+        semver (str):
+            An optional semantic version identifier for the agent to make it easier for people to know which version they have
+        command_help_function (Callable[[HelpFunctionMessage], Awaitable[HelpFunctionMessageResponse]]):
+            An optional function to allow you to specify your own "help" function that is used instead of Mythic's default "help" output
+        c2_parameter_deviations (dict[str, dict[str, C2ParameterDeviation]]):
+            This is a map of optional c2 specific parameter deviations. The first key is the c2 profile name and the second key is the parameter name, so for example:
+            {"HTTP": {"AESPSK": C2ParameterDeviation(supported=True, choices=["none"], default_value="none")}}
     Functions:
         build(self):
             Given an instance of a bare payload and all the configuration options that the user selected (build parameters, c2 profile parameters), build the payload
@@ -561,16 +687,16 @@ class PayloadType:
     name: str = ""
     file_extension: str = ""
     author: str = ""
-    supported_os: [str] = []
+    supported_os: list[str] = []
     wrapper: bool = False
-    wrapped_payloads: [str] = []
+    wrapped_payloads: list[str] = []
     note: str = ""
     description: str = ""
     supports_dynamic_loading: bool = False
-    c2_profiles: [str] = []
-    build_parameters: [BuildParameter] = []
+    c2_profiles: list[str] = []
+    build_parameters: list[BuildParameter] = []
     message_uuid_length: int = 36
-    command_augment_supported_agents: [str] = []
+    command_augment_supported_agents: list[str] = []
     build_steps = []
     agent_icon_path: str = None
     agent_icon_bytes: bytes = None
@@ -586,10 +712,14 @@ class PayloadType:
     use_display_params_for_cli_history = False
     custom_rpc_functions: dict[
         str, Callable[[PTOtherServiceRPCMessage], Awaitable[PTOtherServiceRPCMessageResponse]]] = {}
-
+    supports_multiple_c2_in_build: bool = True
+    supports_multiple_c2_instances_in_build: bool = False
+    semver: str = ""
+    command_help_function: Callable[[HelpFunctionMessage], Awaitable[HelpFunctionMessageResponse]] = None
+    c2_parameter_deviations: dict[str, dict[str, C2ParameterDeviation]] = {}
     # These following fields are established when the build function is called
     uuid: str = None
-    c2info: [C2ProfileParameters] = None
+    c2info: list[C2ProfileParameters] = None
     commands: CommandList = None
     wrapped_payload_uuid: str = None
     wrapped_payload: bytes = None
@@ -715,6 +845,11 @@ class PayloadType:
             "message_uuid_length": self.message_uuid_length,
             "command_augment_supported_agents": self.command_augment_supported_agents,
             "use_display_params_for_cli_history": self.use_display_params_for_cli_history,
+            "supports_multiple_c2_in_build": self.supports_multiple_c2_in_build,
+            "supports_multiple_c2_instances_in_build": self.supports_multiple_c2_instances_in_build,
+            "semver": self.semver,
+            "command_help_function": "help" if self.command_help_function is not None else "",
+            "c2_parameter_deviations": {c:{n:v.to_json() for n, v in p.items()} for c, p in self.c2_parameter_deviations.items()} if self.c2_parameter_deviations is not None else {}
         }
 
     def __str__(self):

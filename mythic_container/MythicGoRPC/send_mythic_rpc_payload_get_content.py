@@ -34,6 +34,7 @@ class MythicRPCPayloadGetContentMessageResponse:
 
 async def SendMythicRPCPayloadGetContent(
         msg: MythicRPCPayloadGetContentMessage) -> MythicRPCPayloadGetContentMessageResponse:
+    # getFileFromMythic takes either AgentFileID or PayloadUUID
     content = await getFileFromMythic(agentFileId=msg.PayloadUUID)
 
     return MythicRPCPayloadGetContentMessageResponse(

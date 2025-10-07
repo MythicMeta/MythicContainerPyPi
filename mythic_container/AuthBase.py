@@ -272,6 +272,7 @@ class Auth:
     """
     name: str = ""
     description: str = ""
+    semver: str = ""
     idp_services: [str] = []
     non_idp_services: [str] = []
 
@@ -292,7 +293,8 @@ class Auth:
             "name": self.name,
             "type": "auth",
             "description": self.description,
-            "subscriptions": idp_subs + non_idp_subs
+            "subscriptions": idp_subs + non_idp_subs,
+            "semver": self.semver
         }
 
 

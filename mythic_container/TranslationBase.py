@@ -236,6 +236,7 @@ class TranslationContainer:
     """
     name: str = ""
     description: str = ""
+    semver: str = ""
     author: str = ""
 
     async def generate_keys(self, inputMsg: TrGenerateEncryptionKeysMessage) -> TrGenerateEncryptionKeysMessageResponse:
@@ -264,6 +265,7 @@ class TranslationContainer:
             "name": self.name,
             "description": self.description,
             "author": self.author,
+            "semver": self.semver
         }
 
     def __str__(self):

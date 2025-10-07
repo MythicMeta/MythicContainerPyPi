@@ -24,6 +24,17 @@ def kill(proc_pid):
     except Exception as e:
         logger.exception(f"[-] Failed to kill process: {e}")
 
+async def mythic_read_line(proc_stdout):
+    sep = b'\n'
+    try:
+        line = await proc_stdout.readuntil(sep)
+    except asyncio.exceptions.IncompleteReadError as e:
+        return e.partial
+    except asyncio.exceptions.LimitOverrunError as e:
+        return await proc_stdout.read(e.consumed)
+    except Exception as e:
+        raise e
+    return line
 
 async def keep_reading_stdout(c2_profile: str):
     if "reading" in mythic_container.C2ProfileBase.runningServers[c2_profile]:
@@ -32,26 +43,29 @@ async def keep_reading_stdout(c2_profile: str):
         mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"] = 1
         try:
             line = await asyncio.wait_for(
-                mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].stdout.readline(), timeout=3.0)
-            if line is not None:
-                if len(line) == 0:
-                    # the process has stopped, but our loop will keep returning blank lines
-                    if mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].returncode is not None:
-                        del mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"]
-                        return
-                    continue
-                logger.debug(line.decode())
-                if "output" in mythic_container.C2ProfileBase.runningServers[c2_profile]:
-                    mythic_container.C2ProfileBase.runningServers[c2_profile]["output"].append(line.decode())
-                else:
-                    mythic_container.C2ProfileBase.runningServers[c2_profile]["output"] = deque([line.decode()], 100)
+                mythic_read_line(mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].stdout), timeout=3.0)
+        except ValueError as e:
+            logger.exception(f"hit ValueError trying to get server output: {e} {traceback.format_exc()}")
+            line = None
         except TimeoutError:
             await asyncio.sleep(1)
             continue
         except Exception as e:
-            logger.exception(f"hit exception trying to get server output: {traceback.format_exc()}")
+            logger.exception(f"hit exception trying to get server output: {e} {traceback.format_exc()}")
             del mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"]
             return
+        if line is not None:
+            if len(line) == 0:
+                # the process has stopped, but our loop will keep returning blank lines
+                if mythic_container.C2ProfileBase.runningServers[c2_profile]["process"].returncode is not None:
+                    del mythic_container.C2ProfileBase.runningServers[c2_profile]["reading"]
+                    return
+                continue
+            logger.debug(line.decode())
+            if "output" in mythic_container.C2ProfileBase.runningServers[c2_profile]:
+                mythic_container.C2ProfileBase.runningServers[c2_profile]["output"].append(line.decode())
+            else:
+                mythic_container.C2ProfileBase.runningServers[c2_profile]["output"] = deque([line.decode()], 100)
 
 
 async def deal_with_stdout(c2_profile: str) -> str:
@@ -380,7 +394,7 @@ async def startServerBinary(
                                                         shell=True, cwd=str(cwd), env=os.environ.copy())
         mythic_container.C2ProfileBase.runningServers[c2.name]["process"] = process
         asyncio.create_task(keep_reading_stdout(c2.name))
-        await asyncio.sleep(3)
+        await asyncio.sleep(1)
         if process.returncode is not None:
             # this means something went wrong and the process is dead
             return mythic_container.C2ProfileBase.C2StartServerMessageResponse(
@@ -445,7 +459,6 @@ async def startServer(msg: bytes) -> bytes:
                 Error=f"Hit exception trying to call server start function function: {traceback.format_exc()}\n{e}"
             )
             return ujson.dumps(response.to_json()).encode()
-
 
 async def stopServer(msg: bytes) -> bytes:
     with c2Mutex:
