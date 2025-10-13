@@ -1,4 +1,10 @@
 
+## [v0.6.1] - 2025-10-13
+
+### Changed
+
+- Fixed the processing for the callbackgraph edge search
+
 ## [v0.6.0] - 2025-10-07
 
 ### Changed

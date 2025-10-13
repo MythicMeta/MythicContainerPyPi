@@ -60,7 +60,7 @@ class MythicRPCCallbackEdgeSearchMessageResult:
 
 
 class MythicRPCCallbackEdgeSearchMessageResponse:
-    Results: list[MythicRPCCallbackEdgeSearchMessageResult]
+    Results: list[MythicRPCCallbackEdgeSearchMessageResult] = []
 
     def __init__(self,
                  success: bool = False,
@@ -69,7 +69,18 @@ class MythicRPCCallbackEdgeSearchMessageResponse:
                  **kwargs):
         self.Success = success
         self.Error = error
-        self.Results = [MythicRPCCallbackEdgeSearchMessageResult(**x) for x in results] if results is not None else []
+        try:
+            for x in results:
+                source = MythicRPCCallbackSearchMessageResult(**x['source'])
+                destination = MythicRPCCallbackSearchMessageResult(**x['destination'])
+                self.Results.append(MythicRPCCallbackEdgeSearchMessageResult(
+                    id=x['id'], c2profile=x['c2profile'], start_timestamp=x['start_timestamp'],
+                    end_timestamp=x['end_timestamp'],
+                    source=source, destination=destination,
+                ))
+        except Exception as e:
+            logger.error(e)
+        #self.Results = [MythicRPCCallbackEdgeSearchMessageResult(**x) for x in results] if results is not None else []
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 

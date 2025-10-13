@@ -102,6 +102,14 @@ class MythicRPCCallbackSearchMessageResult:
                  extra_info: str = None,
                  sleep_info: str = None,
                  timestamp: time = None,
+                 process_short_name: str = None,
+                 registered_payload_id: int = None,
+                 mythictree_groups: str = None,
+                 event_step_instance_id: int = None,
+                 color: str = None,
+                 trigger_on_checkin_after_time: int = None,
+                 impersonation_context: str = None,
+                 cwd: str = None,
                  **kwargs):
         self.ID = id
         self.DisplayID = display_id
@@ -133,6 +141,14 @@ class MythicRPCCallbackSearchMessageResult:
         self.Timestamp = timestamp
         self.Dead = dead
         self.PayloadType = payloadtype
+        self.ProcessShortName = process_short_name
+        self.RegisteredPayloadID = registered_payload_id
+        self.MythicTreeGroups = mythictree_groups
+        self.EventStepInstanceID = event_step_instance_id
+        self.Color = color
+        self.TriggerOnCheckinAfterTime = trigger_on_checkin_after_time
+        self.ImpersonationContext = impersonation_context
+        self.Cwd = cwd
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
     def to_json(self):
@@ -166,7 +182,15 @@ class MythicRPCCallbackSearchMessageResult:
             "sleep_info": self.SleepInfo,
             "timestamp": self.Timestamp,
             "dead": self.Dead,
-            "payloadtype": self.PayloadType
+            "payloadtype": self.PayloadType,
+            "process_short_name": self.ProcessShortName,
+            "registered_payload_id": self.RegisteredPayloadID,
+            "mythictree_groups": self.MythicTreeGroups,
+            "event_step_instance_id": self.EventStepInstanceID,
+            "color": self.Color,
+            "trigger_on_checkin_after_time": self.TriggerOnCheckinAfterTime,
+            "impersonation_context": self.ImpersonationContext,
+            "cwd": self.Cwd
         }
 
 
