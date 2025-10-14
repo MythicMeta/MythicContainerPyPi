@@ -60,7 +60,6 @@ class MythicRPCCallbackEdgeSearchMessageResult:
 
 
 class MythicRPCCallbackEdgeSearchMessageResponse:
-    Results: list[MythicRPCCallbackEdgeSearchMessageResult] = []
 
     def __init__(self,
                  success: bool = False,
@@ -69,6 +68,7 @@ class MythicRPCCallbackEdgeSearchMessageResponse:
                  **kwargs):
         self.Success = success
         self.Error = error
+        self.Results = []
         try:
             for x in results:
                 source = MythicRPCCallbackSearchMessageResult(**x['source'])

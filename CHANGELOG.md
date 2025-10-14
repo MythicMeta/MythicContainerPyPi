@@ -1,4 +1,10 @@
 
+## [v0.6.2] - 2025-10-14
+
+### Changed
+
+- Fixed an issue with the callbackgraph edge search that wouldn't clear results between calls
+
 ## [v0.6.1] - 2025-10-13
 
 ### Changed
