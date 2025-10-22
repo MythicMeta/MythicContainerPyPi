@@ -1,4 +1,10 @@
 
+## [v0.6.3] - 2025-10-22
+
+### Changed
+
+- Fixed an issue with missing parameters for webhook new callback data
+
 ## [v0.6.2] - 2025-10-14
 
 ### Changed

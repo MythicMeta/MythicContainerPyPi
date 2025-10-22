@@ -48,7 +48,10 @@ class NewCallbackWebhookData:
                  sleep_info: str = None,
                  display_id: int = 0,
                  id: int = 0,
-                 integrity_level: int = 2):
+                 integrity_level: int = 2,
+                 cwd: str = None,
+                 impersonation_context: str = None,
+                 **kwargs):
         self.User = user
         self.Host = host
         self.IPs = json.loads(ips) if ips is not None else None
@@ -65,6 +68,10 @@ class NewCallbackWebhookData:
         self.DisplayID = display_id
         self.ID = id
         self.IntegrityLevel = integrity_level
+        self.Cwd = cwd
+        self.ImpersonationContext = impersonation_context
+        for k, v in kwargs.items():
+            logger.info(f"unknown kwarg {k} {v}")
 
     def to_json(self):
         return {
@@ -83,7 +90,9 @@ class NewCallbackWebhookData:
             "display_id": self.DisplayID,
             "id": self.ID,
             "agent_type": self.PayloadType,
-            "integrity_level": self.IntegrityLevel
+            "integrity_level": self.IntegrityLevel,
+            "cwd": self.Cwd,
+            "impersonation_context": self.ImpersonationContext
         }
 
     def __str__(self):
