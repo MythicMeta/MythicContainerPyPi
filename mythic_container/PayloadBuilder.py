@@ -173,6 +173,71 @@ class HideCondition:
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
+class PTRPCDynamicQueryBuildParameterFunctionMessage:
+    """Request to dynamically generate choices for a modal in the UI with a ChooseOne or ChooseMultiple parameter type.
+
+    Attributes:
+        ParameterName (str): Name of the parameter
+        PayloadType (str): Name of the PayloadType
+        SelectedOS (str): The selected OS when the backing payload for this callback was created
+        Secrets (dict): User secrets based on the operator that issued this action
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 parameter_name: str,
+                 payload_type: str,
+                 selected_os: str = "",
+                 secrets: dict = {},
+                 **kwargs
+                 ):
+        self.ParameterName = parameter_name
+        self.PayloadType = payload_type
+        self.SelectedOS = selected_os
+        self.Secrets = secrets
+
+    def to_json(self):
+        return {
+            "parameter_name": self.ParameterName,
+            "payload_type": self.PayloadType,
+            "selected_os": self.SelectedOS,
+            "secrets": self.Secrets,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class PTRPCDynamicQueryBuildParameterFunctionMessageResponse:
+    """Results of performing a dynamic query for a build parameter
+
+    Attributes:
+        Success (bool): Did the dynamic query function successfully execute
+        Error (str): If the dynamic query function failed to run, this is the string error
+        Choices (list[str]): List of the string choices to present back to the user. If there are no valid choices, return []
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 Success: bool = False,
+                 Error: str = None,
+                 Choices: list[str] = []):
+        self.Success = Success
+        self.Error = Error
+        self.Choices = Choices
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+            "choices": self.Choices
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 class BuildParameter:
     """Build Parameter Definition for use when generating payloads
@@ -206,6 +271,10 @@ class BuildParameter:
             An optional list of supported operating systems where this parameter applies
         hide_conditions (list[HideCondition]):
             An optional list of conditions where this parameter should be hidden from view (this is a series of OR not AND conditions)
+        ui_position (int):
+            An optional position/ordering of parameters when displayed in the UI
+        dynamic_query_function:
+            Provide a dynamic query function to be called when the user views that parameter option in the UI to populate choices for the ChooseOne or ChooseMultiple Parameter Types.
     """
 
     def __init__(
@@ -226,6 +295,9 @@ class BuildParameter:
             group_name: str = None,
             supported_os: list[str] = None,
             hide_conditions: list[HideCondition] = None,
+            ui_position: int = 0,
+            dynamic_query_function: Callable[
+                [PTRPCDynamicQueryBuildParameterFunctionMessage], Awaitable[PTRPCDynamicQueryBuildParameterFunctionMessageResponse]] = None,
     ):
         self.name = name
         self.verifier_func = verifier_func
@@ -248,6 +320,10 @@ class BuildParameter:
         self.group_name = group_name
         self.supported_os = supported_os
         self.hide_conditions = hide_conditions
+        self.ui_position = ui_position
+        self.dynamic_query_function = dynamic_query_function
+        if not callable(dynamic_query_function) and dynamic_query_function is not None:
+            raise Exception("dynamic_query_function is not callable")
 
     def to_json(self):
         return {
@@ -265,7 +341,9 @@ class BuildParameter:
                                    self.dictionary_choices] if self.dictionary_choices is not None else None,
             "group_name": self.group_name,
             "supported_os": self.supported_os,
-            "hide_conditions": [x.to_json() for x in self.hide_conditions] if self.hide_conditions is not None else None
+            "hide_conditions": [x.to_json() for x in self.hide_conditions] if self.hide_conditions is not None else None,
+            "ui_position": self.ui_position,
+            "dynamic_query_function": self.dynamic_query_function.__name__ if callable(self.dynamic_query_function) else None,
         }
 
     def __str__(self):

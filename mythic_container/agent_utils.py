@@ -891,6 +891,70 @@ async def commandHelpFunction(msg: bytes) -> bytes:
         return ujson.dumps(response.to_json()).encode()
 
 
+async def dynamicQueryBuildParameterFunction(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, pt in PayloadBuilder.payloadTypes.items():
+            if pt.name == msgDict["payload_type"]:
+                for param in pt.build_parameters:
+                    if param.name == msgDict["parameter_name"]:
+                        if param.dynamic_query_function is not None and callable(param.dynamic_query_function):
+                            try:
+                                result = await param.dynamic_query_function(
+                                    mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessage(**msgDict))
+                            except Exception as callEx:
+                                logger.exception(
+                                    f"Failed to call dynamic query function for {param.name}")
+                                result = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"Failed to call dynamic query function: {traceback.format_exc()}"
+                                )
+                                return ujson.dumps(result.to_json()).encode()
+                            if result is None:
+                                response = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"Failed to call dynamic query function: No result returned"
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                            elif isinstance(result, list):
+                                response = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+                                    Success=True,
+                                    Choices=result
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                            elif isinstance(result, mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse):
+                                return ujson.dumps(result.to_json()).encode()
+                            else:
+                                response = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"unknown result type from function: {result}"
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                        else:
+                            logger.error(f"dynamic query function for {param.name} isn't callable")
+                            response = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+                                Success=False,
+                                Error=f"dynamic query function for {param.name} isn't callable"
+                            )
+                            return ujson.dumps(response.to_json()).encode()
+                response = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+                    Success=False,
+                    Error=f"Failed to find parameter name for dynamic query function: {msgDict['parameter_name']}"
+                )
+                return ujson.dumps(response.to_json()).encode()
+        response = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+            Success=False,
+            Error=f"Failed to find payload type name for dynamic query function: {msgDict['payload_type']}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.PayloadBuilder.PTRPCDynamicQueryBuildParameterFunctionMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call dynamic query function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+
+
 async def RunCommandWithTimeout(command: str, cwd: str, timeoutSeconds: int) -> (bytes, bytes, int):
     proc = await asyncio.create_subprocess_shell(command,
                                                  stdout=asyncio.subprocess.PIPE,

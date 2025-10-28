@@ -791,7 +791,7 @@ class C2ProfileParameter:
         choices (list[str]): Choices for ChooseOne parameter type
         dictionary_choices (list[DictionaryChoice]): Configuration options for the Dictionary parameter type
         crypto_type (bool): Indicate if this value should be used to generate a crypto key or not
-
+        ui_position (int): Optionally indicate an ordering to parameters instead of by name
     Functions:
         to_json(self): return dictionary form of class
     """
@@ -809,6 +809,7 @@ class C2ProfileParameter:
             choices: list[str] = None,
             dictionary_choices: list[DictionaryChoice] = None,
             crypto_type: bool = False,
+            ui_position: int = 0,
     ):
         self.name = name
         self.description = description
@@ -821,6 +822,7 @@ class C2ProfileParameter:
         self.default_value = default_value
         self.crypto_type = crypto_type
         self.dictionary_choices = dictionary_choices
+        self.ui_position = ui_position
 
     def to_json(self):
         return {
@@ -835,7 +837,8 @@ class C2ProfileParameter:
             "crypto_type": self.crypto_type,
             "choices": self.choices,
             "dictionary_choices": [x.to_json() for x in
-                                   self.dictionary_choices] if self.dictionary_choices is not None else None
+                                   self.dictionary_choices] if self.dictionary_choices is not None else None,
+            "ui_position": self.ui_position
         }
 
     def __str__(self):
@@ -880,7 +883,7 @@ class C2Profile:
     agent_icon_bytes: bytes = None
     dark_mode_agent_icon_path: str = None
     dark_mode_agent_icon_bytes: bytes = None
-    parameters: [C2ProfileParameter] = []
+    parameters: list[C2ProfileParameter] = []
 
     async def opsec(self, inputMsg: C2OPSECMessage) -> C2OPSECMessageResponse:
         """Check payload's C2 configuration for OPSEC issues

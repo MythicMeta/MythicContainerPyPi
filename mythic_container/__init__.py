@@ -2,9 +2,9 @@ from .rabbitmq import rabbitmqConnectionClass
 from .mythic_service import start_and_run_forever, test_command
 from .SharedClasses import *
 
-containerVersion = "v1.3.11"
+containerVersion = "v1.3.12"
 
-PyPi_version = "0.6.3"
+PyPi_version = "0.6.4"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -32,6 +32,7 @@ PT_TASK_COMPLETION_FUNCTION_RESPONSE = "pt_task_completion_function_response"
 PT_TASK_PROCESS_RESPONSE = "pt_task_process_response"
 PT_TASK_PROCESS_RESPONSE_RESPONSE = "pt_task_process_response_response"
 PT_COMMAND_HELP_FUNCTION = "pt_command_help_function"
+PT_RPC_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION = "pt_build_parameter_dynamic_query_function"
 # c2 routes
 C2_SYNC_ROUTING_KEY = "c2_sync"
 C2_RPC_RESYNC_ROUTING_KEY = "c2_rpc_resync"

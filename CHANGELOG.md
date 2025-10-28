@@ -1,4 +1,12 @@
 
+## [v0.6.4] - 2025-10-28
+
+### Changed
+
+- Added "ui_position" fields to Payload Type Build Parameters and C2 Profile Parameters
+- Added "dynamic_query_function" option to Payload Type Build Parameters
+- Fixed an issue with bad responses fetching files from Mythic is the response code wasn't 200
+
 ## [v0.6.3] - 2025-10-22
 
 ### Changed
