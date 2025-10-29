@@ -7,8 +7,8 @@ MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES = "mythic_rpc_callback_encrypt_bytes"
 
 class MythicRPCCallbackEncryptBytesMessage:
     def __init__(self,
-                 AgentCallbackID: str,
                  Message: bytes,
+                 AgentCallbackID: str = None,
                  IncludesUUID: bool = False,
                  IsBase64Encoded: bool = True,
                  C2Profile: str = "",

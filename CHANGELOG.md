@@ -1,5 +1,11 @@
 
-## [v0.7.0] - 2025-10-29
+## [v0.6.6] - 2025-10-29
+
+### Changed
+
+- Updating failsafe checks for a few MythicRPC calls to account for missing parameters
+
+## [v0.6.5] - 2025-10-29
 
 ### Changed
 

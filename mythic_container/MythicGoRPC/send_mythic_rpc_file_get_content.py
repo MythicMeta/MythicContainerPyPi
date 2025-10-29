@@ -7,7 +7,7 @@ MYTHIC_RPC_FILE_GET_CONTENT = "mythic_rpc_file_get_content"
 
 class MythicRPCFileGetContentMessage:
     def __init__(self,
-                 AgentFileID: str,
+                 AgentFileID: str = None,
                  **kwargs):
         self.AgentFileID = AgentFileID
         for k, v in kwargs.items():
