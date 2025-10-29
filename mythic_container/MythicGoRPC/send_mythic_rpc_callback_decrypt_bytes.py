@@ -7,23 +7,27 @@ MYTHIC_RPC_CALLBACK_DECRYPT_BYTES = "mythic_rpc_callback_decrypt_bytes"
 
 class MythicRPCCallbackDecryptBytesMessage:
     def __init__(self,
-                 AgentCallbackUUID: str,
+                 AgentCallbackID: str,
                  Message: bytes,
                  IncludesUUID: bool = False,
                  IsBase64Encoded: bool = True,
                  C2Profile: str = "",
                  **kwargs):
-        self.AgentCallbackUUID = AgentCallbackUUID
+        self.AgentCallbackID = AgentCallbackID
         self.Message = Message
         self.IncludesUUID = IncludesUUID
         self.IsBase64Encoded = IsBase64Encoded
         self.C2Profile = C2Profile
         for k, v in kwargs.items():
+            if k == "AgentCallbackUUID":
+                self.AgentCallbackID = v
+                logger.warning("MythicRPCCallbackDecryptBytesMessage using old API call, update AgentCallbackUUID to AgentCallbackID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
-            "agent_callback_id": self.AgentCallbackUUID,
+            "agent_callback_id": self.AgentCallbackID,
             "message": base64.b64encode(self.Message).decode(),
             "include_uuid": self.IncludesUUID,
             "base64_message": self.IsBase64Encoded,

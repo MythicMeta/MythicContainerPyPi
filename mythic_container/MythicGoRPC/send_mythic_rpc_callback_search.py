@@ -7,11 +7,11 @@ MYTHIC_RPC_CALLBACK_SEARCH = "mythic_rpc_callback_search"
 
 class MythicRPCCallbackSearchMessage:
     def __init__(self,
-                 AgentCallbackUUID: str = None,
-                 AgentCallbackID: int = None,
+                 AgentCallbackID: str = None,
+                 CallbackID: int = None,
                  SearchCallbackID: int = None,
                  SearchCallbackDisplayID: int = None,
-                 SearchCallbackUUID: str = None,
+                 SearchAgentCallbackID: str = None,
                  SearchCallbackUser: str = None,
                  SearchCallbackHost: str = None,
                  SearchCallbackPID: int = None,
@@ -24,13 +24,13 @@ class MythicRPCCallbackSearchMessage:
                  SearchCallbackDomain: str = None,
                  SearchCallbackArchitecture: str = None,
                  SearchCallbackDescription: str = None,
-                 SearchCallbackPayloadTypes: [str] = None,
+                 SearchCallbackPayloadTypes: list[str] = None,
                  **kwargs):
         self.AgentCallbackID = AgentCallbackID
-        self.AgentCallbackUUID = AgentCallbackUUID
-        self.SearchCallbackID = SearchCallbackID
+        self.CallbackID = CallbackID
+        self.SearchAgentCallbackID = SearchAgentCallbackID
         self.SearchCallbackDisplayID = SearchCallbackDisplayID
-        self.SearchCallbackUUID = SearchCallbackUUID
+        self.SearchCallbackID = SearchCallbackID
         self.SearchCallbackUser = SearchCallbackUser
         self.SearchCallbackHost = SearchCallbackHost
         self.SearchCallbackPID = SearchCallbackPID
@@ -45,15 +45,30 @@ class MythicRPCCallbackSearchMessage:
         self.SearchCallbackDescription = SearchCallbackDescription
         self.SearchCallbackPayloadTypes = SearchCallbackPayloadTypes
         for k, v in kwargs.items():
+            if k == "AgentCallbackUUID":
+                self.AgentCallbackID = v
+                logger.warning("MythicRPCCallbackSearchMessage using old API call, update AgentCallbackUUID to AgentCallbackID")
+                continue
+            if k == "AgentCallbackID":
+                if isinstance(v, str):
+                    self.AgentCallbackID = v
+                if isinstance(v, int):
+                    self.CallbackID = v
+                    logger.warning("MythicRPCCallbackSearchMessage using old API call, update AgentCallbackID to CallbackID")
+                continue
+            if k == "SearchCallbackUUID":
+                self.SearchAgentCallbackID = v
+                logger.warning("MythicRPCCallbackSearchMessage using old API call, update SearchCallbackUUID to SearchAgentCallbackID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
-            "agent_callback_id": self.AgentCallbackUUID,
-            "callback_id": self.AgentCallbackID,
+            "agent_callback_id": self.AgentCallbackID,
+            "callback_id": self.CallbackID,
             "search_callback_id": self.SearchCallbackID,
             "search_callback_display_id": self.SearchCallbackDisplayID,
-            "search_callback_uuid": self.SearchCallbackUUID,
+            "search_callback_uuid": self.SearchAgentCallbackID,
             "user": self.SearchCallbackUser,
             "host": self.SearchCallbackHost,
             "pid": self.SearchCallbackPID,

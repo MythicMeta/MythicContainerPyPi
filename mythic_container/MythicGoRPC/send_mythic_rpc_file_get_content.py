@@ -7,15 +7,19 @@ MYTHIC_RPC_FILE_GET_CONTENT = "mythic_rpc_file_get_content"
 
 class MythicRPCFileGetContentMessage:
     def __init__(self,
-                 AgentFileId: str,
+                 AgentFileID: str,
                  **kwargs):
-        self.AgentFileId = AgentFileId
+        self.AgentFileID = AgentFileID
         for k, v in kwargs.items():
+            if k == "AgentFileId":
+                self.AgentFileID = v
+                logger.warning("MythicRPCFileGetContentMessage using old API call, update AgentFileId to AgentFileID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
-            "file_id": self.AgentFileId,
+            "file_id": self.AgentFileID,
         }
 
 
@@ -34,7 +38,7 @@ class MythicRPCFileGetContentMessageResponse:
 
 async def SendMythicRPCFileGetContent(
         msg: MythicRPCFileGetContentMessage) -> MythicRPCFileGetContentMessageResponse:
-    content = await getFileFromMythic(agentFileId=msg.AgentFileId)
+    content = await getFileFromMythic(agentFileId=msg.AgentFileID)
 
     return MythicRPCFileGetContentMessageResponse(
         success=content is not None,

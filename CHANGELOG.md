@@ -1,4 +1,27 @@
 
+## [v0.7.0] - 2025-10-29
+
+### Changed
+
+- Added SendMythicRPCCallbackEdgeRemove
+- Added SendMythicRPCHandleAgentMessageJson
+- Updated the following MythicRPC calls to be consistent about CallbackID, AgentCallbackID, and the use of ID in general:
+  - CallbackID is always an Int, AgentCallbackID is the UUID string, and all ID variables should have capital ID not Id
+  - SendMythicRPCCallbackAddCommand: CallbackAgentUUID -> AgentCallbackID
+  - SendMythicRPCCallbackDecryptBytes: AgentCallbackUUID -> AgentCallbackID
+  - SendMythicRPCCallbackEdgeSearch: AgentCallbackUUID -> AgentCallbackID, AgentCallbackID -> CallbackID
+  - SendMythicRPCCallbackEncryptBytes: AgentCallbackUUID -> AgentCallbackID
+  - SendMythicRPCCallbackRemoveCommand: AgentCallbackUUID -> AgentCallbackID
+  - SendMythicRPCCallbackSearch: AgentCallbackUUID -> AgentCallbackID, AgentCallbackID -> CallbackID, SearchCallbackUUID -> SearchAgentCallbackID
+  - SendMythicRPCCallbackUpdate: AgentCallbackUUID -> AgentCallbackID
+  - SendMythicRPCCallbackTokenCreate: TokenId -> TokenID
+  - SendMythicRPCFileGetContent: AgentFileId -> AgentFileID
+  - SendMythicRPCFileCreate: AgentFileId -> AgentFileID
+  - SendMythicRPCFileSearch: AgentFileId -> AgentFileID
+  - SendMythicRPCOperationEventLogCreate: TaskId -> TaskID, CallbackId -> CallbackID, CallbackAgentId -> AgentCallbackID, OperationId -> OperationID
+  - SendMythicRPCPayloadOnHostCreate: PayloadId -> PayloadID
+  - Failsafe checks are added to account for old naming, but warning messages are emitted when an old name is detected
+
 ## [v0.6.4] - 2025-10-28
 
 ### Changed

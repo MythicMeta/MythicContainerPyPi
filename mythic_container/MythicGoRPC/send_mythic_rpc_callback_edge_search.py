@@ -7,23 +7,37 @@ MYTHIC_RPC_CALLBACK_EDGE_SEARCH = "mythic_rpc_callback_edge_search"
 
 
 class MythicRPCCallbackEdgeSearchMessage:
+    """
+    CallbackID or AgentCallbackID is required
+    """
     def __init__(self,
-                 AgentCallbackUUID: str = None,
-                 AgentCallbackID: int = None,
+                 AgentCallbackID: str = None,
+                 CallbackID: int = None,
                  SearchC2ProfileName: str = None,
                  SearchActiveEdgesOnly: bool = False,
                  **kwargs):
+        self.CallbackID = CallbackID
         self.AgentCallbackID = AgentCallbackID
-        self.AgentCallbackUUID = AgentCallbackUUID
         self.SearchC2ProfileName = SearchC2ProfileName
         self.SearchActiveEdgesOnly = SearchActiveEdgesOnly
         for k, v in kwargs.items():
+            if k == "AgentCallbackUUID":
+                self.AgentCallbackID = v
+                logger.warning("MythicRPCCallbackEdgeSearchMessage using old API call, update AgentCallbackUUID to AgentCallbackID")
+                continue
+            if k == "AgentCallbackID":
+                if isinstance(v, str):
+                    self.AgentCallbackID = v
+                if isinstance(v, int):
+                    self.CallbackID = v
+                    logger.warning("MythicRPCCallbackEdgeSearchMessage using old API call, update AgentCallbackID to CallbackID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
-            "agent_callback_id": self.AgentCallbackUUID,
-            "callback_id": self.AgentCallbackID,
+            "agent_callback_id": self.AgentCallbackID,
+            "callback_id": self.CallbackID,
             "search_c2_profile_name": self.SearchC2ProfileName,
             "search_active_edges_only": self.SearchActiveEdgesOnly,
         }
@@ -68,16 +82,17 @@ class MythicRPCCallbackEdgeSearchMessageResponse:
                  **kwargs):
         self.Success = success
         self.Error = error
-        self.Results = []
+        self.Results: list[MythicRPCCallbackEdgeSearchMessageResult] =  []
         try:
-            for x in results:
-                source = MythicRPCCallbackSearchMessageResult(**x['source'])
-                destination = MythicRPCCallbackSearchMessageResult(**x['destination'])
-                self.Results.append(MythicRPCCallbackEdgeSearchMessageResult(
-                    id=x['id'], c2profile=x['c2profile'], start_timestamp=x['start_timestamp'],
-                    end_timestamp=x['end_timestamp'],
-                    source=source, destination=destination,
-                ))
+            if success:
+                for x in results:
+                    source = MythicRPCCallbackSearchMessageResult(**x['source'])
+                    destination = MythicRPCCallbackSearchMessageResult(**x['destination'])
+                    self.Results.append(MythicRPCCallbackEdgeSearchMessageResult(
+                        id=x['id'], c2profile=x['c2profile'], start_timestamp=x['start_timestamp'],
+                        end_timestamp=x['end_timestamp'],
+                        source=source, destination=destination,
+                    ))
         except Exception as e:
             logger.error(e)
         #self.Results = [MythicRPCCallbackEdgeSearchMessageResult(**x) for x in results] if results is not None else []

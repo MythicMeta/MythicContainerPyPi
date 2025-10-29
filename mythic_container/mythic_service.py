@@ -798,7 +798,7 @@ async def startSharedServices(containerName: str):
 async def start_services():
     initialize()
     logger.info(
-        f"[+] Starting Services with version {mythic_container.containerVersion} and PyPi version {mythic_container.PyPi_version}\n")
+        f"[+] Starting Services with version {mythic_container.containerVersion} and PyPi version {mythic_container.PyPi_version}")
     webhook_services = WebhookBase.Webhook.__subclasses__()
     for cls in webhook_services:
         logger.info(f"[*] Processing webhook service")

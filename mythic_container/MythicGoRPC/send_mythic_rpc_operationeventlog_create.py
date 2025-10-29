@@ -3,33 +3,50 @@ from mythic_container.logging import logger
 
 MYTHIC_RPC_EVENTLOG_CREATE = "mythic_rpc_eventlog_create"
 
+MESSAGE_LEVEL_INFO           = "info"
+MESSAGE_LEVEL_DEBUG          = "debug"
+MESSAGE_LEVEL_AUTH           = "auth"
+MESSAGE_LEVEL_AGENT_MESSAGE  = "agent"
+MESSAGE_LEVEL_API            = "api"
 
 class MythicRPCOperationEventLogCreateMessage:
     def __init__(self,
                  TaskID: int = None,
-                 CallbackId: int = None,
-                 CallbackAgentId: str = None,
-                 OperationId: int = None,
+                 CallbackID: int = None,
+                 AgentCallbackID: str = None,
+                 OperationID: int = None,
                  Message: str = None,
                  MessageLevel: str = "info",  # info, debug, auth, api, agent_message
                  Warning: bool = False,
                  **kwargs):
         self.TaskID = TaskID
-        self.CallbackId = CallbackId
-        self.CallbackAgentId = CallbackAgentId
-        self.OperationId = OperationId
+        self.CallbackID = CallbackID
+        self.AgentCallbackID = AgentCallbackID
+        self.OperationID = OperationID
         self.Message = Message
         self.MessageLevel = MessageLevel
         self.Warning = Warning
         for k, v in kwargs.items():
+            if k == "CallbackId":
+                self.CallbackID = v
+                logger.warning("MythicRPCOperationEventLogCreateMessage using old API call, update CallbackId to CallbackID")
+                continue
+            if k == "AgentCallbackId":
+                self.AgentCallbackID = v
+                logger.warning("MythicRPCOperationEventLogCreateMessage using old API call, update AgentCallbackId to AgentCallbackID")
+                continue
+            if k == "OperationId":
+                self.OperationID = v
+                logger.warning("MythicRPCOperationEventLogCreateMessage using old API call, update OperationId to OperationID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
             "task_id": self.TaskID,
-            "callback_id": self.CallbackId,
-            "callback_agent_id": self.CallbackAgentId,
-            "operation_id": self.OperationId,
+            "callback_id": self.CallbackID,
+            "callback_agent_id": self.AgentCallbackID,
+            "operation_id": self.OperationID,
             "message": self.Message,
             "level": self.MessageLevel,
             "warning": self.Warning

@@ -6,7 +6,7 @@ MYTHIC_RPC_CALLBACK_UPDATE = "mythic_rpc_callback_update"
 
 class MythicRPCCallbackUpdateMessage:
     def __init__(self,
-                 AgentCallbackUUID: str = None,
+                 AgentCallbackID: str = None,
                  CallbackID: int = None,
                  TaskID: int = None,
                  EncryptionKeyBase64: str = None,
@@ -28,7 +28,7 @@ class MythicRPCCallbackUpdateMessage:
                  UpdateLastCheckinTime: bool = False,
                  UpdateLastCheckinTimeViaC2Profile: str = None,
                  **kwargs):
-        self.AgentCallbackUUID = AgentCallbackUUID
+        self.AgentCallbackID = AgentCallbackID
         self.CallbackID = CallbackID
         self.TaskID = TaskID
         self.EncryptionKeyBase64 = EncryptionKeyBase64
@@ -50,11 +50,15 @@ class MythicRPCCallbackUpdateMessage:
         self.UpdateLastCheckinTime = UpdateLastCheckinTime
         self.UpdateLastCheckinTimeViaC2Profile = UpdateLastCheckinTimeViaC2Profile
         for k, v in kwargs.items():
+            if k == "AgentCallbackUUID":
+                self.AgentCallbackID = v
+                logger.warning("MythicRPCCallbackUpdateMessage using old API call, update AgentCallbackUUID to AgentCallbackID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
-            "agent_callback_id": self.AgentCallbackUUID,
+            "agent_callback_id": self.AgentCallbackID,
             "callback_id": self.CallbackID,
             "task_id": self.TaskID,
             "encryption_key": self.EncryptionKeyBase64,

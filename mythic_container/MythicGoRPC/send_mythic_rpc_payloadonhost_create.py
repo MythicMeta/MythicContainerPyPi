@@ -8,18 +8,22 @@ MYTHIC_RPC_PAYLOADONHOST_CREATE = "mythic_rpc_payloadonhost_create"
 class MythicRPCPayloadOnHostCreateData:
     def __init__(self,
                  Host: str = None,
-                 PayloadId: int = None,
+                 PayloadID: int = None,
                  PayloadUUID: str = None,
                  **kwargs):
         self.Host = Host
-        self.PayloadId = PayloadId
+        self.PayloadID = PayloadID
         self.PayloadUUID = PayloadUUID
         for k, v in kwargs.items():
+            if k == "PayloadId":
+                self.PayloadID = v
+                logger.warning("MythicRPCPayloadOnHostCreateData using old API call, update PayloadId to PayloadID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
     def to_json(self):
         return {
             "host": self.Host,
-            "payload_id": self.PayloadId,
+            "payload_id": self.PayloadID,
             "payload_uuid": self.PayloadUUID
         }
 

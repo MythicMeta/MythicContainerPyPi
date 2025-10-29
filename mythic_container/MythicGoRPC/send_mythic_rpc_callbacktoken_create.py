@@ -63,14 +63,18 @@ class MythicRPCCallbackTokenData:
     def __init__(self,
                  Action: str = "add",
                  Host: str = None,
-                 TokenId: int = None,
+                 TokenID: int = None,
                  TokenInfo: Token = None,
                  **kwargs):
         self.Host = Host
         self.Action = Action
         self.TokenInfo = TokenInfo
-        self.TokenId = TokenId
+        self.TokenID = TokenID
         for k, v in kwargs.items():
+            if k == "TokenId":
+                self.TokenID = v
+                logger.warning("MythicRPCCallbackTokenData using old API call, update TokenId to TokenID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
@@ -78,7 +82,7 @@ class MythicRPCCallbackTokenData:
             "host": self.Host,
             "action": self.Action,
             "token": self.TokenInfo.to_json() if self.TokenInfo is not None else None,
-            "token_id": self.TokenId
+            "token_id": self.TokenID
         }
 
 

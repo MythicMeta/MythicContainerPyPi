@@ -8,23 +8,27 @@ class MythicRPCCallbackAddCommandMessage:
     def __init__(self,
                  Commands: list[str],
                  TaskID: int = None,
-                 CallbackAgentUUID: str = None,
+                 AgentCallbackID: str = None,
                  PayloadType: str = None,
                  CallbackIDs: list[int] = [],
                  **kwargs):
         self.TaskID = TaskID
-        self.CallbackAgentUUID = CallbackAgentUUID
+        self.AgentCallbackID = AgentCallbackID
         self.Commands = Commands
         self.PayloadType = PayloadType
         self.CallbackIDs = CallbackIDs
         for k, v in kwargs.items():
+            if k == "CallbackAgentUUID":
+                self.AgentCallbackID = v
+                logger.warning("MythicRPCCallbackAddCommandMessage using old API call, update CallbackAgentUUID to AgentCallbackID")
+                continue
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
             "task_id": self.TaskID,
             "commands": self.Commands,
-            "callback_agent_id": self.CallbackAgentUUID,
+            "agent_callback_id": self.AgentCallbackID,
             "payload_type": self.PayloadType,
             "callback_ids": self.CallbackIDs
         }

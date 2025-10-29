@@ -9,6 +9,7 @@ from .send_mythic_rpc_c2_update_status import *
 from .send_mythic_rpc_callback_add_command import *
 from .send_mythic_rpc_callback_create import *
 from .send_mythic_rpc_callback_decrypt_bytes import *
+from .send_mythic_rpc_callback_edge_remove import *
 from .send_mythic_rpc_callback_edge_search import *
 from .send_mythic_rpc_callback_encrypt_bytes import *
 from .send_mythic_rpc_callback_next_checkin_range import *
@@ -28,6 +29,7 @@ from .send_mythic_rpc_file_update import *
 from .send_mythic_rpc_filebrowser_create import *
 from .send_mythic_rpc_filebrowser_parse_path import *
 from .send_mythic_rpc_filebrowser_remove import *
+from .send_mythic_rpc_handle_agent_message_json import *
 from .send_mythic_rpc_keylog_create import *
 from .send_mythic_rpc_keylog_search import *
 from .send_mythic_rpc_operationeventlog_create import *

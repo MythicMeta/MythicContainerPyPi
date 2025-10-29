@@ -6,13 +6,15 @@ MYTHIC_RPC_TASK_CREATE = "mythic_rpc_task_create"
 
 class MythicRPCTaskCreateMessage:
     def __init__(self,
-                 AgentCallbackID: str,
+                 AgentCallbackID: str = None,
+                 CallbackID: int = None,
                  CommandName: str = None,
                  Params: str = None,
                  ParameterGroupName: str = None,
                  Token: int = None,
                  **kwargs):
         self.AgentCallbackID = AgentCallbackID
+        self.CallbackID = CallbackID
         self.CommandName = CommandName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
@@ -23,6 +25,7 @@ class MythicRPCTaskCreateMessage:
     def to_json(self):
         return {
             "agent_callback_id": self.AgentCallbackID,
+            "callback_id": self.CallbackID,
             "command_name": self.CommandName,
             "params": self.Params,
             "parameter_group_name": self.ParameterGroupName,

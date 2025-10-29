@@ -64,6 +64,7 @@ class FileData:
                  tags: list[str] = None,
                  complete: bool = None,
                  **kwargs):
+        self.AgentFileID = agent_file_id
         self.AgentFileId = agent_file_id
         self.Filename = filename
         self.Comment = comment
@@ -83,7 +84,7 @@ class FileData:
             logger.info(f"unknown kwarg {k} with value {v}")
     def to_json(self):
         return {
-            "agent_file_id": self.AgentFileId,
+            "agent_file_id": self.AgentFileID,
             "filename": self.Filename,
             "comment": self.Comment,
             "is_payload": self.IsPayload,
