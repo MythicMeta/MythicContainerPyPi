@@ -219,7 +219,7 @@ class C2GetIOCMessageResponse:
         return {
             "success": self.Success,
             "error": self.Error,
-            "iocs": self.IOCs
+            "iocs": [ioc.to_json() for ioc in self.IOCs]
         }
 
     def __str__(self):
