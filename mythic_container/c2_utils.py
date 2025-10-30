@@ -192,7 +192,7 @@ async def getIOC(msg: bytes) -> bytes:
             if c2.name == msgDict["c2_profile_name"]:
                 if callable(c2.get_ioc):
                     try:
-                        result = await c2.config_check(mythic_container.C2ProfileBase.C2GetIOCMessage(**msgDict))
+                        result = await c2.get_ioc(mythic_container.C2ProfileBase.C2GetIOCMessage(**msgDict))
                     except Exception as callEx:
                         logger.exception(
                             f"Failed to call get_ioc for {c2.name}")
@@ -244,7 +244,7 @@ async def sampleMessage(msg: bytes) -> bytes:
             if c2.name == msgDict["c2_profile_name"]:
                 if callable(c2.sample_message):
                     try:
-                        result = await c2.config_check(mythic_container.C2ProfileBase.C2SampleMessageMessage(**msgDict))
+                        result = await c2.sample_message(mythic_container.C2ProfileBase.C2SampleMessageMessage(**msgDict))
                     except Exception as callEx:
                         logger.exception(
                             f"Failed to call get_ioc for {c2.name}")
