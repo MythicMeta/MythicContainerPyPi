@@ -1,4 +1,10 @@
 
+## [v0.6.7] - 2025-10-30
+
+### Changed
+
+- Merging PR for getIOC and getSampleMessage fixes
+
 ## [v0.6.6] - 2025-10-29
 
 ### Changed
