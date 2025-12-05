@@ -749,7 +749,7 @@ class PayloadType:
             An optional function to allow you to specify your own "help" function that is used instead of Mythic's default "help" output
         c2_parameter_deviations (dict[str, dict[str, C2ParameterDeviation]]):
             This is a map of optional c2 specific parameter deviations. The first key is the c2 profile name and the second key is the parameter name, so for example:
-            {"HTTP": {"AESPSK": C2ParameterDeviation(supported=True, choices=["none"], default_value="none")}}
+            {"http": {"AESPSK": C2ParameterDeviation(supported=True, choices=["none"], default_value="none")}}
     Functions:
         build(self):
             Given an instance of a bare payload and all the configuration options that the user selected (build parameters, c2 profile parameters), build the payload
