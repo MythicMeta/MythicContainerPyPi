@@ -147,7 +147,7 @@ class CommandAttributes:
 
     def __init__(self,
                  spawn_and_injectable: bool = False,
-                 supported_os: [SupportedOS] = None,
+                 supported_os: List[SupportedOS] = None,
                  builtin: bool = False,
                  suggested_command: bool = False,
                  load_only: bool = False,
@@ -299,7 +299,7 @@ class PTRPCDynamicQueryFunctionMessageResponse:
     def __init__(self,
                  Success: bool = False,
                  Error: str = None,
-                 Choices: list[str] = []):
+                 Choices: List[str] = []):
         self.Success = Success
         self.Error = Error
         self.Choices = Choices
@@ -407,7 +407,7 @@ class CommandParameter:
         parameter_group_info (list[ParameterGroupInfo]): Define 0+ different parameter groups that this parameter belongs to.
         dynamic_query_function: Provide a dynamic query function to be called when the user views that parameter option in the UI to populate choices for the ChooseOne or ChooseMultiple Parameter Types.
         limit_credentials_by_type (list[str]): List of supported credential types when parameter type is CredentialJson. Blank would allow all credential types.
-
+        verifier_regex (str): Optional regex used to verify that the parameter value is as expected
     Functions:
         to_json(self): return dictionary form of class
     """
@@ -415,14 +415,14 @@ class CommandParameter:
     def __init__(
             self,
             name: str,
-            type: ParameterType,
+            type: ParameterType = ParameterType.String,
             display_name: str = None,
             cli_name: str = None,
             description: str = "",
             choices: List[str] = None,
-            default_value: any = None,
+            default_value = None,
             validation_func: callable = None,
-            value: any = None,
+            value = None,
             supported_agents: List[str] = None,
             supported_agent_build_parameters: dict = None,
             choice_filter_by_command_attributes: dict = None,
@@ -432,8 +432,9 @@ class CommandParameter:
                 [PTRPCDynamicQueryFunctionMessage], Awaitable[PTRPCDynamicQueryFunctionMessageResponse]] = None,
             typedarray_parse_function: Callable[
                 [PTRPCTypedArrayParseFunctionMessage], Awaitable[PTRPCTypedArrayParseFunctionMessageResponse]] = None,
-            parameter_group_info: [ParameterGroupInfo] = None,
+            parameter_group_info: List[ParameterGroupInfo] = None,
             limit_credentials_by_type: List[str] = None,
+            verifier_regex: str = None,
     ):
         self.name = name
         if display_name is None:
@@ -472,6 +473,7 @@ class CommandParameter:
         if self.parameter_group_info is None:
             self.parameter_group_info = [ParameterGroupInfo()]
         self.limit_credentials_by_type = limit_credentials_by_type
+        self.verifier_regex = verifier_regex
 
     @property
     def name(self):
@@ -612,7 +614,8 @@ class CommandParameter:
             "parameter_group_info": [x.to_json() for x in
                                      self.parameter_group_info] if self.parameter_group_info is not None else [
                 ParameterGroupInfo().to_json()],
-            "limit_credentials_by_type": self._limit_credentials_by_type if self._limit_credentials_by_type is not None else []
+            "limit_credentials_by_type": self._limit_credentials_by_type if self._limit_credentials_by_type is not None else [],
+            "verifier_regex": self.verifier_regex,
         }
 
     def __str__(self):
@@ -797,7 +800,7 @@ class TaskArguments(metaclass=ABCMeta):
         return len(self.args) == 0
 
     def add_arg(self, key: str, value, type: ParameterType = None,
-                parameter_group_info: [ParameterGroupInfo] = None):
+                parameter_group_info: list[ParameterGroupInfo] = None):
         found = False
         for arg in self.args:
             if arg.name == key:
@@ -937,7 +940,7 @@ class TaskArguments(metaclass=ABCMeta):
         else:
             return groupNameOptions[0]
 
-    def get_parameter_group_arguments(self) -> [CommandParameter]:
+    def get_parameter_group_arguments(self) -> list[CommandParameter]:
         groupName = self.get_parameter_group_name()
         group_arguments = []
         for arg in self.args:

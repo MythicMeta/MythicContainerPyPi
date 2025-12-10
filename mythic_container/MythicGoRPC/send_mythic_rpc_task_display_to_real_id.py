@@ -7,7 +7,7 @@ MYTHIC_RPC_TASK_DISPLAY_TO_REAL_ID_SEARCH = "mythic_rpc_task_display_to_real_id_
 class MythicRPCTaskDisplayToRealIdSearchMessage:
     def __init__(self,
                  TaskDisplayID: int,
-                 OperationName: str = "",
+                 OperationName: str = None,
                  OperationID: int = None,
                  **kwargs):
         self.TaskDisplayID = TaskDisplayID

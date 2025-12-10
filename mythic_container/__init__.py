@@ -2,9 +2,9 @@ from .rabbitmq import rabbitmqConnectionClass
 from .mythic_service import start_and_run_forever, test_command
 from .SharedClasses import *
 
-containerVersion = "v1.4.0"
+containerVersion = "v1.4.1"
 
-PyPi_version = "0.6.6"
+PyPi_version = "0.6.8"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -92,3 +92,7 @@ AUTH_RPC_PROCESS_NONIDP_RESPONSE = "auth_rpc_process_nonidp_response"
 
 CONTAINER_ON_START          = "container_on_start"
 CONTAINER_ON_START_RESPONSE = "container_on_start_response"
+
+CUSTOMBROWSER_SYNC_ROUTING_KEY         = "custombrowser_sync"
+CUSTOMBROWSER_EXPORT_FUNCTION          = "custombrowser_exportfunction"
+CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE = "custombrowser_exportfunction_response"

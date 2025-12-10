@@ -40,10 +40,10 @@ async def CustomFunction(msg: bytes) -> None:
         msgDict = ujson.loads(msg)
         for name, pt in EventingBase.eventingServices.items():
             if pt.name == msgDict["container_name"]:
-                for conditionalDef in pt.custom_functions:
-                    if conditionalDef.Name == msgDict["function_name"]:
+                for customDef in pt.custom_functions:
+                    if customDef.Name == msgDict["function_name"]:
                         try:
-                            response = await conditionalDef.Function(EventingBase.NewCustomEventingMessage(**msgDict))
+                            response = await customDef.Function(EventingBase.NewCustomEventingMessage(**msgDict))
                             response.EventStepInstanceID = msgDict["eventstepinstance_id"]
                         except Exception as e:
                             response = EventingBase.NewCustomEventingMessageResponse(

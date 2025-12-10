@@ -7,7 +7,7 @@ MYTHIC_RPC_CALLBACK_DISPLAY_TO_REAL_ID_SEARCH = "mythic_rpc_callback_display_to_
 class MythicRPCCallbackDisplayToRealIdSearchMessage:
     def __init__(self,
                  CallbackDisplayID: int,
-                 OperationName: str = "",
+                 OperationName: str = None,
                  OperationID: int = None,
                  **kwargs):
         self.CallbackDisplayID = CallbackDisplayID

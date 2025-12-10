@@ -300,8 +300,8 @@ class Eventing:
     task_intercept_function: Callable[[TaskInterceptMessage], Awaitable[TaskInterceptMessageResponse]] = None
     response_intercept_function: Callable[
         [ResponseInterceptMessage], Awaitable[ResponseInterceptMessageResponse]] = None
-    custom_functions: [CustomFunctionDefinition] = []
-    conditional_checks: [ConditionalCheckDefinition] = []
+    custom_functions: list[CustomFunctionDefinition] = []
+    conditional_checks: list[ConditionalCheckDefinition] = []
 
     async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
         return ContainerOnStartMessageResponse(ContainerName=self.name)

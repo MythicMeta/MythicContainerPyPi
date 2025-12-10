@@ -25,8 +25,11 @@ class MythicRPCCallbackUpdateMessage:
                  Architecture: str = None,
                  Description: str = None,
                  ProcessName: str = None,
+                 Cwd: str = None,
+                 ImpersonationContext: str = None,
                  UpdateLastCheckinTime: bool = False,
                  UpdateLastCheckinTimeViaC2Profile: str = None,
+                 Dead: bool = None,
                  **kwargs):
         self.AgentCallbackID = AgentCallbackID
         self.CallbackID = CallbackID
@@ -47,8 +50,11 @@ class MythicRPCCallbackUpdateMessage:
         self.Architecture = Architecture
         self.Description = Description
         self.ProcessName = ProcessName
+        self.Cwd = Cwd
+        self.ImpersonationContext = ImpersonationContext
         self.UpdateLastCheckinTime = UpdateLastCheckinTime
         self.UpdateLastCheckinTimeViaC2Profile = UpdateLastCheckinTimeViaC2Profile
+        self.Dead = Dead
         for k, v in kwargs.items():
             if k == "AgentCallbackUUID":
                 self.AgentCallbackID = v
@@ -77,8 +83,11 @@ class MythicRPCCallbackUpdateMessage:
             "architecture": self.Architecture,
             "description": self.Description,
             "process_name": self.ProcessName,
+            "cwd": self.Cwd,
+            "impersonation_context": self.ImpersonationContext,
             "update_last_checkin_time": self.UpdateLastCheckinTime,
-            "update_last_checkin_time_via_c2_profile": self.UpdateLastCheckinTimeViaC2Profile
+            "update_last_checkin_time_via_c2_profile": self.UpdateLastCheckinTimeViaC2Profile,
+            "dead": self.Dead,
         }
 
 

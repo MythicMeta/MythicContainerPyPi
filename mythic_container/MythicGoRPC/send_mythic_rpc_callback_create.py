@@ -25,6 +25,9 @@ class MythicRPCCallbackCreateMessage:
                  Os: str = "",
                  Domain: str = "",
                  Architecture: str = "",
+                 Cwd: str = "",
+                 Impersonation_Context: str = "",
+                 ProcessName: str = "",
                  **kwargs):
         self.PayloadUUID = PayloadUUID
         self.C2ProfileName = C2ProfileName
@@ -48,6 +51,9 @@ class MythicRPCCallbackCreateMessage:
         self.Os = Os
         self.Domain = Domain
         self.Architecture = Architecture
+        self.Cwd = Cwd
+        self.Impersonation_Context = Impersonation_Context
+        self.ProcessName = ProcessName
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -68,7 +74,10 @@ class MythicRPCCallbackCreateMessage:
             "integrity_level": self.IntegrityLevel,
             "os": self.Os,
             "domain": self.Domain,
-            "architecture": self.Architecture
+            "architecture": self.Architecture,
+            "cwd": self.Cwd,
+            "impersonation_context": self.Impersonation_Context,
+            "process_name": self.ProcessName,
         }
 
 

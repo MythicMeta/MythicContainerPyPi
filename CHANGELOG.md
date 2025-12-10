@@ -1,4 +1,20 @@
 
+## [v0.6.8] - 2025-12-10
+
+### Changed
+
+- Added new `CustomBrowser` class in `CustomBrowserBase`
+- Added new `HideConditionOperand` values for PayloadType's BuildParameter Hide Conditions
+- Added `verifier_regex` option to Command Parameters
+- Updated imports in `__init__.py` for MythicGoRPC
+- Updated `SendMythicRPCCallbackCreate` to allow supplying `Cwd`, `ImpersonationContext`, and `ProcessName` parameters
+- Updated `MythicRPCCallbackDisplayToRealIdSearch` to supply `None` instead of default `""` for `OperationName`
+- Updated `MythicRPCTaskDisplayToRealIdSearch` to supply `None` instead of default `""` for `OperationName`
+- Updated `SendMythicRPCCallbackUpdate` to allow supplying `Cwd`, `ImpersonationContext`, and `Dead` parameters
+- Added `SendMythicRPCCallbackTokenSearch`
+- Added `SendMythicRPCCustomBrowserSearch`
+- Updated `ContainerVersion` to `"v1.4.1"`
+
 ## [v0.6.7] - 2025-10-30
 
 ### Changed

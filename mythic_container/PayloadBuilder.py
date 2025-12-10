@@ -149,6 +149,14 @@ class HideConditionOperand(str, Enum):
     NotEQ = "neq"
     IN = "in"
     NotIN = "nin"
+    LessThan                                = "lt"
+    GreaterThan                             = "gt"
+    LessThanOrEqual                         = "lte"
+    GreaterThanOrEqual                      = "gte"
+    StartsWith                            = "sw"
+    EndsWith                              = "ew"
+    Contains                              = "co"
+    NotContains                           = "nco"
 
 class HideCondition:
     def __init__(self,
@@ -808,7 +816,7 @@ class PayloadType:
             self,
             uuid: str = None,
             filename: str = "",
-            c2info: [C2ProfileParameters] = None,
+            c2info: list[C2ProfileParameters] = None,
             selected_os: str = None,
             commands: CommandList = None,
             wrapped_payload_uuid: str = None,
@@ -937,7 +945,7 @@ class PayloadType:
 payloadTypes: dict[str, PayloadType] = {}
 
 
-async def SendMythicRPCSyncPayloadType(payload_type: str, extraCommands: [mythic_container.MythicCommandBase.CommandBase]) -> bool:
+async def SendMythicRPCSyncPayloadType(payload_type: str, extraCommands: list[mythic_container.MythicCommandBase.CommandBase]) -> bool:
     try:
         for name, pt in payloadTypes.items():
             if pt.name == payload_type:

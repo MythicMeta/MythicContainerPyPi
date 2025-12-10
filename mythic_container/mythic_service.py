@@ -24,6 +24,8 @@ from . import AuthBase
 from . import auth_utils
 from . import EventingBase
 from . import eventing_utils
+from . import CustomBrowserBase
+from . import custombrowser_utils
 from .rabbitmq import failedConnectRetryDelay
 
 
@@ -236,6 +238,14 @@ async def onStart(msg: bytes) -> None:
                     body=response.to_json()
                 )
                 return
+        for name, browser in mythic_container.CustomBrowserBase.custombrowsers.items():
+            if browser.name == inputMsg.ContainerName:
+                response = await browser.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
     except Exception as e:
         logger.exception(f"[-] Failed to call container on start with exception: {e}")
         return
@@ -321,7 +331,7 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
     )))
 
 
-async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: [MythicCommandBase.CommandBase] = None,
+async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: list[MythicCommandBase.CommandBase] = None,
                           forced_resync: bool = False) -> None:
     syncMessage = {
         "payload_type": pt.to_json(),
@@ -795,6 +805,35 @@ async def startSharedServices(containerName: str):
     )))
 
 
+async def syncCustomBrowserData(browser: CustomBrowserBase.CustomBrowser):
+    syncMessage = {
+        "custombrowser": browser.get_sync_message(),
+        "container_version": mythic_container.containerVersion
+    }
+    await startSharedServices(browser.name)
+    while True:
+        response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+            queue=mythic_container.CUSTOMBROWSER_SYNC_ROUTING_KEY,
+            body=syncMessage)
+        if response is None:
+            logger.error("[-] Failed to get a response back from syncing RPC message, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif "success" not in response:
+            logger.error("[-] RPC response doesn't contain success, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif not response["success"]:
+            logger.error(f"[-] Failed to sync {browser.name}: {response['error']}, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        else:
+            logger.info(f"[+] Successfully synced {browser.name}")
+            break
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(browser.name, mythic_container.CUSTOMBROWSER_EXPORT_FUNCTION),
+        routing_key=getRoutingKey(browser.name, mythic_container.CUSTOMBROWSER_EXPORT_FUNCTION),
+        handler=custombrowser_utils.ExportFunction
+    )))
+
+
 async def start_services():
     initialize()
     logger.info(
@@ -886,8 +925,18 @@ async def start_services():
         logger.info(f"[*] Processing c2 profile: {c2profile.name}")
         await startC2RabbitMQ(c2profile)
         await syncC2ProfileData(c2profile)
-
-
+    customBrowsers = CustomBrowserBase.CustomBrowser.__subclasses__()
+    for cls in customBrowsers:
+        browser = cls()
+        if browser.name == "":
+            logger.error("missing name for custom browser")
+            continue
+        if browser.name in CustomBrowserBase.custombrowsers:
+            logger.error(f"[-] attempting to import {browser.name} multiple times - probably due to import issues")
+            continue
+        CustomBrowserBase.custombrowsers[browser.name] = browser
+        logger.info(f"[*] Processing custom browser: {browser.name}")
+        await syncCustomBrowserData(browser)
 
     logger.info("[+] All services synced with Mythic!")
     logger.info("[*] Starting services to listen...")
