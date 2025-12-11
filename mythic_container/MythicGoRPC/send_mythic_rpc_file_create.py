@@ -12,6 +12,8 @@ class MythicRPCFileCreateMessage:
     def __init__(self,
                  TaskID: int = 0,
                  PayloadUUID: str = "",
+                 OperationID: int = 0,
+                 OperatorID: int = 0,
                  AgentCallbackID: str = "",
                  FileContents: bytes = None,
                  DeleteAfterFetch: bool = False,
@@ -33,6 +35,8 @@ class MythicRPCFileCreateMessage:
         self.RemotePathOnTarget = RemotePathOnTarget
         self.TargetHostName = TargetHostName
         self.Comment = Comment
+        self.OperationID = OperationID
+        self.OperatorID = OperatorID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -47,7 +51,9 @@ class MythicRPCFileCreateMessage:
             "is_download": self.IsDownloadFromAgent,
             "remote_path": self.RemotePathOnTarget,
             "host": self.TargetHostName,
-            "comment": self.Comment
+            "comment": self.Comment,
+            "operation_id": self.OperationID,
+            "operator_id": self.OperatorID,
         }
 
 

@@ -13,30 +13,49 @@ class ExportFunctionMessage:
                  container_name: str,
                  host: str,
                  path: str,
-                 operation_id: int,):
+                 operation_id: int,
+                 operator_id: int,
+                 operator_username: str,
+                 callback_group: str,):
         self.TreeType = tree_type
         self.ContainerName = container_name
         self.Host = host
         self.Path = path
         self.OperationID = operation_id
+        self.OperatorID = operator_id
+        self.OperatorUsername = operator_username
+        self.CallbackGroup = callback_group
     def to_json(self) -> dict:
         return {
             "tree_type": self.TreeType,
             "container_name": self.ContainerName,
             "host": self.Host,
             "path": self.Path,
-            "operation_id": self.OperationID
+            "operation_id": self.OperationID,
+            "callback_group": self.CallbackGroup,
+            "operator_id": self.OperatorID,
+            "operator_username": self.OperatorUsername,
         }
 class ExportFunctionMessageResponse:
     def __init__(self,
                  Success: bool = False,
-                 Error: str = ""):
+                 Error: str = "",
+                 CompletionMessage: str = "",
+                 OperationID: int = 0,
+                 TreeType: str = "",
+                 ):
         self.Success = Success
         self.Error = Error
+        self.CompletionMessage = CompletionMessage
+        self.OperationID = OperationID
+        self.TreeType = TreeType
     def to_json(self) -> dict:
         return {
             "success": self.Success,
-            "error": self.Error
+            "error": self.Error,
+            "completion_message": self.CompletionMessage,
+            "operation_id": self.OperationID,
+            "tree_type": self.TreeType,
         }
 class CustomBrowserTableColumnType(str, Enum):
     String = "string"

@@ -1,4 +1,11 @@
 
+## [v0.6.9] - 2025-12-11
+
+### Changed
+
+- Added new fields to the CustomBrowser Export functionality
+- Added ability to create file with OperationID and OperatorID
+
 ## [v0.6.8] - 2025-12-10
 
 ### Changed

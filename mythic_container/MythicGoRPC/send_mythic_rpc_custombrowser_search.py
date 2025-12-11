@@ -12,7 +12,9 @@ class MythicRPCCustomBrowserSearchData:
                  ParentPath: str = None,
                  FullPath: str = None,
                  MetadataKey: str = None,
-                 MetadataValue = None):
+                 MetadataValue = None,
+                 CallbackGroup: str = None,
+                 ):
         self.TreeType = TreeType
         self.Host = Host
         self.Name = Name
@@ -20,6 +22,7 @@ class MythicRPCCustomBrowserSearchData:
         self.FullPath = FullPath
         self.MetadataKey = MetadataKey
         self.MetadataValue = MetadataValue
+        self.CallbackGroup = CallbackGroup
     def to_json(self):
         return {
             "tree_type": self.TreeType,
@@ -28,7 +31,8 @@ class MythicRPCCustomBrowserSearchData:
             "parent_path": self.ParentPath,
             "full_path": self.FullPath,
             "metadata_key": self.MetadataKey,
-            "metadata_value": self.MetadataValue
+            "metadata_value": self.MetadataValue,
+            "callback_group": self.CallbackGroup
         }
 class MythicRPCCustomBrowserSearchMessage:
     def __init__(self,
