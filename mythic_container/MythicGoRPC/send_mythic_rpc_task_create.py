@@ -5,9 +5,15 @@ MYTHIC_RPC_TASK_CREATE = "mythic_rpc_task_create"
 
 
 class MythicRPCTaskCreateMessage:
+    """
+    Needs OperatorID, TaskID, or EventStepInstanceID to associate this task with the appropriate user
+    """
     def __init__(self,
                  AgentCallbackID: str = None,
                  CallbackID: int = None,
+                 OperatorID: int = None,
+                 TaskID: int = None,
+                 EventStepInstanceID: int = None,
                  CommandName: str = None,
                  Params: str = None,
                  ParameterGroupName: str = None,
@@ -19,6 +25,9 @@ class MythicRPCTaskCreateMessage:
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
         self.Token = Token
+        self.OperatorID = OperatorID
+        self.TaskID = TaskID
+        self.EventStepInstanceID = EventStepInstanceID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -29,7 +38,10 @@ class MythicRPCTaskCreateMessage:
             "command_name": self.CommandName,
             "params": self.Params,
             "parameter_group_name": self.ParameterGroupName,
-            "token": self.Token
+            "token": self.Token,
+            "eventstepinstance_id": self.EventStepInstanceID,
+            "operator_id": self.OperatorID,
+            "task_id": self.TaskID,
         }
 
 

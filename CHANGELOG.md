@@ -1,4 +1,11 @@
 
+## [v0.6.10] - 2025-12-15
+
+### Changed
+
+- Updated SendMythicRPCTaskCreate to require OperatorID, TaskID, or EventStepInstanceID
+  - This is needed to associate the new task with the appropriate user instead of the callback creator
+  
 ## [v0.6.9] - 2025-12-11
 
 ### Changed
