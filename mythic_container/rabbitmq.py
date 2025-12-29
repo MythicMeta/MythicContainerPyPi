@@ -92,19 +92,21 @@ class rabbitmqConnectionClass:
                                  + settings.get("rabbitmq_host", "127.0.0.1")
                                  + ":"
                                  + str(settings.get("rabbitmq_port", 5672))
+                                 + f", with user: {settings.get("rabbitmq_user", "mythic_user")}"
+                                 + f", with vhost: {settings.get("rabbitmq_vhost", "mythic_vhost")}"
                                  )
                     logger.debug(f"connecting with password: {settings.get('rabbitmq_password', 'rabbitmq_password')}...")
                     self.conn = await aio_pika.connect_robust(
                         host=settings.get("rabbitmq_host", "127.0.0.1"),
                         port=settings.get("rabbitmq_port", 5672),
-                        login="mythic_user",
+                        login=settings.get("rabbitmq_user", "mythic_user"),
                         password=settings.get("rabbitmq_password", "rabbitmq_password"),
-                        virtualhost="mythic_vhost",
+                        virtualhost=settings.get("rabbitmq_vhost", "mythic_vhost"),
                         timeout=failedConnectTimeout,
                         heartbeat=30,
                         reconnect_interval=2,
                         retry_delay=2.0,
-                        max_attempts=3,
+                        max_attempts=5,
                     )
                     logger.critical("[+] Successfully connected to rabbitmq")
                     return self.conn

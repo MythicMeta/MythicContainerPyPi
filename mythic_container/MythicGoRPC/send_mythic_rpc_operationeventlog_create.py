@@ -16,7 +16,7 @@ class MythicRPCOperationEventLogCreateMessage:
                  AgentCallbackID: str = None,
                  OperationID: int = None,
                  Message: str = None,
-                 MessageLevel: str = "info",  # info, debug, auth, api, agent_message
+                 MessageLevel: str = MESSAGE_LEVEL_INFO,  # info, debug, auth, api, agent
                  Warning: bool = False,
                  **kwargs):
         self.TaskID = TaskID
