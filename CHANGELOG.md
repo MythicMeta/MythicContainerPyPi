@@ -1,4 +1,10 @@
 
+## [v0.6.12] - 2025-12-30
+
+### Changed
+
+- Adding support for specifying custom rabbitmq vhost and username
+
 ## [v0.6.10] - 2025-12-15
 
 ### Changed
