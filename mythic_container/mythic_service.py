@@ -31,13 +31,16 @@ from .rabbitmq import failedConnectRetryDelay
 
 # start our service
 def start_and_run_forever():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        loop = asyncio.get_event_loop()
         loop.run_until_complete(start_services())
         loop.run_forever()
         logger.error("start_and_run_forever finished")
     except KeyboardInterrupt:
         sys.exit(0)
+    finally:
+        loop.close()
 
 
 def getRoutingKey(containerName: str, baseKey: str) -> str:
