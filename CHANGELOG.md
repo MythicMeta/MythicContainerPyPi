@@ -1,4 +1,10 @@
 
+## [v0.6.13] - 2026-02-02
+
+### Changed
+
+- Updated the `start_and_run_forever` loop from PR #30 from NetPenguins/main for Python 3.14 updates
+
 ## [v0.6.12] - 2025-12-30
 
 ### Changed
