@@ -43,9 +43,12 @@ class MythicRPCPayloadUpdateBuildStepMessageResponse:
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
-
-async def SendMythicRPCPayloadUpdatebuildStep(
+async def SendMythicRPCPayloadUpdateBuildStep(
         msg: MythicRPCPayloadUpdateBuildStepMessage) -> MythicRPCPayloadUpdateBuildStepMessageResponse:
     response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(queue=MYTHIC_RPC_PAYLOAD_UPDATE_BUILD_STEP,
                                                                             body=msg.to_json())
     return MythicRPCPayloadUpdateBuildStepMessageResponse(**response)
+
+async def SendMythicRPCPayloadUpdatebuildStep(
+        msg: MythicRPCPayloadUpdateBuildStepMessage) -> MythicRPCPayloadUpdateBuildStepMessageResponse:
+    return await SendMythicRPCPayloadUpdateBuildStep(msg)

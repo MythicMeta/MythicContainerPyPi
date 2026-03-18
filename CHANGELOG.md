@@ -1,4 +1,11 @@
 
+## [v0.6.14] - 2026-03-18
+
+### Changed
+
+- Fixed an issue with SendMythicRPCPayloadUpdateBuildStep having a lowercase b instead of B
+  - To preserve backwards compatability SendMythicRPCPayloadUpdatebuildStep just calls the right one
+  
 ## [v0.6.13] - 2026-02-02
 
 ### Changed
