@@ -14,7 +14,6 @@ class MythicRPCFileUpdateMessage:
                  ReplaceContents: bytes = None,
                  Delete: bool = None,
                  DeleteAfterFetch: bool = None,
-                 OperationID: int = None,
                  **kwargs):
         self.AgentFileID = AgentFileID
         self.Filename = Filename
@@ -23,7 +22,6 @@ class MythicRPCFileUpdateMessage:
         self.ReplaceContents = ReplaceContents
         self.Delete = Delete
         self.DeleteAfterFetch = DeleteAfterFetch
-        self.OperationID = OperationID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -35,7 +33,6 @@ class MythicRPCFileUpdateMessage:
             "append_contents": self.AppendContents,
             "delete": self.Delete,
             "delete_after_fetch": self.DeleteAfterFetch,
-            "operation_id": self.OperationID
         }
 
 
