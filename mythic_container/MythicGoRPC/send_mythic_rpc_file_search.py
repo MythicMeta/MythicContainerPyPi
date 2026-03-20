@@ -17,6 +17,7 @@ class MythicRPCFileSearchMessage:
                  IsPayload: bool = False,
                  AgentFileID: str = None,
                  Comment: str = "",
+                 OperationID: int = None,
                  **kwargs):
         self.TaskID = TaskID
         self.CallbackID = CallbackID
@@ -28,6 +29,7 @@ class MythicRPCFileSearchMessage:
         self.Comment = Comment
         self.IsPayload = IsPayload
         self.AgentFileID = AgentFileID
+        self.OperationID = OperationID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -42,7 +44,8 @@ class MythicRPCFileSearchMessage:
             "is_download_from_agent": self.IsDownloadFromAgent,
             "is_payload": self.IsPayload,
             "file_id": self.AgentFileID,
-            "comment": self.Comment
+            "comment": self.Comment,
+            "operation_id": self.OperationID
         }
 
 
