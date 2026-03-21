@@ -32,7 +32,7 @@ class MythicRPCFileUpdateMessage:
             "comment": self.Comment,
             "append_contents": self.AppendContents,
             "delete": self.Delete,
-            "delete_after_fetch": self.DeleteAfterFetch
+            "delete_after_fetch": self.DeleteAfterFetch,
         }
 
 
