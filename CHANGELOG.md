@@ -1,4 +1,10 @@
 
+## [v0.6.15] - 2026-03-21
+
+### Changed
+
+- Updated to merge in PR for adding OperationID to SendMythicRPCFileSearch functionality
+
 ## [v0.6.14] - 2026-03-18
 
 ### Changed
