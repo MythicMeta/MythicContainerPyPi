@@ -1,4 +1,10 @@
 
+## [v0.6.16] - 2026-03-23
+
+### Changed
+
+- cutting the release again
+
 ## [v0.6.15] - 2026-03-21
 
 ### Changed
