@@ -24,6 +24,8 @@ from . import AuthBase
 from . import auth_utils
 from . import EventingBase
 from . import eventing_utils
+from . import ChatBase
+from . import chat_utils
 from . import CustomBrowserBase
 from . import custombrowser_utils
 from .rabbitmq import failedConnectRetryDelay
@@ -59,12 +61,13 @@ def getLoggingRoutingKey(loggingType: str) -> str:
 async def listFile(msg: bytes) -> bytes:
     try:
         msgDict = ujson.loads(msg)
+        inputMsg = mythic_container.SharedClasses.ListFileMessage(**msgDict)
         for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
             if c2.name == msgDict["container_name"]:
-                response = listFilesOfPath(c2.server_folder_path)
+                response = listFilesOfPath(c2.server_folder_path, inputMsg.Path)
                 return ujson.dumps(response.to_json()).encode()
         # if it's not a c2 profile, then just use the current path of the script that's executing
-        response = listFilesOfPath(os.path.dirname(os.path.abspath(sys.argv[0])))
+        response = listFilesOfPath(os.path.dirname(os.path.abspath(sys.argv[0])), inputMsg.Path)
         return ujson.dumps(response.to_json()).encode()
     except Exception as e:
         response = mythic_container.SharedClasses.ListFileMessageResponse(
@@ -74,12 +77,23 @@ async def listFile(msg: bytes) -> bytes:
         return ujson.dumps(response.to_json()).encode()
 
 
-def listFilesOfPath(path: str) -> mythic_container.SharedClasses.ListFileMessageResponse:
+def resolveFileBrowserPath(base_path: str, requested_path: str = "") -> pathlib.Path:
+    base = pathlib.Path(base_path).resolve()
+    target = (base / (requested_path or "")).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError:
+        raise ValueError("requested path is outside of the container folder")
+    return target
+
+
+def listFilesOfPath(path: str, requested_path: str = "") -> mythic_container.SharedClasses.ListFileMessageResponse:
     response = mythic_container.SharedClasses.ListFileMessageResponse(Success=False)
     try:
-        files = os.listdir(path)
-        files = [f for f in files if os.path.isfile(pathlib.Path(path) / f)]
-        response.Files = files
+        target_path = resolveFileBrowserPath(path, requested_path)
+        entries = list(target_path.iterdir())
+        response.Files = sorted([entry.name for entry in entries if entry.is_file()])
+        response.Folders = sorted([entry.name for entry in entries if entry.is_dir()])
         response.Success = True
     except Exception as e:
         response.Error = f"{traceback.format_exc()}\n{e}"
@@ -236,6 +250,14 @@ async def onStart(msg: bytes) -> None:
         for name, event in mythic_container.EventingBase.eventingServices.items():
             if event.name == inputMsg.ContainerName:
                 response = await event.on_container_start(inputMsg)
+                await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+                    queue=mythic_container.CONTAINER_ON_START_RESPONSE,
+                    body=response.to_json()
+                )
+                return
+        for name, chat in mythic_container.ChatBase.chatServices.items():
+            if chat.name == inputMsg.ContainerName:
+                response = await chat.on_container_start(inputMsg)
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -780,6 +802,42 @@ async def syncEventingData(wb: EventingBase.Eventing) -> None:
     logger.info(f"Successfully started Eventing service")
 
 
+async def syncChatData(chat: ChatBase.Chat) -> None:
+    syncMessage = {
+        "consuming_container": chat.get_sync_message(),
+        "container_version": mythic_container.containerVersion
+    }
+    await startSharedServices(chat.name)
+    while True:
+        response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+            queue=mythic_container.CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
+            body=syncMessage)
+        if response is None:
+            logger.error("[-] Failed to get a response back from syncing RPC message, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif "success" not in response:
+            logger.error("[-] RPC response doesn't contain success, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        elif not response["success"]:
+            logger.error(f"[-] Failed to sync {chat.name}: {response['error']}, trying again...")
+            await asyncio.sleep(failedConnectRetryDelay)
+        else:
+            logger.info(f"[+] Successfully synced {chat.name}")
+            break
+
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(chat.name, mythic_container.CHAT_REQUEST_ROUTING_KEY),
+        routing_key=getRoutingKey(chat.name, mythic_container.CHAT_REQUEST_ROUTING_KEY),
+        handler=chat_utils.ChatRequestHandler
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(chat.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        routing_key=getRoutingKey(chat.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),
+        handler=consumingContainerReSync
+    )))
+    logger.info(f"Successfully started chat service")
+
+
 async def startSharedServices(containerName: str):
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(containerName, mythic_container.CONTAINER_RPC_GET_FILE),
@@ -902,6 +960,18 @@ async def start_services():
         EventingBase.eventingServices[event.name] = event
         logger.info(f"[*] Processing eventing service: {event.name}")
         await syncEventingData(event)
+    chat_services = ChatBase.Chat.__subclasses__()
+    for cls in chat_services:
+        chat = cls()
+        if chat.name == "":
+            logger.error("missing name for chat service")
+            continue
+        if chat.name in ChatBase.chatServices:
+            logger.error(f"[-] attempting to import {chat.name} multiple times - probably due to import issues")
+            continue
+        ChatBase.chatServices[chat.name] = chat
+        logger.info(f"[*] Processing chat service: {chat.name}")
+        await syncChatData(chat)
     payloadTypes = PayloadBuilder.PayloadType.__subclasses__()
     for cls in payloadTypes:
         payload_type = cls()

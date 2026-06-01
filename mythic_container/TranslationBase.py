@@ -8,6 +8,7 @@ from .config import settings
 import json
 from typing import List
 from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
+from .rabbitmq import ResetRabbitMQAuthContext, SetRabbitMQAuthContext
 
 
 class TrGenerateEncryptionKeysMessage:
@@ -79,15 +80,18 @@ class CryptoKeys:
     def __init__(self,
                  EncKey: bytes = None,
                  DecKey: bytes = None,
-                 Value: str = ""):
+                 Value: str = "",
+                 Location: str = ""):
         self.EncKey = EncKey
         self.DecKey = DecKey
         self.Value = Value
+        self.Location = Location
     def to_json(self):
         return {
             "enc_key": self.EncKey,
             "dec_key": self.DecKey,
-            "value": self.Value
+            "value": self.Value,
+            "location": self.Location
         }
 
 
@@ -307,6 +311,7 @@ async def handleGenerateKeys(tr_name: str, client):
             ))
             logger.info(f"Connected to gRPC for generating encryption keys for {tr_name}")
             async for request in stream:
+                token = SetRabbitMQAuthContext(getattr(request, "AuthContext", None) or None)
                 try:
                     result = await translationServices[tr_name].generate_keys(TrGenerateEncryptionKeysMessage(
                         TranslationContainerName=request.TranslationContainerName,
@@ -319,15 +324,19 @@ async def handleGenerateKeys(tr_name: str, client):
                         TranslationContainerName=tr_name,
                         Error=result.Error,
                         EncryptionKey=result.EncryptionKey,
-                        DecryptionKey=result.DecryptionKey
+                        DecryptionKey=result.DecryptionKey,
+                        AuthContext=request.AuthContext
                     ))
                 except Exception as d:
                     logger.exception(f"Failed to process handleGenerateKeys message:\n{d}")
                     await stream.write(grpcFuncs.TrGenerateEncryptionKeysMessageResponse(
                         Success=False,
                         TranslationContainerName=tr_name,
-                        Error=f"Failed to process handleGenerateKeys message:\n{d}"
+                        Error=f"Failed to process handleGenerateKeys message:\n{d}",
+                        AuthContext=request.AuthContext
                     ))
+                finally:
+                    ResetRabbitMQAuthContext(token)
             logger.error(f"disconnected from gRPC for generating encryption keys for {tr_name}")
     except Exception as e:
         logger.exception(f"[-] exception in handleGenerateKeys for {tr_name}")
@@ -343,6 +352,7 @@ async def handleCustomToMythic(tr_name: str, client):
             ))
             logger.info(f"Connected to gRPC for handling CustomC2 to MythicC2 Translations for {tr_name}")
             async for request in stream:
+                token = SetRabbitMQAuthContext(getattr(request, "AuthContext", None) or None)
                 try:
                     grpcCryptoKeys = request.CryptoKeys
                     localCryptoKeys = []
@@ -350,7 +360,8 @@ async def handleCustomToMythic(tr_name: str, client):
                         localCryptoKeys.append(CryptoKeys(
                             Value=keys.Value,
                             DecKey=keys.DecKey,
-                            EncKey=keys.EncKey
+                            EncKey=keys.EncKey,
+                            Location=keys.Location
                         ))
                     inputMsg = TrCustomMessageToMythicC2FormatMessage(
                         TranslationContainerName=request.TranslationContainerName,
@@ -365,7 +376,8 @@ async def handleCustomToMythic(tr_name: str, client):
                         Success=result.Success,
                         Error=result.Error,
                         TranslationContainerName=tr_name,
-                        Message=json.dumps(result.Message).encode()
+                        Message=json.dumps(result.Message).encode(),
+                        AuthContext=request.AuthContext
                     )
                     await stream.write(response)
                 except Exception as d:
@@ -373,8 +385,11 @@ async def handleCustomToMythic(tr_name: str, client):
                     await stream.write(grpcFuncs.TrCustomMessageToMythicC2FormatMessageResponse(
                         Success=False,
                         TranslationContainerName=tr_name,
-                        Error=f"Failed to process handleCustomToMythic message:\n{d}"
+                        Error=f"Failed to process handleCustomToMythic message:\n{d}",
+                        AuthContext=request.AuthContext
                     ))
+                finally:
+                    ResetRabbitMQAuthContext(token)
             logger.error(f"disconnected from gRPC for doing custom->mythic c2 for {tr_name}")
     except Exception as e:
         logger.exception(f"[-] exception in handleCustomToMythic for {tr_name}")
@@ -390,6 +405,7 @@ async def handleMythicToCustom(tr_name: str, client):
             ))
             logger.info(f"Connected to gRPC for handling MythicC2 to CustomC2 Translations for {tr_name}")
             async for request in stream:
+                token = SetRabbitMQAuthContext(getattr(request, "AuthContext", None) or None)
                 try:
                     grpcCryptoKeys = request.CryptoKeys
                     localCryptoKeys = []
@@ -397,7 +413,8 @@ async def handleMythicToCustom(tr_name: str, client):
                         localCryptoKeys.append(CryptoKeys(
                             Value=keys.Value,
                             DecKey=keys.DecKey,
-                            EncKey=keys.EncKey
+                            EncKey=keys.EncKey,
+                            Location=keys.Location
                         ))
                     inputMsg = TrMythicC2ToCustomMessageFormatMessage(
                         TranslationContainerName=request.TranslationContainerName,
@@ -412,7 +429,8 @@ async def handleMythicToCustom(tr_name: str, client):
                         Success=result.Success,
                         Error=result.Error,
                         TranslationContainerName=tr_name,
-                        Message=result.Message
+                        Message=result.Message,
+                        AuthContext=request.AuthContext
                     )
                     await stream.write(response)
                 except Exception as d:
@@ -420,8 +438,11 @@ async def handleMythicToCustom(tr_name: str, client):
                     await stream.write(grpcFuncs.TrMythicC2ToCustomMessageFormatMessageResponse(
                         Success=False,
                         TranslationContainerName=tr_name,
-                        Error=f"Failed to process handleMythicToCustom message:\n{d}"
+                        Error=f"Failed to process handleMythicToCustom message:\n{d}",
+                        AuthContext=request.AuthContext
                     ))
+                finally:
+                    ResetRabbitMQAuthContext(token)
             logger.error(f"disconnected from gRPC for doing mythic->custom c2 for {tr_name}")
     except Exception as e:
         logger.exception(f"[-] exception in handleMythicToCustom for {tr_name}")

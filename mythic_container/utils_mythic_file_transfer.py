@@ -1,11 +1,22 @@
 import aiohttp
+
+from .MythicGoRPC import SendMythicRPCDirectFileTokenCreate, MythicRPCDirectFileTokenCreateMessage
 from .config import settings
 from .logging import logger
 
 
 async def sendFileToMythic(contents: bytes, agentFileId: str) -> bool:
     try:
-        async with aiohttp.ClientSession() as session:
+        tokenResponse = await SendMythicRPCDirectFileTokenCreate(MythicRPCDirectFileTokenCreateMessage(
+            AgentFileID=agentFileId,
+            Action="upload",
+        ))
+        if not tokenResponse.Success:
+            logger.info(f"[!] Failed to get file upload token: {tokenResponse.Error}")
+            return False
+        async with aiohttp.ClientSession(headers={
+            "Authorization": f"Bearer {tokenResponse.Token}"
+        }) as session:
             data = aiohttp.FormData()
             url = f"http://{settings.get('mythic_server_host')}:{settings.get('mythic_server_port', 17443)}/direct/upload/{agentFileId}"
             data.add_field('file', contents, filename='payload', )
@@ -28,7 +39,16 @@ async def sendFileToMythic(contents: bytes, agentFileId: str) -> bool:
 
 async def getFileFromMythic(agentFileId: str) -> bytes:
     try:
-        async with aiohttp.ClientSession() as session:
+        tokenResponse = await SendMythicRPCDirectFileTokenCreate(MythicRPCDirectFileTokenCreateMessage(
+            AgentFileID=agentFileId,
+            Action="download",
+        ))
+        if not tokenResponse.Success:
+            logger.info(f"[!] Failed to get file download token: {tokenResponse.Error}")
+            raise Exception("[!] Failed to get file download token")
+        async with aiohttp.ClientSession(headers={
+            "Authorization": f"Bearer {tokenResponse.Token}"
+        }) as session:
             url = f"http://{settings.get('mythic_server_host')}:{settings.get('mythic_server_port', 17443)}/direct/download/{agentFileId}"
             async with session.get(url, ssl=False) as resp:
                 if resp.status == 200:
@@ -38,5 +58,5 @@ async def getFileFromMythic(agentFileId: str) -> bytes:
                     logger.error(f"[-] Failed to download file from Mythic: {resp.status}")
                     raise Exception("[-] Failed to download file from Mythic")
     except Exception as e:
-        logger.exception(f"[-] Failed to upload payload contents: {e}")
+        logger.exception(f"[-] Failed to get file contents: {e}")
         raise Exception("[-] Failed to download file from Mythic")

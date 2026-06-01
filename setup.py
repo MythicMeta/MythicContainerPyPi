@@ -29,7 +29,7 @@ setup(
         "aio_pika==9.4.1",
         "dynaconf==3.2.5",
         "ujson==5.9.0",
-        "aiohttp==3.9.3",
+        "aiohttp",
         "psutil==5.9.8",
         "grpcio",
         "grpcio-tools",

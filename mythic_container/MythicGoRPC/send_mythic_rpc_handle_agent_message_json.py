@@ -1,9 +1,9 @@
 import mythic_container
 from mythic_container.logging import logger
-from mythic_container.MythicGoRPC.send_mythic_rpc_callback_search import MythicRPCCallbackSearchMessageResult
-import time
 
+MYTHIC_RPC_HANDLE_AGENT_JSON = "mythic_rpc_handle_agent_message_json"
 MYTHIC_RPC_HANDLE_AGENT_MESSAGE_JSON = "mythic_rpc_handle_agent_message_json"
+
 
 class MythicRPCHandleAgentMessageJsonMessage:
     """
@@ -46,6 +46,17 @@ class MythicRPCHandleAgentMessageJsonMessageResponse:
 
 async def SendMythicRPCHandleAgentMessageJson(
         msg: MythicRPCHandleAgentMessageJsonMessage) -> MythicRPCHandleAgentMessageJsonMessageResponse:
-    response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(queue=MYTHIC_RPC_HANDLE_AGENT_MESSAGE_JSON,
+    response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(queue=MYTHIC_RPC_HANDLE_AGENT_JSON,
                                                                             body=msg.to_json())
     return MythicRPCHandleAgentMessageJsonMessageResponse(**response)
+
+
+MythicRPCHandleAgentJsonMessage = MythicRPCHandleAgentMessageJsonMessage
+MythicRPCHandleAgentJsonMessageResponse = MythicRPCHandleAgentMessageJsonMessageResponse
+
+
+async def SendMythicRPCHandleAgentJson(
+        msg: MythicRPCHandleAgentJsonMessage) -> MythicRPCHandleAgentJsonMessageResponse:
+    response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(queue=MYTHIC_RPC_HANDLE_AGENT_JSON,
+                                                                            body=msg.to_json())
+    return MythicRPCHandleAgentJsonMessageResponse(**response)

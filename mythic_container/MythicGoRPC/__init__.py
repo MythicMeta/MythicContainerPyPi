@@ -22,6 +22,7 @@ from .send_mythic_rpc_callbacktoken_remove import *
 from .send_mythic_rpc_command_search_ import *
 from .send_mythic_rpc_credential_create import *
 from .send_mythic_rpc_credential_search import *
+from .send_mythic_rpc_direct_file_token_create import *
 from .send_mythic_rpc_file_create import *
 from .send_mythic_rpc_file_get_content import *
 from .send_mythic_rpc_file_search import *

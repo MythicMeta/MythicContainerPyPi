@@ -1,4 +1,5 @@
 import concurrent.futures
+import contextvars
 
 import aiormq.exceptions
 
@@ -20,10 +21,46 @@ mutex = asyncio.Lock()
 
 failedConnectRetryDelay = 5
 failedConnectTimeout = 1
+RPC_TIMEOUT = 10
+RPC_RETRY_POLICY_RETRY_ON_TIMEOUT = 0
+RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT = 1
+RPC_RETRY_POLICY_CUSTOM_TIMEOUT = 2
+MYTHIC_AUTH_CONTEXT_HEADER = "mythic-auth-context"
+_rabbitmq_auth_context = contextvars.ContextVar("mythic_rabbitmq_auth_context", default=None)
+
+
+def GetRabbitMQAuthContext() -> str | None:
+    return _rabbitmq_auth_context.get()
+
+
+def SetRabbitMQAuthContext(auth_context: str | None):
+    return _rabbitmq_auth_context.set(auth_context)
+
+
+def ResetRabbitMQAuthContext(token) -> None:
+    _rabbitmq_auth_context.reset(token)
+
+
+def _get_message_auth_context(message: aio_pika.abc.AbstractIncomingMessage) -> str | None:
+    headers = message.headers or {}
+    auth_context = headers.get(MYTHIC_AUTH_CONTEXT_HEADER)
+    if isinstance(auth_context, bytes):
+        auth_context = auth_context.decode()
+    if auth_context:
+        return str(auth_context)
+    return None
+
+
+def _headers_with_current_auth_context() -> dict | None:
+    auth_context = GetRabbitMQAuthContext()
+    if auth_context:
+        return {MYTHIC_AUTH_CONTEXT_HEADER: auth_context}
+    return None
 
 
 async def messageProcessThread(message: aio_pika.abc.AbstractIncomingMessage,
                                trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
+    token = SetRabbitMQAuthContext(_get_message_auth_context(message))
     try:
         logger.debug(f"Ack direct call to {message.routing_key}")
         await message.ack()
@@ -31,6 +68,8 @@ async def messageProcessThread(message: aio_pika.abc.AbstractIncomingMessage,
     except Exception as d:
         logger.exception(f"inner error: {d}")
         await message.nack(requeue=True)
+    finally:
+        ResetRabbitMQAuthContext(token)
 
 
 async def directExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
@@ -47,6 +86,7 @@ async def directExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
 
 async def messageProcessRPCThread(message: aio_pika.abc.AbstractIncomingMessage,
                                   trueFunction: Callable[[bytes], Awaitable[bytes]]) -> bytes:
+    token = SetRabbitMQAuthContext(_get_message_auth_context(message))
     try:
         response = await trueFunction(message.body)
         #logger.info(f"rpc response: {response}\nrequest: {message.body}")
@@ -54,6 +94,8 @@ async def messageProcessRPCThread(message: aio_pika.abc.AbstractIncomingMessage,
     except Exception as d:
         logger.exception(f"rpc inner error: {d}")
         return f"rpc error: {d}".encode()
+    finally:
+        ResetRabbitMQAuthContext(token)
 
 
 async def rpcExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
@@ -73,7 +115,15 @@ class rabbitmqConnectionClass:
     futures: MutableMapping[str, asyncio.Future] = {}
 
     def __init__(self):
-        pass
+        self.conn = None
+        self.futures = {}
+        self.publisher_lock = asyncio.Lock()
+        self.publisher_channel = None
+        self.publisher_exchange = None
+        self.rpc_lock = asyncio.Lock()
+        self.rpc_channel = None
+        self.rpc_exchange = None
+        self.rpc_exchanges = set()
 
     async def async_init(self):
         self.conn = await self.GetConnection()
@@ -114,17 +164,38 @@ class rabbitmqConnectionClass:
                     logger.error(f"[-] Failed to connect to rabbitmq: {e}")
                     await asyncio.sleep(failedConnectRetryDelay)
 
-    async def SendMessage(self, queue: str, body: bytes):
-        while True:
+    async def _get_publisher_channel_locked(self):
+        if self.publisher_channel is not None and not self.publisher_channel.is_closed:
+            return self.publisher_channel, self.publisher_exchange
+        connection = await self.GetConnection()
+        self.publisher_channel = await connection.channel(
+            publisher_confirms=True,
+            on_return_raises=True,
+        )
+        self.publisher_exchange = await self.publisher_channel.declare_exchange(
+            "mythic_exchange",
+            durable=True,
+            auto_delete=True,
+        )
+        return self.publisher_channel, self.publisher_exchange
+
+    async def _reset_publisher_channel_locked(self):
+        if self.publisher_channel is not None and not self.publisher_channel.is_closed:
             try:
-                connection = await self.GetConnection()
-                async with connection.channel(publisher_confirms=True,
-                                              on_return_raises=True) as chan:
-                    exchange = await chan.declare_exchange("mythic_exchange",
-                                                           durable=True,
-                                                           auto_delete=True)
+                await self.publisher_channel.close()
+            except Exception as e:
+                logger.debug(f"failed to close publisher channel: {e}")
+        self.publisher_channel = None
+        self.publisher_exchange = None
+
+    async def SendMessage(self, queue: str, body: bytes):
+        for _ in range(3):
+            try:
+                async with self.publisher_lock:
+                    _channel, exchange = await self._get_publisher_channel_locked()
                     message = aio_pika.Message(body=body,
-                                               content_type="application/json")
+                                               content_type="application/json",
+                                               headers=_headers_with_current_auth_context())
                     await exchange.publish(
                         message=message,
                         routing_key=queue,
@@ -132,71 +203,127 @@ class rabbitmqConnectionClass:
                         mandatory=True,
                         immediate=False,
                     )
-                    return
-            except Exception as e:
-                logger.exception(f"[-] failed to send message: {e}")
                 return
+            except Exception as e:
+                logger.exception(f"[-] failed to send message to {queue}: {e}")
+                async with self.publisher_lock:
+                    await self._reset_publisher_channel_locked()
+                await asyncio.sleep(failedConnectRetryDelay)
+        logger.error(f"[-] failed 3 times to send message to {queue}")
 
     async def SendDictDirectMessage(self, queue: str, body: dict) -> None:
         #logger.debug(f"Sending Direct msg to {queue}: {body}")
         return await self.SendMessage(queue=queue, body=ujson.dumps(body).encode())
 
-    async def SendRPCMessage(self, queue: str, body: bytes) -> dict:
-        try:
-            while True:
-                correlation_id = str(uuid.uuid4())
-                future = asyncio.get_event_loop().create_future()
-                self.futures[correlation_id] = future
-                logger.debug(f"Sending RPC message to {queue}, correlation_id: {correlation_id}")
-                connection = await self.GetConnection()
-                async with connection.channel(on_return_raises=True) as chan:
-                    exchange = await chan.declare_exchange("mythic_exchange",
-                                                           durable=True,
-                                                           auto_delete=True)
-                    callback_queue = await chan.declare_queue(name="amq.rabbitmq.reply-to",)
-                    await callback_queue.consume(self.on_response,
-                                                 no_ack=True)
-                    message = aio_pika.Message(body=body,
-                                               content_type="application/json",
-                                               reply_to=callback_queue.name,
-                                               correlation_id=correlation_id)
-                    # make sure the queue exists first before we try to send to it
-                    try:
-                        await exchange.publish(
-                            message=message,
-                            routing_key=queue,
-                            mandatory=True,
-                            immediate=False,
-                            timeout=10
-                        )
-                    except asyncio.TimeoutError:
-                        # cancel the current future and move on to try again
-                        future.cancel()
-                        self.futures.pop(message.correlation_id, None)
-                        logger.error(f"hit timeout waiting for RPC response in {queue} for correlation_id: {message.correlation_id}, retrying...")
-                        continue
-                    except Exception as err:
-                        future.cancel()
-                        self.futures.pop(message.correlation_id, None)
-                        logger.error(f"hit error trying to send RPC message in {queue} for correlation_id: {message.correlation_id}, retrying...:\n{err}")
-                        await asyncio.sleep(5)
-                        continue
-                    logger.debug(f"published RPC message to {queue}, correlation id: {message.correlation_id}")
-                    try:
-                        result = await asyncio.wait_for(future, timeout=10)
-                        logger.debug(f"got RPC result to {queue}, correlation id: {message.correlation_id}")
-                        return result
-                    except asyncio.TimeoutError:
-                        # cancel the current future and move on to try again
-                        future.cancel()
-                        logger.error(f"hit timeout waiting for RPC response on {queue} for correlation_id {message.correlation_id}, retrying...")
-                    except Exception as sendError:
-                        logger.error(f"got error on {queue} for correlation_id {message.correlation_id}:\n{sendError}")
-                        await asyncio.sleep(5)
+    def _get_rpc_timeout(self, retry_policy: int) -> int:
+        if retry_policy == RPC_RETRY_POLICY_CUSTOM_TIMEOUT:
+            custom_timeout = settings.get("custom_rpc_timeout", 0)
+            if custom_timeout and int(custom_timeout) > 0:
+                return int(custom_timeout)
+        return RPC_TIMEOUT
 
-        except Exception as e:
-            logger.error(f"[-] failed to send rpc message to {queue}: {e}")
-            return {}
+    async def _get_rpc_client_locked(self):
+        if self.rpc_channel is not None and not self.rpc_channel.is_closed:
+            if "mythic_exchange" not in self.rpc_exchanges:
+                self.rpc_exchange = await self.rpc_channel.declare_exchange(
+                    "mythic_exchange",
+                    durable=True,
+                    auto_delete=True,
+                )
+                self.rpc_exchanges.add("mythic_exchange")
+            return self.rpc_channel, self.rpc_exchange
+        connection = await self.GetConnection()
+        self.rpc_channel = await connection.channel(
+            publisher_confirms=True,
+            on_return_raises=True,
+        )
+        callback_queue = await self.rpc_channel.declare_queue(name="amq.rabbitmq.reply-to")
+        await callback_queue.consume(self.on_response, no_ack=True)
+        self.rpc_exchange = await self.rpc_channel.declare_exchange(
+            "mythic_exchange",
+            durable=True,
+            auto_delete=True,
+        )
+        self.rpc_exchanges = {"mythic_exchange"}
+        return self.rpc_channel, self.rpc_exchange
+
+    async def _reset_rpc_client_locked(self, error: Exception):
+        for correlation_id, future in list(self.futures.items()):
+            if not future.done():
+                future.set_exception(error)
+            self.futures.pop(correlation_id, None)
+        if self.rpc_channel is not None and not self.rpc_channel.is_closed:
+            try:
+                await self.rpc_channel.close()
+            except Exception as e:
+                logger.debug(f"failed to close rpc channel: {e}")
+        self.rpc_channel = None
+        self.rpc_exchange = None
+        self.rpc_exchanges = set()
+
+    async def _publish_rpc_message(self, queue: str, body: bytes, correlation_id: str, future: asyncio.Future):
+        async with self.rpc_lock:
+            _channel, exchange = await self._get_rpc_client_locked()
+            self.futures[correlation_id] = future
+            message = aio_pika.Message(
+                body=body,
+                content_type="application/json",
+                reply_to="amq.rabbitmq.reply-to",
+                correlation_id=correlation_id,
+                headers=_headers_with_current_auth_context(),
+            )
+            try:
+                await exchange.publish(
+                    message=message,
+                    routing_key=queue,
+                    mandatory=True,
+                    immediate=False,
+                    timeout=RPC_TIMEOUT,
+                )
+            except Exception as err:
+                self.futures.pop(correlation_id, None)
+                await self._reset_rpc_client_locked(err)
+                raise
+
+    async def SendRPCMessage(self, queue: str, body: bytes,
+                             retry_policy: int = RPC_RETRY_POLICY_RETRY_ON_TIMEOUT) -> dict:
+        final_error = None
+        timeout = self._get_rpc_timeout(retry_policy)
+        for _ in range(3):
+            correlation_id = str(uuid.uuid4())
+            future = asyncio.get_event_loop().create_future()
+            logger.debug(f"Sending RPC message to {queue}, correlation_id: {correlation_id}")
+            try:
+                await self._publish_rpc_message(queue=queue, body=body, correlation_id=correlation_id, future=future)
+                logger.debug(f"published RPC message to {queue}, correlation id: {correlation_id}")
+            except Exception as err:
+                final_error = err
+                logger.error(f"hit error trying to send RPC message in {queue} for correlation_id: {correlation_id}, retrying:\n{err}")
+                if not future.done():
+                    future.cancel()
+                await asyncio.sleep(failedConnectRetryDelay)
+                continue
+            try:
+                result = await asyncio.wait_for(future, timeout=timeout)
+                logger.debug(f"got RPC result to {queue}, correlation id: {correlation_id}")
+                return result
+            except asyncio.TimeoutError as err:
+                final_error = err
+                self.futures.pop(correlation_id, None)
+                if not future.done():
+                    future.cancel()
+                logger.error(f"hit timeout waiting for RPC response on {queue} for correlation_id {correlation_id}")
+                if retry_policy != RPC_RETRY_POLICY_RETRY_ON_TIMEOUT:
+                    return {}
+            except Exception as sendError:
+                final_error = sendError
+                self.futures.pop(correlation_id, None)
+                logger.error(f"got error on {queue} for correlation_id {correlation_id}:\n{sendError}")
+                if retry_policy != RPC_RETRY_POLICY_RETRY_ON_TIMEOUT:
+                    return {}
+                await asyncio.sleep(failedConnectRetryDelay)
+        logger.error(f"[-] failed 3 times to send rpc message to {queue}: {final_error}")
+        return {}
 
     def on_response(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
         try:
@@ -224,30 +351,28 @@ class rabbitmqConnectionClass:
             logger.exception(
                 f"Failed to handle response: {e}\nmessage: {message}\nbody:{message.body}\nfutures:{self.futures}")
 
-    async def SendRPCDictMessage(self, queue: str, body: dict) -> dict:
+    async def SendRPCDictMessage(self, queue: str, body: dict,
+                                 retry_policy: int = RPC_RETRY_POLICY_RETRY_ON_TIMEOUT) -> dict:
         #logger.debug(f"Sending RPC msg: {body}")
-        return await self.SendRPCMessage(queue=queue, body=ujson.dumps(body).encode())
+        return await self.SendRPCMessage(queue=queue, body=ujson.dumps(body).encode(), retry_policy=retry_policy)
 
     async def ReplyMessage(self, response: bytes, message: aio_pika.abc.AbstractIncomingMessage):
         try:
-            connection = await self.GetConnection()
-            async with connection.channel(on_return_raises=True) as chan:
-                exchange = chan.default_exchange
-                newMessage = aio_pika.Message(
-                    body=response,
+            await message.channel.basic_publish(
+                body=response,
+                exchange="",
+                routing_key=message.reply_to,
+                properties=aiormq.spec.Basic.Properties(
                     content_type="application/json",
-                    correlation_id=message.correlation_id)
-
-                await exchange.publish(
-                    newMessage,
-                    routing_key=message.reply_to,
-                    mandatory=False
-                )
-                logger.debug(f"Send reply for correlation_id: {message.correlation_id}")
+                    correlation_id=message.correlation_id,
+                ),
+                mandatory=False,
+            )
+            logger.debug(f"Send reply for correlation_id: {message.correlation_id}")
 
         except Exception as e:
             logger.exception(f"[-] failed to send reply message: {e}")
-            pass
+            raise
 
     async def ReceiveFromMythicDirectExchange(self, queue: str, routing_key: str,
                                               handler: Coroutine[any, any, None]):
@@ -303,7 +428,7 @@ class rabbitmqConnectionClass:
                     )
                     q = await chan.declare_queue(
                         name=queue,
-                        durable=False,
+                        durable=True,
                         auto_delete=True,
                         exclusive=True,
                     )
@@ -347,7 +472,7 @@ class rabbitmqConnectionClass:
                     )
                     await q.bind(
                         exchange=exchange,
-                        routing_key=queue,
+                        routing_key=routing_key,
                     )
                     await q.consume(
                         callback=partial(directExchangeCallback, trueFunction=handler)

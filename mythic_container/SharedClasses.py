@@ -108,6 +108,7 @@ class ListFileMessage:
 
     Attributes:
         Name (str): Name of the C2 Profile
+        Path (str): Relative folder path to list
 
     Functions:
         to_json(self): return dictionary form of class
@@ -115,12 +116,15 @@ class ListFileMessage:
 
     def __init__(self,
                  container_name: str,
+                 path: str = "",
                  **kwargs):
         self.Name = container_name
+        self.Path = path or ""
 
     def to_json(self):
         return {
             "container_name": self.Name,
+            "path": self.Path,
         }
 
     def __str__(self):
@@ -134,6 +138,7 @@ class ListFileMessageResponse:
         Success (bool): Did the list check succeed or fail
         Error (str): Error message if the list check failed
         Files (list[str]): List of filenames
+        Folders (list[str]): List of folder names
 
     Functions:
         to_json(self): return dictionary form of class
@@ -142,17 +147,20 @@ class ListFileMessageResponse:
     def __init__(self,
                  Success: bool,
                  Error: str = "",
-                 Files: list[str] = [],
+                 Files: list[str] = None,
+                 Folders: list[str] = None,
                  **kwargs):
         self.Success = Success
         self.Error = Error
-        self.Files = Files
+        self.Files = Files if Files is not None else []
+        self.Folders = Folders if Folders is not None else []
 
     def to_json(self):
         return {
             "success": self.Success,
             "error": self.Error,
             "files": self.Files,
+            "folders": self.Folders,
         }
 
     def __str__(self):

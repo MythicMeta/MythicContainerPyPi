@@ -1,4 +1,13 @@
-from .rabbitmq import rabbitmqConnectionClass
+from .rabbitmq import (
+    MYTHIC_AUTH_CONTEXT_HEADER,
+    RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+    RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT,
+    RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
+    GetRabbitMQAuthContext,
+    ResetRabbitMQAuthContext,
+    SetRabbitMQAuthContext,
+    rabbitmqConnectionClass,
+)
 from .mythic_service import start_and_run_forever, test_command
 from .SharedClasses import *
 
@@ -89,6 +98,9 @@ AUTH_RPC_GET_IDP_METADATA        = "auth_rpc_get_idp_metadata"
 AUTH_RPC_GET_NONIDP_METADATA     = "auth_rpc_get_nonidp_metadata"
 AUTH_RPC_GET_NONIDP_REDIRECT     = "auth_rpc_get_nonidp_redirect"
 AUTH_RPC_PROCESS_NONIDP_RESPONSE = "auth_rpc_process_nonidp_response"
+# CHAT
+CHAT_REQUEST_ROUTING_KEY = "chat_request"
+CHAT_RESPONSE_ROUTING_KEY = "chat_response"
 
 CONTAINER_ON_START          = "container_on_start"
 CONTAINER_ON_START_RESPONSE = "container_on_start_response"

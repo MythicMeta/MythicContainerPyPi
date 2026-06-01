@@ -1,8 +1,7 @@
 import mythic_container
 from mythic_container.logging import logger
-import base64
 
-MYTHIC_RPC_APITOKEN_CREATE    = "mythic_rpc_apitoken_create"
+MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
 
 
 class MythicRPCAPITokenCreateMessage:
@@ -10,11 +9,17 @@ class MythicRPCAPITokenCreateMessage:
                  AgentTaskID: str = None,
                  AgentCallbackID: str = None,
                  PayloadUUID: str = None,
+                 ChatChannelID: int = None,
+                 APITokenID: int = None,
+                 Scopes: list[str] = None,
                  OperationID: int = None,
                  **kwargs):
         self.AgentTaskID = AgentTaskID
         self.AgentCallbackID = AgentCallbackID
         self.PayloadUUID = PayloadUUID
+        self.ChatChannelID = ChatChannelID
+        self.APITokenID = APITokenID
+        self.Scopes = Scopes if Scopes is not None else []
         self.OperationID = OperationID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
@@ -22,9 +27,12 @@ class MythicRPCAPITokenCreateMessage:
     def to_json(self):
         return {
             "agent_task_id": self.AgentTaskID,
-            "agentCallback_id": self.AgentCallbackID,
+            "agent_callback_id": self.AgentCallbackID,
             "payload_uuid": self.PayloadUUID,
-            "operation_id": self.OperationID
+            "chat_channel_id": self.ChatChannelID,
+            "apitoken_id": self.APITokenID,
+            "scopes": self.Scopes,
+            "operation_id": self.OperationID,
         }
 
 
