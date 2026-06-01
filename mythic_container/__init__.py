@@ -100,6 +100,7 @@ AUTH_RPC_GET_NONIDP_REDIRECT     = "auth_rpc_get_nonidp_redirect"
 AUTH_RPC_PROCESS_NONIDP_RESPONSE = "auth_rpc_process_nonidp_response"
 # CHAT
 CHAT_REQUEST_ROUTING_KEY = "chat_request"
+CHAT_CANCEL_ROUTING_KEY = "chat_cancel"
 CHAT_RESPONSE_ROUTING_KEY = "chat_response"
 
 CONTAINER_ON_START          = "container_on_start"

@@ -30,6 +30,8 @@ from . import CustomBrowserBase
 from . import custombrowser_utils
 from .rabbitmq import failedConnectRetryDelay
 
+async def consumingContainerReSync(msg: bytes) -> bytes:
+    return ujson.dumps({"success": True}).encode()
 
 # start our service
 def start_and_run_forever():
@@ -275,10 +277,6 @@ async def onStart(msg: bytes) -> None:
         logger.exception(f"[-] Failed to call container on start with exception: {e}")
         return
 
-
-async def consumingContainerReSync(msg: bytes) -> bytes:
-    return ujson.dumps({"success": True}).encode()
-
 payloadQueueTasks = []
 
 
@@ -333,11 +331,6 @@ async def startPayloadRabbitMQ(pt: PayloadBuilder.PayloadType) -> None:
         queue=getRoutingKey(pt.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
         routing_key=getRoutingKey(pt.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
         handler=agent_utils.customRPCFunction
-    )))
-    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
-        queue=getRoutingKey(pt.name, mythic_container.PT_RPC_RESYNC_ROUTING_KEY),
-        routing_key=getRoutingKey(pt.name, mythic_container.PT_RPC_RESYNC_ROUTING_KEY),
-        handler=agent_utils.reSyncPayloadType
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(pt.name, mythic_container.PT_CHECK_IF_CALLBACKS_ALIVE),
@@ -462,11 +455,6 @@ async def startC2RabbitMQ(c2: C2ProfileBase.C2Profile) -> None:
         queue=getRoutingKey(c2.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
         routing_key=getRoutingKey(c2.name, mythic_container.MYTHIC_RPC_OTHER_SERVICES_RPC),
         handler=c2_utils.customRPCFunction
-    )))
-    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
-        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_RESYNC_ROUTING_KEY),
-        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_RESYNC_ROUTING_KEY),
-        handler=c2_utils.reSyncC2Profile
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(c2.name, mythic_container.C2_RPC_GET_IOC_ROUTING_KEY),
@@ -829,6 +817,11 @@ async def syncChatData(chat: ChatBase.Chat) -> None:
         queue=getRoutingKey(chat.name, mythic_container.CHAT_REQUEST_ROUTING_KEY),
         routing_key=getRoutingKey(chat.name, mythic_container.CHAT_REQUEST_ROUTING_KEY),
         handler=chat_utils.ChatRequestHandler
+    )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromMythicDirectExchange(
+        queue=getRoutingKey(chat.name, mythic_container.CHAT_CANCEL_ROUTING_KEY),
+        routing_key=getRoutingKey(chat.name, mythic_container.CHAT_CANCEL_ROUTING_KEY),
+        handler=chat_utils.ChatCancelHandler
     )))
     payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
         queue=getRoutingKey(chat.name, mythic_container.CONSUMING_CONTAINER_RESYNC_ROUTING_KEY),

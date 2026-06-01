@@ -1,9 +1,19 @@
 from collections.abc import Awaitable, Callable
-from typing import Union
+from typing import Any
 
 import json
 import mythic_container
 from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
+
+
+def _to_json_value(value: Any):
+    if hasattr(value, "to_json") and callable(value.to_json):
+        return value.to_json()
+    if isinstance(value, list):
+        return [_to_json_value(x) for x in value]
+    if isinstance(value, dict):
+        return {k: _to_json_value(v) for k, v in value.items()}
+    return value
 
 
 class ChatMessageContext:
@@ -86,6 +96,40 @@ class ChatRequest:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class ChatCancelRequest:
+    def __init__(
+            self,
+            container_name: str = "",
+            operation_id: int = 0,
+            channel_id: int = 0,
+            request_id: int = 0,
+            response_message_id: int = 0,
+            reason: str = "",
+            cancelled_by: int = 0,
+            **kwargs):
+        self.ContainerName = container_name
+        self.OperationID = operation_id
+        self.ChannelID = channel_id
+        self.RequestID = request_id
+        self.ResponseMessageID = response_message_id
+        self.Reason = reason
+        self.CancelledBy = cancelled_by
+
+    def to_json(self):
+        return {
+            "container_name": self.ContainerName,
+            "operation_id": self.OperationID,
+            "channel_id": self.ChannelID,
+            "request_id": self.RequestID,
+            "response_message_id": self.ResponseMessageID,
+            "reason": self.Reason,
+            "cancelled_by": self.CancelledBy,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class ChatResponse:
     def __init__(
             self,
@@ -126,21 +170,174 @@ class ChatResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class ChatModelConfigurationOptionType:
+    """Types available for per-chat model configuration options.
+
+    If you don't want to use a listed value, supply your own with
+    ChatModelConfigurationOptionType("my_type").
+    """
+    String = "string"
+    Number = "number"
+    Choice = "choice"
+
+    def __init__(self, option_type: str):
+        self.option_type = option_type
+
+    def __str__(self):
+        return self.option_type
+
+
+class ChatModelConfigurationOptionChoice:
+    """A selectable value for a ChatModelConfigurationOption.
+
+    Attributes:
+        Label (str): Human-readable option shown in the Mythic UI.
+        Value (str): Value written into ChatRequest.Config when selected.
+        Description (str): Optional helper text for this choice.
+    """
+
+    def __init__(
+            self,
+            Label: str = "",
+            Value: str = "",
+            Description: str = "",
+            **kwargs):
+        self.Label = Label
+        self.Value = Value
+        self.Description = Description
+        self.AdditionalItems = {}
+        for k, v in kwargs.items():
+            self.AdditionalItems[k] = v
+
+    def to_json(self):
+        r = {
+            "label": self.Label,
+            "value": self.Value,
+        }
+        if self.Description:
+            r["description"] = self.Description
+        r.update(_to_json_value(self.AdditionalItems))
+        return r
+
+
+class ChatModelConfigurationOption:
+    """A per-chat config value exposed in the Mythic UI and delivered in ChatRequest.Config.
+
+    Attributes:
+        Name (str): Config key sent to the chat container.
+        DisplayName (str): Human-readable label shown in the UI.
+        Type (ChatModelConfigurationOptionType): UI input type such as string, number, or choice.
+        Description (str): Helper text explaining what the operator should supply.
+        Required (bool): True when a value must be supplied before using the model.
+        DefaultValue: Initial value shown for this option. The type should match Type.
+        Choices (list[ChatModelConfigurationOptionChoice]): Selectable values for choice options.
+    """
+
+    def __init__(
+            self,
+            Name: str = "",
+            DisplayName: str = "",
+            Type: ChatModelConfigurationOptionType = ChatModelConfigurationOptionType.String,
+            Description: str = "",
+            Required: bool = False,
+            DefaultValue: Any = None,
+            Choices: list[ChatModelConfigurationOptionChoice] = None,
+            **kwargs):
+        self.Name = Name
+        self.DisplayName = DisplayName
+        self.Type = Type
+        self.Description = Description
+        self.Required = Required
+        self.DefaultValue = DefaultValue
+        self.Choices = Choices if Choices is not None else []
+        self.AdditionalItems = {}
+        for k, v in kwargs.items():
+            self.AdditionalItems[k] = v
+
+    def to_json(self):
+        r = {
+            "name": self.Name,
+            "display_name": self.DisplayName,
+            "type": str(self.Type),
+            "description": self.Description,
+            "required": self.Required,
+            "choices": [_to_json_value(x) for x in self.Choices]
+        }
+        if self.DefaultValue is not None:
+            r["default_value"] = _to_json_value(self.DefaultValue)
+        r.update(_to_json_value(self.AdditionalItems))
+        return r
+
+
+class ChatModelMetadata:
+    """Metadata describing how a chat model is configured and what access it needs.
+
+    Mythic syncs this data with the model definition. The UI can render
+    ConfigurationOptions for operators, and developers can use the remaining
+    fields to document required secrets, API token scopes, provider defaults,
+    and compatibility fallbacks.
+
+    Attributes:
+        Provider (str): Backing service or model provider such as litellm, openai, anthropic, or a local engine.
+        ConfigurationOptions (list[ChatModelConfigurationOption]): Config fields Mythic can render and send in ChatRequest.Config.
+        RequiredUserSecrets (list[str]): Mythic user secret names required before this model can be used.
+        OptionalUserSecrets (list[str]): Mythic user secret names this model can use when present.
+        RequiredChannelAPITokenScopes (list[str]): API token scopes required on the AI chat channel for tool access.
+    """
+
+    def __init__(
+            self,
+            Provider: str = "",
+            ConfigurationOptions: list[ChatModelConfigurationOption] = None,
+            RequiredUserSecrets: list[str] = None,
+            OptionalUserSecrets: list[str] = None,
+            RequiredChannelAPITokenScopes: list[str] = None,
+            **kwargs):
+        self.Provider = Provider
+        self.ConfigurationOptions = ConfigurationOptions if ConfigurationOptions is not None else []
+        self.RequiredUserSecrets = RequiredUserSecrets if RequiredUserSecrets is not None else []
+        self.OptionalUserSecrets = OptionalUserSecrets if OptionalUserSecrets is not None else []
+        self.RequiredChannelAPITokenScopes = (
+            RequiredChannelAPITokenScopes if RequiredChannelAPITokenScopes is not None else []
+        )
+        self.AdditionalItems = {}
+        for k, v in kwargs.items():
+            self.AdditionalItems[k] = v
+
+    def to_json(self):
+        r = {
+            "provider": self.Provider,
+            "configuration_options": [_to_json_value(x) for x in self.ConfigurationOptions],
+            "required_user_secrets": self.RequiredUserSecrets,
+            "optional_user_secrets": self.OptionalUserSecrets,
+            "required_channel_api_token_scopes": self.RequiredChannelAPITokenScopes,
+        }
+        r.update(_to_json_value(self.AdditionalItems))
+        return r
+
+
 class ChatModelDefinition:
+    """One model exposed by a Chat container.
+
+    Metadata should be a ChatModelMetadata instance describing provider
+    configuration, user secrets, per-chat UI config fields, defaults, and any
+    API token scopes needed for tool access.
+    """
+
     def __init__(
             self,
             Name: str = "",
             Description: str = "",
-            Metadata: dict = None):
+            Metadata: ChatModelMetadata = None):
         self.Name = Name
         self.Description = Description
-        self.Metadata = Metadata if Metadata is not None else {}
+        self.Metadata = Metadata if Metadata is not None else ChatModelMetadata()
 
     def to_json(self):
         return {
             "name": self.Name,
             "description": self.Description,
-            "metadata": self.Metadata,
+            "metadata": _to_json_value(self.Metadata),
         }
 
 
@@ -148,12 +345,13 @@ class Chat:
     """Chat service definition class for AI-backed operation chat.
 
     Implement chat to receive a ChatRequest and send one or more ChatResponse
-    messages back with SendMythicRPCChatResponse.
+    messages back with SendMythicRPCChatResponse. Mythic cancels the active
+    chat coroutine when operators cancel the request.
     """
     name: str = ""
     description: str = ""
     semver: str = ""
-    models: list[Union[str, ChatModelDefinition, dict]] = []
+    models: list[ChatModelDefinition] = []
     chat: Callable[[ChatRequest], Awaitable[None]] = None
 
     async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
@@ -162,12 +360,7 @@ class Chat:
     def get_sync_message(self):
         subscriptions = []
         for model in self.models:
-            if isinstance(model, ChatModelDefinition):
-                subscriptions.append(json.dumps(model.to_json()))
-            elif isinstance(model, dict):
-                subscriptions.append(json.dumps(model))
-            else:
-                subscriptions.append(str(model))
+            subscriptions.append(json.dumps(model.to_json()))
         return {
             "name": self.name,
             "type": "chat",
@@ -178,6 +371,8 @@ class Chat:
 
 
 chatServices: dict[str, Chat] = {}
+chatRequestTasks: dict[int, Any] = {}
+chatCancelledRequests: set[int] = set()
 
 
 async def SendMythicRPCChatResponse(response: ChatResponse) -> None:
