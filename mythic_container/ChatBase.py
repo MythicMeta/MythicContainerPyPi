@@ -23,12 +23,14 @@ class ChatMessageContext:
             author_type: str = "",
             sender_display_name: str = "",
             message: str = "",
+            metadata: dict = None,
             created_at: str = "",
             **kwargs):
         self.ID = id
         self.AuthorType = author_type
         self.SenderDisplayName = sender_display_name
         self.Message = message
+        self.Metadata = metadata if metadata is not None else {}
         self.CreatedAt = created_at
 
     def to_json(self):
@@ -37,6 +39,7 @@ class ChatMessageContext:
             "author_type": self.AuthorType,
             "sender_display_name": self.SenderDisplayName,
             "message": self.Message,
+            "metadata": self.Metadata,
             "created_at": self.CreatedAt,
         }
 
@@ -58,6 +61,7 @@ class ChatRequest:
             config: dict = None,
             context: list[dict] = None,
             secrets: dict = None,
+            confirmed_tool_call: dict = None,
             **kwargs):
         self.ContainerName = container_name
         self.OperationID = operation_id
@@ -73,6 +77,7 @@ class ChatRequest:
         self.Config = config if config is not None else {}
         self.Context = [ChatMessageContext(**x) for x in context] if context is not None else []
         self.Secrets = secrets if secrets is not None else {}
+        self.ConfirmedToolCall = confirmed_tool_call if confirmed_tool_call is not None else {}
 
     def to_json(self):
         return {
@@ -90,6 +95,7 @@ class ChatRequest:
             "config": self.Config,
             "context": [x.to_json() for x in self.Context],
             "secrets": self.Secrets,
+            "confirmed_tool_call": self.ConfirmedToolCall,
         }
 
     def __str__(self):
@@ -179,6 +185,9 @@ class ChatModelConfigurationOptionType:
     String = "string"
     Number = "number"
     Choice = "choice"
+    Boolean = "boolean"
+    JSON = "json"
+    Json = "json"
 
     def __init__(self, option_type: str):
         self.option_type = option_type
@@ -226,11 +235,15 @@ class ChatModelConfigurationOption:
     Attributes:
         Name (str): Config key sent to the chat container.
         DisplayName (str): Human-readable label shown in the UI.
-        Type (ChatModelConfigurationOptionType): UI input type such as string, number, or choice.
+        Type (ChatModelConfigurationOptionType): UI input type such as string, number, choice, boolean, or json.
         Description (str): Helper text explaining what the operator should supply.
         Required (bool): True when a value must be supplied before using the model.
         DefaultValue: Initial value shown for this option. The type should match Type.
         Choices (list[ChatModelConfigurationOptionChoice]): Selectable values for choice options.
+        JSONSchema (dict): Optional JSON schema shown beside json config editors.
+        Examples (list[dict]): Optional examples operators can load into json config editors.
+        HelpText (str): Longer operator-facing help for complex config fields.
+        MinRows (int): Preferred minimum visible rows for multiline/json config editors.
     """
 
     def __init__(
@@ -242,6 +255,10 @@ class ChatModelConfigurationOption:
             Required: bool = False,
             DefaultValue: Any = None,
             Choices: list[ChatModelConfigurationOptionChoice] = None,
+            JSONSchema: dict = None,
+            Examples: list[dict] = None,
+            HelpText: str = "",
+            MinRows: int = 0,
             **kwargs):
         self.Name = Name
         self.DisplayName = DisplayName
@@ -250,6 +267,10 @@ class ChatModelConfigurationOption:
         self.Required = Required
         self.DefaultValue = DefaultValue
         self.Choices = Choices if Choices is not None else []
+        self.JSONSchema = JSONSchema
+        self.Examples = Examples if Examples is not None else []
+        self.HelpText = HelpText
+        self.MinRows = MinRows
         self.AdditionalItems = {}
         for k, v in kwargs.items():
             self.AdditionalItems[k] = v
@@ -265,6 +286,14 @@ class ChatModelConfigurationOption:
         }
         if self.DefaultValue is not None:
             r["default_value"] = _to_json_value(self.DefaultValue)
+        if self.JSONSchema is not None:
+            r["json_schema"] = _to_json_value(self.JSONSchema)
+        if self.Examples:
+            r["examples"] = _to_json_value(self.Examples)
+        if self.HelpText:
+            r["help_text"] = self.HelpText
+        if self.MinRows:
+            r["min_rows"] = self.MinRows
         r.update(_to_json_value(self.AdditionalItems))
         return r
 
