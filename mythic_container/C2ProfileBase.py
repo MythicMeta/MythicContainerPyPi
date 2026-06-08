@@ -640,63 +640,98 @@ class C2OtherServiceRPCMessageResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
-class C2HostFileMessage:
+class C2HostFileMessageFile:
     """Request to host a file through the C2 profile's server
 
     Attributes:
-        Name (str): Name of the C2 Profile
-        FileUUID (str): UUID of the file to host
+        AgentFileID (str): UUID of the file to host
         HostURL (str): URL to host the file (ex: /bob)
-        Remove (bool): If this path (or all paths with this uuid if path is empty) should be removed instead of added
+        Remove (bool): If this path should be removed instead of added
+        DownloadToken (str): Bearer token to use when fetching DownloadURL
+        Filename (str): Display filename for the hosted file
 
     Functions:
         to_json(self): return dictionary form of class
     """
 
     def __init__(self,
-                 c2_profile_name: str,
-                 file_uuid: str,
-                 host_url: str,
-                 remove: bool,
+                 agent_file_id: str = "",
+                 host_url: str = "",
+                 remove: bool = False,
+                 download_token: str = "",
+                 filename: str = "",
                  **kwargs):
-        self.Name = c2_profile_name
-        self.FileUUID = file_uuid
+        self.AgentFileID = agent_file_id
         self.HostURL = host_url
         self.Remove = remove
+        self.DownloadToken = download_token
+        self.Filename = filename
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
     def to_json(self):
         return {
-            "c2_profile_name": self.Name,
-            "file_uuid": self.FileUUID,
+            "agent_file_id": self.AgentFileID,
             "host_url": self.HostURL,
-            "remove": self.Remove
+            "remove": self.Remove,
+            "download_token": self.DownloadToken,
+            "filename": self.Filename,
         }
 
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
-class C2HostFileMessageResponse:
-    """Status of hosting a file
+class C2HostFilesMessage:
+    """Request to host one or more files through the C2 profile's server
 
     Attributes:
-        Success (bool): Did the file get hosted or not
-        Error (str): Error message if the file failed be hosted
+        Name (str): Name of the C2 Profile
+        Files (list[C2HostFileMessage]): files to host or remove
 
     Functions:
         to_json(self): return dictionary form of class
     """
 
     def __init__(self,
-                 Success: bool,
+                 c2_profile_name: str = "",
+                 files: list[C2HostFileMessageFile|dict] = None,
+                 **kwargs):
+        self.Name = c2_profile_name or kwargs.pop("Name", "")
+        self.Files = []
+        for file in files or []:
+            if isinstance(file, C2HostFileMessageFile):
+                self.Files.append(file)
+            elif isinstance(file, dict):
+                self.Files.append(C2HostFileMessageFile(**file))
+            else:
+                logger.error(f"unknown host file entry {file}")
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "c2_profile_name": self.Name,
+            "files": [file.to_json() for file in self.Files],
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2HostFilesMessageResponseFile:
+    """Status of hosting a single file"""
+
+    def __init__(self,
+                 Success: bool = False,
                  Error: str = "",
-                 RestartInternalServer: bool = False,
+                 AgentFileID: str = "",
+                 HostURL: str = "",
                  **kwargs):
         self.Success = Success
         self.Error = Error
-        self.RestartInternalServer = RestartInternalServer
+        self.HostURL = HostURL
+        self.AgentFileID = AgentFileID
         for k, v in kwargs.items():
             logger.error(f"unknown kwarg {k} {v}")
 
@@ -704,6 +739,45 @@ class C2HostFileMessageResponse:
         return {
             "success": self.Success,
             "error": self.Error,
+            "agent_file_id": self.AgentFileID,
+            "host_url": self.HostURL,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2HostFilesMessageResponse:
+    """Status of hosting one or more files
+
+    Attributes:
+        Success (bool): Did the host-file operation complete
+        Error (str): Overall error message if the bulk operation failed
+        Results (list[C2HostFilesMessageResponseFile]): per-file results
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 Success: bool = None,
+                 Error: str = "",
+                 Results: list[C2HostFilesMessageResponseFile] = None,
+                 RestartInternalServer: bool = False,
+                 **kwargs):
+        self.Success = Success
+        self.Error = Error
+        self.Results = []
+        self.RestartInternalServer = RestartInternalServer
+        self.Results = Results
+        for k, v in kwargs.items():
+            logger.error(f"unknown kwarg {k} {v}")
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+            "results": [x.to_json() for x in self.Results] if self.Results is not None else None,
         }
 
     def __str__(self):
@@ -938,14 +1012,19 @@ class C2Profile:
         #response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response
 
-    async def host_file(self, inputMsg: C2HostFileMessage) -> C2HostFileMessageResponse:
-        """Host a file through a c2 channel
+    async def host_file(self, inputMsg: C2HostFilesMessage) -> C2HostFilesMessageResponse:
+        """Host one or more files through a c2 channel
 
-        :param inputMsg: The file UUID to host and which URL to host it at
-        :return: C2HostFileMessageResponse detailing success or failure to host the file
+        :param inputMsg: The files to host and which URLs to host them at
+        :return: C2HostFilesMessageResponse detailing success or failure to host the files
         """
-        response = C2HostFileMessageResponse(Success=False)
-        response.Message = "Not Implemented"
+        response = C2HostFilesMessageResponse(Success=False, Error="Not Implemented",
+                                              Results=[C2HostFilesMessageResponseFile(
+                                                  Success=False,
+                                                  Error="Not Implemented",
+                                                  AgentFileID=file.AgentFileID,
+                                                  HostURL=file.HostURL,
+                                              ) for file in inputMsg.Files])
         #response.Message += f"\nInput: {json.dumps(inputMsg.to_json(), indent=4)}"
         return response
 

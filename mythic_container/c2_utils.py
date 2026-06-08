@@ -569,51 +569,78 @@ async def reSyncC2Profile(msg: bytes) -> bytes:
 
 
 async def hostFile(msg: bytes) -> bytes:
+    def build_bulk_failure_response(input_msg, error: str):
+        return mythic_container.C2ProfileBase.C2HostFilesMessageResponse(
+            Success=False,
+            Error=error,
+            Results=[
+                mythic_container.C2ProfileBase.C2HostFilesMessageResponseFile(
+                    Success=False,
+                    Error=error,
+                    AgentFileID=file.AgentFileID,
+                    HostURL=file.HostURL,
+                ) for file in input_msg.Files
+            ],
+        )
+
+    def normalize_bulk_response(result):
+        if isinstance(result, dict):
+            return mythic_container.C2ProfileBase.C2HostFilesMessageResponse(**result)
+        if isinstance(result, mythic_container.C2ProfileBase.C2HostFilesMessageResponse):
+            return result
+        if isinstance(result, list):
+            return mythic_container.C2ProfileBase.C2HostFilesMessageResponse(
+                Success=True,
+                Results=result,
+            )
+        return None
+
     try:
         msgDict = ujson.loads(msg)
+        inputMsg = mythic_container.C2ProfileBase.C2HostFilesMessage(**msgDict)
         for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
-            if c2.name == msgDict["c2_profile_name"]:
+            if c2.name == inputMsg.Name:
                 if callable(c2.host_file):
                     try:
-                        result = await c2.host_file(mythic_container.C2ProfileBase.C2HostFileMessage(**msgDict))
+                        result = await c2.host_file(inputMsg)
                     except Exception as callEx:
                         logger.exception(
                             f"Failed to call host_file for {c2.name}")
-                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
-                            Success=False,
-                            Error=f"Failed to call config check function: {traceback.format_exc()}\n{callEx}"
+                        response = build_bulk_failure_response(
+                            inputMsg,
+                            f"Failed to call host file function: {traceback.format_exc()}\n{callEx}"
                         )
                         return ujson.dumps(response.to_json()).encode()
                     if result is None:
-                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
-                            Success=False,
-                            Error=f"Failed to call host file: No result returned"
+                        response = build_bulk_failure_response(
+                            inputMsg,
+                            "Failed to call host file: No result returned"
                         )
                         return ujson.dumps(response.to_json()).encode()
-                    elif isinstance(result, dict):
-                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(**result)
-                        if response.RestartInternalServer:
-                            t = asyncio.create_task(restartInternalServer(name=c2.name))
-                        return ujson.dumps(response).encode()
-                    elif isinstance(result, mythic_container.C2ProfileBase.C2HostFileMessageResponse):
-                        if result.RestartInternalServer:
-                            t = asyncio.create_task(restartInternalServer(name=c2.name))
-                        return ujson.dumps(result.to_json()).encode()
-                    else:
-                        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
-                            Success=False,
-                            Error=f"unknown result type from function: {result}"
+                    response = normalize_bulk_response(result)
+                    if response is None:
+                        response = build_bulk_failure_response(
+                            inputMsg,
+                            f"unknown result type from function: {result}"
                         )
                         return ujson.dumps(response.to_json()).encode()
+                    if response.RestartInternalServer:
+                        asyncio.create_task(restartInternalServer(name=c2.name))
+                    return ujson.dumps(response.to_json()).encode()
                 else:
                     logger.error(f"host_file function for {c2.name} isn't callable")
-                    response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
-                        Success=False,
-                        Error=f"host file function for {c2.name} isn't callable"
+                    response = build_bulk_failure_response(
+                        inputMsg,
+                        f"host file function for {c2.name} isn't callable"
                     )
                     return ujson.dumps(response.to_json()).encode()
+        response = build_bulk_failure_response(
+            inputMsg,
+            f"Failed to find c2 profile: {inputMsg.Name}"
+        )
+        return ujson.dumps(response.to_json()).encode()
     except Exception as e:
-        response = mythic_container.C2ProfileBase.C2HostFileMessageResponse(
+        response = mythic_container.C2ProfileBase.C2HostFilesMessageResponse(
             Success=False,
             Error=f"Hit exception trying to call host_file function: {traceback.format_exc()}\n{e}"
         )
