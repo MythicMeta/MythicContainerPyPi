@@ -856,6 +856,8 @@ class C2ProfileParameter:
     Attributes:
         name (str): Name of the parameter for scripting and for when building payloads
         description (str): Informative description displayed when building a payload
+        display_name (str): Human-friendly label shown in the UI instead of the raw name
+        group_name (str): Optional section name the UI uses to cluster related parameters
         default_value (any): Default value to pre-populate
         randomize (bool): Should this value be randomized (requires format_string)
         format_string (str): A regex used for randomizing values if randomize is true
@@ -863,9 +865,12 @@ class C2ProfileParameter:
         required (bool): Is this parameter required to have a non-empty value or not
         verifier_regex (str): Regex used to verify that the user typed something appropriate
         choices (list[str]): Choices for ChooseOne parameter type
+        choices_display_names (dict[str, str]): Optional map of choice value to display label
         dictionary_choices (list[DictionaryChoice]): Configuration options for the Dictionary parameter type
         crypto_type (bool): Indicate if this value should be used to generate a crypto key or not
         ui_position (int): Optionally indicate an ordering to parameters instead of by name
+        form_schema (dict): Declarative schema describing the parameter's JSON shape so the Mythic UI
+            can render a Visual editor. See form_schema_spec.md for the wire format.
     Functions:
         to_json(self): return dictionary form of class
     """
@@ -884,6 +889,10 @@ class C2ProfileParameter:
             dictionary_choices: list[DictionaryChoice] = None,
             crypto_type: bool = False,
             ui_position: int = 0,
+            display_name: str = "",
+            group_name: str = "",
+            choices_display_names: dict = None,
+            form_schema: dict = None,
     ):
         self.name = name
         self.description = description
@@ -897,11 +906,17 @@ class C2ProfileParameter:
         self.crypto_type = crypto_type
         self.dictionary_choices = dictionary_choices
         self.ui_position = ui_position
+        self.display_name = display_name
+        self.group_name = group_name
+        self.choices_display_names = choices_display_names
+        self.form_schema = form_schema
 
     def to_json(self):
         return {
             "name": self.name,
             "description": self.description,
+            "display_name": self.display_name,
+            "group_name": self.group_name,
             "default_value": self.default_value,
             "randomize": self.randomize,
             "format_string": self.format_string,
@@ -910,9 +925,11 @@ class C2ProfileParameter:
             "verifier_regex": self.verifier_regex,
             "crypto_type": self.crypto_type,
             "choices": self.choices,
+            "choices_display_names": self.choices_display_names,
             "dictionary_choices": [x.to_json() for x in
                                    self.dictionary_choices] if self.dictionary_choices is not None else None,
-            "ui_position": self.ui_position
+            "ui_position": self.ui_position,
+            "form_schema": self.form_schema,
         }
 
     def __str__(self):
