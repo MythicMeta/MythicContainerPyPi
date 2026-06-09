@@ -471,6 +471,11 @@ async def startC2RabbitMQ(c2: C2ProfileBase.C2Profile) -> None:
         routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_HOST_FILE_ROUTING_KEY),
         handler=c2_utils.hostFile
     )))
+    payloadQueueTasks.append(asyncio.create_task(mythic_container.RabbitmqConnection.ReceiveFromRPCQueue(
+        queue=getRoutingKey(c2.name, mythic_container.C2_RPC_DYNAMIC_QUERY_C2_PARAMETER_FUNCTION),
+        routing_key=getRoutingKey(c2.name, mythic_container.C2_RPC_DYNAMIC_QUERY_C2_PARAMETER_FUNCTION),
+        handler=c2_utils.dynamicQueryC2ParameterFunction
+    )))
 
 
 async def syncC2ProfileData(c2: C2ProfileBase.C2Profile) -> None:

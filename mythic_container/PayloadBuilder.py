@@ -98,6 +98,10 @@ class BuildParameterType(str, Enum):
             The user can select multiple files that get uploaded - an array of file UUIDs gets passed in during build
         TypedArray:
             The user can supply an array where each element also has a drop-down option of choices
+        Number:
+            An number
+        JSONString
+            A JSON string value with a json schema defined
     """
     String = "String"
     ChooseOne = "ChooseOne"
@@ -111,6 +115,7 @@ class BuildParameterType(str, Enum):
     FileMultiple = "FileMultiple"
     TypedArray = "TypedArray"
     Number = "Number"
+    JSONString = "JSONString"
 
 
 class DictionaryChoice:
@@ -145,18 +150,18 @@ class DictionaryChoice:
 class HideConditionOperand(str, Enum):
     """Operand to apply when checking if the build parameter should be hidden or not
     """
-    EQ = "eq"
-    NotEQ = "neq"
-    IN = "in"
-    NotIN = "nin"
-    LessThan                                = "lt"
-    GreaterThan                             = "gt"
-    LessThanOrEqual                         = "lte"
-    GreaterThanOrEqual                      = "gte"
-    StartsWith                            = "sw"
-    EndsWith                              = "ew"
-    Contains                              = "co"
-    NotContains                           = "nco"
+    EQ                 = "eq"
+    NotEQ              = "neq"
+    IN                 = "in"
+    NotIN              = "nin"
+    LessThan           = "lt"
+    GreaterThan        = "gt"
+    LessThanOrEqual    = "lte"
+    GreaterThanOrEqual = "gte"
+    StartsWith         = "sw"
+    EndsWith           = "ew"
+    Contains           = "co"
+    NotContains        = "nco"
 
 class HideCondition:
     def __init__(self,
@@ -253,6 +258,8 @@ class BuildParameter:
     Attributes:
         name (str):
             Name of the parameter for scripting and for when building payloads
+        display_name (str):
+            Human-friendly name of the parameter for display in the UI
         description (str):
             Informative description displayed when building a payload
         default_value (any):
@@ -269,6 +276,8 @@ class BuildParameter:
             Regex used to verify that the user typed something appropriate
         choices (list[str]):
             Choices for ChooseOne parameter type
+        choices_display_names (dict[str, str]):
+            Optional map of choice value to display label
         dictionary_choices (list[DictionaryChoice]):
             Configuration options for the Dictionary parameter type
         crypto_type (bool):
@@ -283,11 +292,14 @@ class BuildParameter:
             An optional position/ordering of parameters when displayed in the UI
         dynamic_query_function:
             Provide a dynamic query function to be called when the user views that parameter option in the UI to populate choices for the ChooseOne or ChooseMultiple Parameter Types.
+        json_string_schema (dict):
+            Declarative schema describing the parameter's JSON shape so the Mythic UI can render a Visual editor.
     """
 
     def __init__(
             self,
             name: str,
+            display_name: str = "",
             parameter_type: BuildParameterType = None,
             description: str = None,
             required: bool = None,
@@ -297,6 +309,7 @@ class BuildParameter:
             verifier_regex: str = None,
             default_value: any = None,
             choices: list[str] = None,
+            choices_display_names: dict = None,
             dictionary_choices: list[DictionaryChoice] = None,
             value: any = None,
             verifier_func: callable = None,
@@ -304,10 +317,12 @@ class BuildParameter:
             supported_os: list[str] = None,
             hide_conditions: list[HideCondition] = None,
             ui_position: int = 0,
+            json_string_schema: dict = None,
             dynamic_query_function: Callable[
                 [PTRPCDynamicQueryBuildParameterFunctionMessage], Awaitable[PTRPCDynamicQueryBuildParameterFunctionMessageResponse]] = None,
     ):
         self.name = name
+        self.display_name = display_name
         self.verifier_func = verifier_func
         self.parameter_type = (
             parameter_type if parameter_type is not None else BuildParameterType.String
@@ -322,6 +337,7 @@ class BuildParameter:
             self.value = value
         self.choices = choices
         self.dictionary_choices = dictionary_choices
+        self.choices_display_names = choices_display_names
         self.crypto_type = crypto_type
         self.randomize = randomize
         self.format_string = format_string
@@ -332,26 +348,30 @@ class BuildParameter:
         self.dynamic_query_function = dynamic_query_function
         if not callable(dynamic_query_function) and dynamic_query_function is not None:
             raise Exception("dynamic_query_function is not callable")
+        self.json_string_schema = json_string_schema
 
     def to_json(self):
         return {
             "name": self.name,
-            "description": self.description,
-            "default_value": self.default_value,
-            "randomize": self.randomize,
-            "format_string": self.format_string,
-            "required": self.required,
+            "display_name": self.display_name if self.display_name != "" else self.name,
             "parameter_type": self.parameter_type.value,
+            "description": self.description,
+            "required": self.required,
             "verifier_regex": self.verifier_regex,
-            "crypto_type": self.crypto_type,
+            "default_value": self.default_value,
             "choices": self.choices,
+            "choices_display_names": self.choices_display_names if self.choices_display_names is not None else {},
             "dictionary_choices": [x.to_json() for x in
                                    self.dictionary_choices] if self.dictionary_choices is not None else None,
+            "crypto_type": self.crypto_type,
+            "randomize": self.randomize,
+            "format_string": self.format_string,
             "group_name": self.group_name,
             "supported_os": self.supported_os,
             "hide_conditions": [x.to_json() for x in self.hide_conditions] if self.hide_conditions is not None else None,
             "ui_position": self.ui_position,
             "dynamic_query_function": self.dynamic_query_function.__name__ if callable(self.dynamic_query_function) else None,
+            "json_string_schema": self.json_string_schema,
         }
 
     def __str__(self):

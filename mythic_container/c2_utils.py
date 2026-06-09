@@ -656,3 +656,67 @@ async def restartInternalServer(name: str):
         InternalServerRunning=startResponse["server_running"] if "server_running" in startResponse else False,
         Error=startResponse["error"] if "error" in startResponse else "",
     ))
+
+
+async def dynamicQueryC2ParameterFunction(msg: bytes) -> bytes:
+    try:
+        msgDict = ujson.loads(msg)
+        for name, pt in mythic_container.C2ProfileBase.c2Profiles.items():
+            if pt.name == msgDict["c2_profile"]:
+                for param in pt.build_parameters:
+                    if param.name == msgDict["parameter_name"]:
+                        if param.dynamic_query_function is not None and callable(param.dynamic_query_function):
+                            try:
+                                result = await param.dynamic_query_function(
+                                    mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessage(**msgDict))
+                            except Exception as callEx:
+                                logger.exception(
+                                    f"Failed to call dynamic query function for {param.name}")
+                                result = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"Failed to call dynamic query function: {traceback.format_exc()}"
+                                )
+                                return ujson.dumps(result.to_json()).encode()
+                            if result is None:
+                                response = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"Failed to call dynamic query function: No result returned"
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                            elif isinstance(result, list):
+                                response = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+                                    Success=True,
+                                    Choices=result
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                            elif isinstance(result, mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse):
+                                return ujson.dumps(result.to_json()).encode()
+                            else:
+                                response = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+                                    Success=False,
+                                    Error=f"unknown result type from function: {result}"
+                                )
+                                return ujson.dumps(response.to_json()).encode()
+                        else:
+                            logger.error(f"dynamic query function for {param.name} isn't callable")
+                            response = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+                                Success=False,
+                                Error=f"dynamic query function for {param.name} isn't callable"
+                            )
+                            return ujson.dumps(response.to_json()).encode()
+                response = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+                    Success=False,
+                    Error=f"Failed to find parameter name for dynamic query function: {msgDict['parameter_name']}"
+                )
+                return ujson.dumps(response.to_json()).encode()
+        response = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+            Success=False,
+            Error=f"Failed to find c2 profile name for dynamic query function: {msgDict['c2_profile']}"
+        )
+        return ujson.dumps(response.to_json()).encode()
+    except Exception as e:
+        response = mythic_container.C2ProfileBase.C2RPCDynamicQueryC2ParameterFunctionMessageResponse(
+            Success=False,
+            Error=f"Hit exception trying to call dynamic query function: {traceback.format_exc()}\n{e}"
+        )
+        return ujson.dumps(response.to_json()).encode()

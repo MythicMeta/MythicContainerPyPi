@@ -59,6 +59,7 @@ CONTAINER_RPC_REMOVE_FILE = "container_rpc_remove_file"
 CONTAINER_RPC_LIST_FILE = "container_rpc_list_file"
 CONTAINER_RPC_WRITE_FILE = "container_rpc_write_file"
 C2_RPC_HOST_FILE_ROUTING_KEY = "c2_rpc_host_file"
+C2_RPC_DYNAMIC_QUERY_C2_PARAMETER_FUNCTION = "c2_rpc_parameter_dynamic_query_function"
 # tr routes
 TR_SYNC_ROUTING_KEY = "tr_sync"
 TR_RPC_RESYNC_ROUTING_KEY = "tr_rpc_resync"

@@ -788,24 +788,32 @@ class ParameterType(Enum):
     """Types of parameters available for C2 Profiles when building payloads
 
      Attributes:
-         String:
+        String:
              A string value
-         ChooseOne:
+        ChooseOne:
              A list of choices for the user to select exactly one
-         Array:
+        ChooseMultiple:
+            A list of choices for the user to select 0 or more
+        ChooseOneCustom:
+            A list of choices for the user to select exactly one OR write their own
+        Array:
              The user can supply multiple values in an Array format
-         Date:
+        Date:
              The user can select a Date in YYYY-MM-DD format
-         Dictionary:
+        Dictionary:
              The user can supply a dictionary of values
-         Boolean:
+        Boolean:
              The user can toggle a switch for True/False
-         TypedArray:
-            The user can supply multiple values in an array format where each entry has a dropdown of choices for metadata
-         File:
+        File:
             The user can supply a file, but this will get passed along as a UUID representing the file
-         Number:
+        FileMultiple:
+            The user can select multiple files that get uploaded - an array of file UUIDs gets passed in during build
+        TypedArray:
+            The user can supply multiple values in an array format where each entry has a dropdown of choices for metadata
+        Number:
             An number
+        JSONString
+            A JSON string value with a json schema defined
      """
     String = "String"
     ChooseOne = "ChooseOne"
@@ -815,11 +823,10 @@ class ParameterType(Enum):
     Date = "Date"
     Dictionary = "Dictionary"
     Boolean = "Boolean"
-    TypedArray = "TypedArray"
     File = "File"
     FileMultiple = "FileMultiple"
     Number = "Number"
-
+    JSONString = "JSONString"
 
 class DictionaryChoice:
     """A single dictionary choice/option for the UI when select C2 Profile Parameters
@@ -849,28 +856,147 @@ class DictionaryChoice:
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
+class HideConditionOperand(str, Enum):
+    """Operand to apply when checking if the c2 parameter should be hidden or not
+    """
+    EQ                 = "eq"
+    NotEQ              = "neq"
+    IN                 = "in"
+    NotIN              = "nin"
+    LessThan           = "lt"
+    GreaterThan        = "gt"
+    LessThanOrEqual    = "lte"
+    GreaterThanOrEqual = "gte"
+    StartsWith         = "sw"
+    EndsWith           = "ew"
+    Contains           = "co"
+    NotContains        = "nco"
+
+class HideCondition:
+    def __init__(self,
+                 name: str,
+                 operand: HideConditionOperand,
+                 value: any = None,
+                 choices: list[str] = None,
+                 ):
+        self.name = name
+        self.operand = operand
+        self.value = value
+        self.choices = choices
+
+    def to_json(self):
+        return {
+            "name": self.name,
+            "operand": self.operand,
+            "value": self.value,
+            "choices": self.choices
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+class C2RPCDynamicQueryC2ParameterFunctionMessage:
+    """Request to dynamically generate choices for a modal in the UI with a ChooseOne or ChooseMultiple parameter type.
+
+    Attributes:
+        ParameterName (str): Name of the parameter
+        C2Profile (str): Name of the C2Profile
+        Secrets (dict): User secrets based on the operator that issued this action
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 parameter_name: str,
+                 c2_profile: str,
+                 secrets: dict = {},
+                 **kwargs
+                 ):
+        self.ParameterName = parameter_name
+        self.C2Profile = c2_profile
+        self.Secrets = secrets
+
+    def to_json(self):
+        return {
+            "parameter_name": self.ParameterName,
+            "c2_profile": self.C2Profile,
+            "secrets": self.Secrets,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class C2RPCDynamicQueryC2ParameterFunctionMessageResponse:
+    """Results of performing a dynamic query for a build parameter
+
+    Attributes:
+        Success (bool): Did the dynamic query function successfully execute
+        Error (str): If the dynamic query function failed to run, this is the string error
+        Choices (list[str]): List of the string choices to present back to the user. If there are no valid choices, return []
+
+    Functions:
+        to_json(self): return dictionary form of class
+    """
+
+    def __init__(self,
+                 Success: bool = False,
+                 Error: str = None,
+                 Choices: list[str] = []):
+        self.Success = Success
+        self.Error = Error
+        self.Choices = Choices
+
+    def to_json(self):
+        return {
+            "success": self.Success,
+            "error": self.Error,
+            "choices": self.Choices
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 class C2ProfileParameter:
     """C2Profile Parameter Definition for use when generating payloads
 
     Attributes:
-        name (str): Name of the parameter for scripting and for when building payloads
-        description (str): Informative description displayed when building a payload
-        display_name (str): Human-friendly label shown in the UI instead of the raw name
-        group_name (str): Optional section name the UI uses to cluster related parameters
-        default_value (any): Default value to pre-populate
-        randomize (bool): Should this value be randomized (requires format_string)
-        format_string (str): A regex used for randomizing values if randomize is true
-        parameter_type (ParameterType): The type of parameter this is
-        required (bool): Is this parameter required to have a non-empty value or not
-        verifier_regex (str): Regex used to verify that the user typed something appropriate
-        choices (list[str]): Choices for ChooseOne parameter type
-        choices_display_names (dict[str, str]): Optional map of choice value to display label
-        dictionary_choices (list[DictionaryChoice]): Configuration options for the Dictionary parameter type
-        crypto_type (bool): Indicate if this value should be used to generate a crypto key or not
-        ui_position (int): Optionally indicate an ordering to parameters instead of by name
-        form_schema (dict): Declarative schema describing the parameter's JSON shape so the Mythic UI
-            can render a Visual editor. See form_schema_spec.md for the wire format.
+        name (str):
+            Name of the parameter for scripting and for when building payloads
+        display_name (str):
+            Human-friendly label shown in the UI instead of the raw name
+        description (str):
+            Informative description displayed when building a payload
+        default_value (any):
+            Default value to pre-populate
+        randomize (bool):
+            Should this value be randomized (requires format_string)
+        format_string (str):
+            A regex used for randomizing values if randomize is true
+        parameter_type (ParameterType):
+            The type of parameter this is
+        required (bool):
+            Is this parameter required to have a non-empty value or not
+        verifier_regex (str):
+            Regex used to verify that the user typed something appropriate
+        choices (list[str]):
+            Choices for ChooseOne parameter type
+        choices_display_names (dict[str, str]):
+            Optional map of choice value to display label
+        dictionary_choices (list[DictionaryChoice]):
+            Configuration options for the Dictionary parameter type
+        crypto_type (bool):
+            Indicate if this value should be used to generate a crypto key or not
+        group_name (str):
+            Optional section name the UI uses to cluster related parameters
+        hide_conditions (list[HideCondition]):
+            An optional list of conditions where this parameter should be hidden from view (this is a series of OR not AND conditions)
+        ui_position (int):
+            Optionally indicate an ordering to parameters instead of by name
+        dynamic_query_function:
+            Provide a dynamic query function to be called when the user views that parameter option in the UI to populate choices for the ChooseOne or ChooseMultiple Parameter Types.
+        json_string_schema (dict):
+            Declarative schema describing the parameter's JSON shape so the Mythic UI can render a Visual editor.
     Functions:
         to_json(self): return dictionary form of class
     """
@@ -892,44 +1018,55 @@ class C2ProfileParameter:
             display_name: str = "",
             group_name: str = "",
             choices_display_names: dict = None,
-            form_schema: dict = None,
+            json_string_schema: dict = None,
+            hide_conditions: list[HideCondition] = None,
+            dynamic_query_function: Callable[
+                [C2RPCDynamicQueryC2ParameterFunctionMessage], Awaitable[C2RPCDynamicQueryC2ParameterFunctionMessageResponse]] = None,
     ):
         self.name = name
+        self.display_name = display_name
+        self.parameter_type = (
+            parameter_type if parameter_type is not None else ParameterType.String
+        )
         self.description = description
-        self.randomize = randomize
-        self.format_string = format_string
-        self.parameter_type = parameter_type
         self.required = required
         self.verifier_regex = verifier_regex
-        self.choices = choices
         self.default_value = default_value
-        self.crypto_type = crypto_type
+        self.choices = choices
         self.dictionary_choices = dictionary_choices
-        self.ui_position = ui_position
-        self.display_name = display_name
-        self.group_name = group_name
         self.choices_display_names = choices_display_names
-        self.form_schema = form_schema
+        self.crypto_type = crypto_type
+        self.randomize = randomize
+        self.format_string = format_string
+        self.group_name = group_name
+        self.hide_conditions = hide_conditions
+        self.ui_position = ui_position
+        self.dynamic_query_function = dynamic_query_function
+        if not callable(dynamic_query_function) and dynamic_query_function is not None:
+            raise Exception("dynamic_query_function is not callable")
+        self.json_string_schema = json_string_schema
 
     def to_json(self):
         return {
             "name": self.name,
-            "description": self.description,
-            "display_name": self.display_name,
-            "group_name": self.group_name,
-            "default_value": self.default_value,
-            "randomize": self.randomize,
-            "format_string": self.format_string,
-            "required": self.required,
+            "display_name": self.display_name if self.display_name != "" else self.name,
             "parameter_type": self.parameter_type.value,
+            "description": self.description,
+            "required": self.required,
             "verifier_regex": self.verifier_regex,
-            "crypto_type": self.crypto_type,
+            "default_value": self.default_value,
             "choices": self.choices,
-            "choices_display_names": self.choices_display_names,
+            "choices_display_names": self.choices_display_names if self.choices_display_names is not None else {},
             "dictionary_choices": [x.to_json() for x in
                                    self.dictionary_choices] if self.dictionary_choices is not None else None,
+            "crypto_type": self.crypto_type,
+            "randomize": self.randomize,
+            "format_string": self.format_string,
+            "group_name": self.group_name,
+            "hide_conditions": [x.to_json() for x in self.hide_conditions] if self.hide_conditions is not None else None,
             "ui_position": self.ui_position,
-            "form_schema": self.form_schema,
+            "dynamic_query_function": self.dynamic_query_function.__name__ if callable(self.dynamic_query_function) else None,
+            "json_string_schema": self.json_string_schema,
         }
 
     def __str__(self):
