@@ -910,22 +910,38 @@ class C2RPCDynamicQueryC2ParameterFunctionMessage:
                  parameter_name: str,
                  c2_profile: str,
                  secrets: dict = {},
+                 other_parameters: dict = {},
                  **kwargs
                  ):
         self.ParameterName = parameter_name
         self.C2Profile = c2_profile
         self.Secrets = secrets
+        self.OtherParameters = other_parameters
 
     def to_json(self):
         return {
             "parameter_name": self.ParameterName,
             "c2_profile": self.C2Profile,
             "secrets": self.Secrets,
+            "other_parameters": self.OtherParameters
         }
 
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
+class ComplexChoice:
+    """ A complex choice is a choice that provides a display value and a value"""
+    def __init__(self, DisplayValue: str, Value: str):
+        self.DisplayValue = DisplayValue
+        self.Value = Value
+
+    def to_json(self):
+        return {
+            "display_value": self.DisplayValue,
+            "value": self.Value
+        }
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 class C2RPCDynamicQueryC2ParameterFunctionMessageResponse:
     """Results of performing a dynamic query for a build parameter
@@ -942,16 +958,20 @@ class C2RPCDynamicQueryC2ParameterFunctionMessageResponse:
     def __init__(self,
                  Success: bool = False,
                  Error: str = None,
-                 Choices: list[str] = []):
+                 Choices: list[str] = [],
+                 ComplexChoices: list[ComplexChoice] = [],
+                 ):
         self.Success = Success
         self.Error = Error
         self.Choices = Choices
+        self.ComplexChoices = ComplexChoices
 
     def to_json(self):
         return {
             "success": self.Success,
             "error": self.Error,
-            "choices": self.Choices
+            "choices": self.Choices,
+            "complex_choices": [x.to_json() for x in self.ComplexChoices]
         }
 
     def __str__(self):

@@ -203,12 +203,14 @@ class PTRPCDynamicQueryBuildParameterFunctionMessage:
                  payload_type: str,
                  selected_os: str = "",
                  secrets: dict = {},
+                 other_parameters: dict = {},
                  **kwargs
                  ):
         self.ParameterName = parameter_name
         self.PayloadType = payload_type
         self.SelectedOS = selected_os
         self.Secrets = secrets
+        self.OtherParameters = other_parameters
 
     def to_json(self):
         return {
@@ -216,11 +218,25 @@ class PTRPCDynamicQueryBuildParameterFunctionMessage:
             "payload_type": self.PayloadType,
             "selected_os": self.SelectedOS,
             "secrets": self.Secrets,
+            "other_parameters": self.OtherParameters
         }
 
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
+class ComplexChoice:
+    """ A complex choice is a choice that provides a display value and a value"""
+    def __init__(self, DisplayValue: str, Value: str):
+        self.DisplayValue = DisplayValue
+        self.Value = Value
+
+    def to_json(self):
+        return {
+            "display_value": self.DisplayValue,
+            "value": self.Value
+        }
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 class PTRPCDynamicQueryBuildParameterFunctionMessageResponse:
     """Results of performing a dynamic query for a build parameter
@@ -237,16 +253,20 @@ class PTRPCDynamicQueryBuildParameterFunctionMessageResponse:
     def __init__(self,
                  Success: bool = False,
                  Error: str = None,
-                 Choices: list[str] = []):
+                 Choices: list[str] = [],
+                 ComplexChoices: list[ComplexChoice] = [],
+                 ):
         self.Success = Success
         self.Error = Error
         self.Choices = Choices
+        self.ComplexChoices = ComplexChoices
 
     def to_json(self):
         return {
             "success": self.Success,
             "error": self.Error,
-            "choices": self.Choices
+            "choices": self.Choices,
+            "complex_choices": [x.to_json() for x in self.ComplexChoices]
         }
 
     def __str__(self):
