@@ -142,9 +142,11 @@ class ChatResponse:
             OperationID: int = 0,
             RequestID: int = 0,
             ResponseMessageID: int = 0,
+            ResponseKey: str = "",
             Content: str = "",
             IsDelta: bool = False,
             Complete: bool = False,
+            CompleteRequest: bool = False,
             Status: str = "",
             Error: str = "",
             Metadata: dict = None,
@@ -152,9 +154,11 @@ class ChatResponse:
         self.OperationID = OperationID
         self.RequestID = RequestID
         self.ResponseMessageID = ResponseMessageID
+        self.ResponseKey = ResponseKey
         self.Content = Content
         self.IsDelta = IsDelta
         self.Complete = Complete
+        self.CompleteRequest = CompleteRequest
         self.Status = Status
         self.Error = Error
         self.Metadata = Metadata if Metadata is not None else {}
@@ -164,9 +168,11 @@ class ChatResponse:
             "operation_id": self.OperationID,
             "request_id": self.RequestID,
             "response_message_id": self.ResponseMessageID,
+            "response_key": self.ResponseKey,
             "content": self.Content,
             "is_delta": self.IsDelta,
             "complete": self.Complete,
+            "complete_request": self.CompleteRequest,
             "status": self.Status,
             "error": self.Error,
             "metadata": self.Metadata,
