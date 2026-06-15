@@ -148,6 +148,7 @@ class CustomBrowser:
 
     """
     name: str = ""
+    display_name: str = ""
     description: str = ""
     author: str = ""
     semver: str = ""
@@ -168,6 +169,7 @@ class CustomBrowser:
     def get_sync_message(self):
         return {
             "name": self.name,
+            "display_name": self.display_name,
             "type": self.type,
             "description": self.description,
             "semver": self.semver,
