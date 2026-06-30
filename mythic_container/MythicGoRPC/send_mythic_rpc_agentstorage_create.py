@@ -5,7 +5,7 @@ import base64
 MYTHIC_RPC_AGENTSTORAGE_CREATE = "mythic_rpc_agentstorage_create"
 
 
-class MythicRPCAgentstorageCreateMessage:
+class MythicRPCAgentStorageCreateMessage:
     def __init__(self,
                  UniqueID: str,
                  DataToStore: bytes,
@@ -22,7 +22,7 @@ class MythicRPCAgentstorageCreateMessage:
         }
 
 
-class MythicRPCAgentstorageCreateMessageResponse:
+class MythicRPCAgentStorageCreateMessageResponse:
     def __init__(self,
                  success: bool = False,
                  error: str = "",
@@ -34,7 +34,7 @@ class MythicRPCAgentstorageCreateMessageResponse:
 
 
 async def SendMythicRPCAgentStorageCreate(
-        msg: MythicRPCAgentstorageCreateMessage) -> MythicRPCAgentstorageCreateMessageResponse:
+        msg: MythicRPCAgentStorageCreateMessage) -> MythicRPCAgentStorageCreateMessageResponse:
     response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(queue=MYTHIC_RPC_AGENTSTORAGE_CREATE,
                                                                             body=msg.to_json())
-    return MythicRPCAgentstorageCreateMessageResponse(**response)
+    return MythicRPCAgentStorageCreateMessageResponse(**response)

@@ -10,6 +10,7 @@ from .rabbitmq import (
 )
 from .mythic_service import start_and_run_forever, test_command
 from .SharedClasses import *
+from .keyword_resolution import PTTaskKeywordResolution, RevertKeywords
 
 containerVersion = "v1.4.3"
 

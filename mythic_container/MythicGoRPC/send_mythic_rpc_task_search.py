@@ -1,4 +1,5 @@
 import mythic_container
+from mythic_container.keyword_resolution import NormalizeKeywordResolution, RevertKeywords
 from mythic_container.logging import logger
 
 MYTHIC_RPC_TASK_SEARCH = "mythic_rpc_task_search"
@@ -60,6 +61,7 @@ class MythicRPCTaskSearchData:
                  status: str = None,
                  original_params: str = None,
                  display_params: str = None,
+                 keyword_resolution: list[dict] = None,
                  comment: str = None,
                  stdout: str = None,
                  stderr: str = None,
@@ -100,6 +102,7 @@ class MythicRPCTaskSearchData:
         self.Status = status
         self.OriginalParams = original_params
         self.DisplayParams = display_params
+        self.KeywordResolution = NormalizeKeywordResolution(keyword_resolution)
         self.Comment = comment
         self.Stdout = stdout
         self.Stderr = stderr
@@ -143,6 +146,7 @@ class MythicRPCTaskSearchData:
             "status": self.Status,
             "original_params": self.OriginalParams,
             "display_params": self.DisplayParams,
+            "keyword_resolution": [x.to_json() for x in self.KeywordResolution],
             "comment": self.Comment,
             "stdout": self.Stdout,
             "stderr": self.Stderr,
@@ -170,6 +174,9 @@ class MythicRPCTaskSearchData:
             "is_interactive_task": self.IsInteractiveTask,
             "interactive_task_type": self.InteractiveTaskType
         }
+
+    def RevertKeywords(self, parameter, parameter_name: str = "") -> str:
+        return RevertKeywords(parameter, self.KeywordResolution, parameter_name)
 
 class MythicRPCTaskSearchMessageResponse:
     Tasks: list[MythicRPCTaskSearchData]

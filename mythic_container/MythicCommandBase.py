@@ -8,6 +8,7 @@ from .logging import logger
 import sys
 from collections.abc import Callable, Awaitable
 from typing import List
+from mythic_container.keyword_resolution import NormalizeKeywordResolution, RevertKeywords
 from mythic_container.MythicGoRPC.send_mythic_rpc_payload_create_from_scratch import \
     MythicRPCPayloadConfigurationBuildParameter, MythicRPCPayloadConfigurationC2Profile
 
@@ -1415,6 +1416,7 @@ class PTTaskMessageTaskData:
         Status (str): The current status of this task (likely to be preprocessing in create_go_tasking)
         OriginalParams (str): The original parameters that the user supplied (after processing by the Mythic UI)
         DisplayParams (str): The modified parameters if any were set to be easier for operators to read (defaults to the same as OriginalParams)
+        KeywordResolution (list[PTTaskKeywordResolution]): Keywords Mythic resolved while creating this task.
         Comment (str): The comment on the task if one exists
         Stdout (str): Additional stdout for the task if any was set as part of the create_go_tasking function
         Stderr (str): Additional stderr for the task if any was set as part of the create_go_tasking function
@@ -1458,6 +1460,7 @@ class PTTaskMessageTaskData:
                  status: str = "",
                  original_params: str = "",
                  display_params: str = "",
+                 keyword_resolution: list[dict] = None,
                  comment: str = "",
                  stdout: str = "",
                  stderr: str = "",
@@ -1498,6 +1501,7 @@ class PTTaskMessageTaskData:
         self.Status = status
         self.OriginalParams = original_params
         self.DisplayParams = display_params
+        self.KeywordResolution = NormalizeKeywordResolution(keyword_resolution)
         self.Comment = comment
         self.Stdout = stdout
         self.Stderr = stderr
@@ -1544,6 +1548,7 @@ class PTTaskMessageTaskData:
             "status": self.Status,
             "original_params": self.OriginalParams,
             "display_params": self.DisplayParams,
+            "keyword_resolution": [x.to_json() for x in self.KeywordResolution],
             "comment": self.Comment,
             "stdout": self.Stdout,
             "stderr": self.Stderr,
@@ -1572,6 +1577,9 @@ class PTTaskMessageTaskData:
             "is_interactive_task": self.IsInteractiveTask,
             "interactive_task_type": self.InteractiveTaskType
         }
+
+    def RevertKeywords(self, parameter, parameter_name: str = "") -> str:
+        return RevertKeywords(parameter, self.KeywordResolution, parameter_name)
 
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
