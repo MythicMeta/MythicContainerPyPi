@@ -22,6 +22,16 @@ import [my agent | my c2 profile | my translation container | my webhooks | my l
 mythic_container.mythic_service.start_and_run_forever()
 ```
 
+## Chat containers
+
+AI chat containers subclass `mythic_container.ChatBase.Chat`. The base class
+provides Mythic request/response types, response helpers, typed config/secret
+readers, chat-channel API token delegation, and reusable MCP tool primitives.
+Provider connection semantics stay in each chat container.
+
+See [CHAT_CONTAINERS.md](CHAT_CONTAINERS.md) for subclassing, typed settings,
+response helper, MCP connection, and confirmation-flow examples.
+
 ## Where is the code?
 
 The code for this PyPi package can be found at https://github.com/MythicMeta/MythicContainerPyPi

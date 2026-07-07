@@ -5,7 +5,6 @@ MYTHIC_RPC_PROCESS_CREATE = "mythic_rpc_process_create"
 
 class MythicRPCProcessCreateData:
     def __init__(self,
-                 Host: str = None,
                  ProcessID: int = None,
                  ParentProcessID: int = None,
                  Architecture: str = None,
@@ -19,7 +18,6 @@ class MythicRPCProcessCreateData:
                  Signer: str = None,
                  ProtectionProcessLevel: int = None,
                  **kwargs):
-        self.Host = Host
         self.ProcessID = ProcessID
         self.ParentProcessID = ParentProcessID
         self.Architecture = Architecture
@@ -36,7 +34,6 @@ class MythicRPCProcessCreateData:
 
     def to_json(self):
         return {
-            "host": self.Host,
             "process_id": self.ProcessID,
             "parent_process_id": self.ParentProcessID,
             "architecture": self.Architecture,
@@ -56,16 +53,25 @@ class MythicRPCProcessCreateData:
 class MythicRPCProcessesCreateMessage:
     def __init__(self,
                  TaskID: int,
+                 Host: str = None,
+                 OS: str = None,
+                 UpdateDeleted: bool = False,
                  Processes: list[MythicRPCProcessCreateData] = None,
                  **kwargs):
         self.TaskID = TaskID
+        self.Host = Host
+        self.OS = OS
         self.Processes = Processes
+        self.UpdateDeleted = UpdateDeleted
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
             "task_id": self.TaskID,
+            "host": self.Host,
+            "os": self.OS,
+            "update_deleted": self.UpdateDeleted,
             "processes": [x.to_json() for x in self.Processes]
         }
 

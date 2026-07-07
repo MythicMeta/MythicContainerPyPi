@@ -18,7 +18,9 @@ async def ChatRequestHandler(msg: bytes) -> None:
                     await ChatBase.SendMythicRPCChatResponse(ChatBase.ChatResponse(
                         OperationID=request.OperationID,
                         RequestID=request.RequestID,
-                        ResponseMessageID=request.ResponseMessageID,
+                        ResponseKey="system:not-implemented",
+                        Complete=True,
+                        CompleteRequest=True,
                         Status="error",
                         Error=f"{chat.name} does not implement a chat function",
                     ))
@@ -28,7 +30,9 @@ async def ChatRequestHandler(msg: bytes) -> None:
                     await ChatBase.SendMythicRPCChatResponse(ChatBase.ChatResponse(
                         OperationID=request.OperationID,
                         RequestID=request.RequestID,
-                        ResponseMessageID=request.ResponseMessageID,
+                        ResponseKey="system:cancelled",
+                        Complete=True,
+                        CompleteRequest=True,
                         Status="cancelled",
                         Error="Cancelled by operator",
                     ))
@@ -42,7 +46,9 @@ async def ChatRequestHandler(msg: bytes) -> None:
                     await ChatBase.SendMythicRPCChatResponse(ChatBase.ChatResponse(
                         OperationID=request.OperationID,
                         RequestID=request.RequestID,
-                        ResponseMessageID=request.ResponseMessageID,
+                        ResponseKey="system:cancelled",
+                        Complete=True,
+                        CompleteRequest=True,
                         Status="cancelled",
                         Error="Cancelled by operator",
                     ))
@@ -53,7 +59,9 @@ async def ChatRequestHandler(msg: bytes) -> None:
         await ChatBase.SendMythicRPCChatResponse(ChatBase.ChatResponse(
             OperationID=request.OperationID,
             RequestID=request.RequestID,
-            ResponseMessageID=request.ResponseMessageID,
+            ResponseKey="system:not-found",
+            Complete=True,
+            CompleteRequest=True,
             Status="error",
             Error=f"Failed to find chat service {request.ContainerName}",
         ))
@@ -64,7 +72,9 @@ async def ChatRequestHandler(msg: bytes) -> None:
             await ChatBase.SendMythicRPCChatResponse(ChatBase.ChatResponse(
                 OperationID=msgDict.get("operation_id", 0),
                 RequestID=msgDict.get("request_id", 0),
-                ResponseMessageID=msgDict.get("response_message_id", 0),
+                ResponseKey="system:exception",
+                Complete=True,
+                CompleteRequest=True,
                 Status="error",
                 Error=f"Hit exception trying to process chat request: {traceback.format_exc()}",
             ))

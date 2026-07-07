@@ -1,9 +1,13 @@
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+import asyncio
 import json
 import mythic_container
 from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
+
+
+CHAT_MCP_CONFIRMATION_SPECIAL_TYPE = "mcp_tool_confirmation"
 
 
 def _to_json_value(value: Any):
@@ -44,6 +48,28 @@ class ChatMessageContext:
         }
 
 
+class ChatSlashCommandInvocation:
+    def __init__(
+            self,
+            name: str = "",
+            argument: str = "",
+            raw: str = "",
+            source: str = "",
+            **kwargs):
+        self.Name = name
+        self.Argument = argument
+        self.Raw = raw
+        self.Source = source
+
+    def to_json(self):
+        return {
+            "name": self.Name,
+            "argument": self.Argument,
+            "raw": self.Raw,
+            "source": self.Source,
+        }
+
+
 class ChatRequest:
     def __init__(
             self,
@@ -55,12 +81,12 @@ class ChatRequest:
             channel_slug: str = "",
             request_id: int = 0,
             request_message_id: int = 0,
-            response_message_id: int = 0,
             model: str = "",
             prompt: str = "",
             config: dict = None,
             context: list[dict] = None,
             secrets: dict = None,
+            slash_command: dict = None,
             confirmed_tool_call: dict = None,
             **kwargs):
         self.ContainerName = container_name
@@ -71,12 +97,12 @@ class ChatRequest:
         self.ChannelSlug = channel_slug
         self.RequestID = request_id
         self.RequestMessageID = request_message_id
-        self.ResponseMessageID = response_message_id
         self.Model = model
         self.Prompt = prompt
         self.Config = config if config is not None else {}
         self.Context = [ChatMessageContext(**x) for x in context] if context is not None else []
         self.Secrets = secrets if secrets is not None else {}
+        self.SlashCommand = ChatSlashCommandInvocation(**slash_command) if isinstance(slash_command, dict) else None
         self.ConfirmedToolCall = confirmed_tool_call if confirmed_tool_call is not None else {}
 
     def to_json(self):
@@ -89,12 +115,12 @@ class ChatRequest:
             "channel_slug": self.ChannelSlug,
             "request_id": self.RequestID,
             "request_message_id": self.RequestMessageID,
-            "response_message_id": self.ResponseMessageID,
             "model": self.Model,
             "prompt": self.Prompt,
             "config": self.Config,
             "context": [x.to_json() for x in self.Context],
             "secrets": self.Secrets,
+            "slash_command": self.SlashCommand.to_json() if self.SlashCommand is not None else None,
             "confirmed_tool_call": self.ConfirmedToolCall,
         }
 
@@ -109,7 +135,6 @@ class ChatCancelRequest:
             operation_id: int = 0,
             channel_id: int = 0,
             request_id: int = 0,
-            response_message_id: int = 0,
             reason: str = "",
             cancelled_by: int = 0,
             **kwargs):
@@ -117,7 +142,6 @@ class ChatCancelRequest:
         self.OperationID = operation_id
         self.ChannelID = channel_id
         self.RequestID = request_id
-        self.ResponseMessageID = response_message_id
         self.Reason = reason
         self.CancelledBy = cancelled_by
 
@@ -127,7 +151,6 @@ class ChatCancelRequest:
             "operation_id": self.OperationID,
             "channel_id": self.ChannelID,
             "request_id": self.RequestID,
-            "response_message_id": self.ResponseMessageID,
             "reason": self.Reason,
             "cancelled_by": self.CancelledBy,
         }
@@ -141,7 +164,6 @@ class ChatResponse:
             self,
             OperationID: int = 0,
             RequestID: int = 0,
-            ResponseMessageID: int = 0,
             ResponseKey: str = "",
             Content: str = "",
             IsDelta: bool = False,
@@ -153,7 +175,6 @@ class ChatResponse:
             **kwargs):
         self.OperationID = OperationID
         self.RequestID = RequestID
-        self.ResponseMessageID = ResponseMessageID
         self.ResponseKey = ResponseKey
         self.Content = Content
         self.IsDelta = IsDelta
@@ -167,7 +188,6 @@ class ChatResponse:
         return {
             "operation_id": self.OperationID,
             "request_id": self.RequestID,
-            "response_message_id": self.ResponseMessageID,
             "response_key": self.ResponseKey,
             "content": self.Content,
             "is_delta": self.IsDelta,
@@ -235,6 +255,34 @@ class ChatModelConfigurationOptionChoice:
         return r
 
 
+class ChatSlashCommandDefinition:
+    """A slash command a chat model can handle directly.
+
+    Attributes:
+        Name (str): Command name without the leading slash.
+        Description (str): Short description shown in Mythic command pickers.
+    """
+
+    def __init__(
+            self,
+            Name: str = "",
+            Description: str = "",
+            **kwargs):
+        self.Name = Name
+        self.Description = Description
+        self.AdditionalItems = {}
+        for k, v in kwargs.items():
+            self.AdditionalItems[k] = v
+
+    def to_json(self):
+        r = {
+            "name": self.Name,
+            "description": self.Description,
+        }
+        r.update(_to_json_value(self.AdditionalItems))
+        return r
+
+
 class ChatModelConfigurationOption:
     """A per-chat config value exposed in the Mythic UI and delivered in ChatRequest.Config.
 
@@ -247,6 +295,7 @@ class ChatModelConfigurationOption:
         DefaultValue: Initial value shown for this option. The type should match Type.
         Choices (list[ChatModelConfigurationOptionChoice]): Selectable values for choice options.
         JSONSchema (dict): Optional JSON schema shown beside json config editors.
+        JSONStringSchema (dict): Mythic-style structured JSON editor schema for json config editors.
         Examples (list[dict]): Optional examples operators can load into json config editors.
         HelpText (str): Longer operator-facing help for complex config fields.
         MinRows (int): Preferred minimum visible rows for multiline/json config editors.
@@ -262,6 +311,7 @@ class ChatModelConfigurationOption:
             DefaultValue: Any = None,
             Choices: list[ChatModelConfigurationOptionChoice] = None,
             JSONSchema: dict = None,
+            JSONStringSchema: dict = None,
             Examples: list[dict] = None,
             HelpText: str = "",
             MinRows: int = 0,
@@ -274,10 +324,13 @@ class ChatModelConfigurationOption:
         self.DefaultValue = DefaultValue
         self.Choices = Choices if Choices is not None else []
         self.JSONSchema = JSONSchema
+        self.JSONStringSchema = JSONStringSchema
         self.Examples = Examples if Examples is not None else []
         self.HelpText = HelpText
         self.MinRows = MinRows
         self.AdditionalItems = {}
+        if self.JSONStringSchema is None and "json_string_schema" in kwargs:
+            self.JSONStringSchema = kwargs.pop("json_string_schema")
         for k, v in kwargs.items():
             self.AdditionalItems[k] = v
 
@@ -294,6 +347,8 @@ class ChatModelConfigurationOption:
             r["default_value"] = _to_json_value(self.DefaultValue)
         if self.JSONSchema is not None:
             r["json_schema"] = _to_json_value(self.JSONSchema)
+        if self.JSONStringSchema is not None:
+            r["json_string_schema"] = _to_json_value(self.JSONStringSchema)
         if self.Examples:
             r["examples"] = _to_json_value(self.Examples)
         if self.HelpText:
@@ -318,6 +373,7 @@ class ChatModelMetadata:
         RequiredUserSecrets (list[str]): Mythic user secret names required before this model can be used.
         OptionalUserSecrets (list[str]): Mythic user secret names this model can use when present.
         RequiredChannelAPITokenScopes (list[str]): API token scopes required on the AI chat channel for tool access.
+        SlashCommands (list[ChatSlashCommandDefinition]): Slash commands this model can handle directly.
     """
 
     def __init__(
@@ -327,6 +383,7 @@ class ChatModelMetadata:
             RequiredUserSecrets: list[str] = None,
             OptionalUserSecrets: list[str] = None,
             RequiredChannelAPITokenScopes: list[str] = None,
+            SlashCommands: list[ChatSlashCommandDefinition] = None,
             **kwargs):
         self.Provider = Provider
         self.ConfigurationOptions = ConfigurationOptions if ConfigurationOptions is not None else []
@@ -335,6 +392,7 @@ class ChatModelMetadata:
         self.RequiredChannelAPITokenScopes = (
             RequiredChannelAPITokenScopes if RequiredChannelAPITokenScopes is not None else []
         )
+        self.SlashCommands = SlashCommands if SlashCommands is not None else []
         self.AdditionalItems = {}
         for k, v in kwargs.items():
             self.AdditionalItems[k] = v
@@ -346,6 +404,7 @@ class ChatModelMetadata:
             "required_user_secrets": self.RequiredUserSecrets,
             "optional_user_secrets": self.OptionalUserSecrets,
             "required_channel_api_token_scopes": self.RequiredChannelAPITokenScopes,
+            "slash_commands": [_to_json_value(x) for x in self.SlashCommands],
         }
         r.update(_to_json_value(self.AdditionalItems))
         return r
@@ -376,6 +435,210 @@ class ChatModelDefinition:
         }
 
 
+class ChatValueReader:
+    """Typed reader for chat config and secret dictionaries.
+
+    Subclasses should still define a typed dataclass for their settings. This
+    reader keeps that dataclass loader explicit and readable without requiring
+    repetitive dictionary coercion in every chat container.
+    """
+
+    def __init__(self, values: dict[str, Any] | None, label: str = "chat values"):
+        self.values = values if isinstance(values, dict) else {}
+        self.label = label
+
+    def has(self, key: str) -> bool:
+        return key in self.values
+
+    def raw(self, key: str, default: Any = None) -> Any:
+        return self.values.get(key, default)
+
+    def text(self, key: str, default: str = "") -> str:
+        value = self._scalar_to_text(self.raw(key))
+        return value if value else default
+
+    def required_text(self, key: str) -> str:
+        value = self.text(key)
+        if not value:
+            raise RuntimeError(f"{key} is required in {self.label}.")
+        return value
+
+    def integer(self, key: str, default: int = 0) -> int:
+        value = self.text(key)
+        if not value:
+            return default
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{key} must be an integer in {self.label}.") from exc
+
+    def boolean(self, key: str, default: bool = False) -> bool:
+        value = self.text(key).lower()
+        if not value:
+            return default
+        if value in {"1", "true", "yes", "y", "on"}:
+            return True
+        if value in {"0", "false", "no", "n", "off"}:
+            return False
+        raise ValueError(f"{key} must be a boolean value in {self.label}.")
+
+    def dict_value(self, key: str, default: dict[str, Any] | None = None) -> dict[str, Any]:
+        value = self.raw(key)
+        if isinstance(value, dict):
+            return value
+        return dict(default or {})
+
+    def list_value(self, key: str, default: list[Any] | None = None) -> list[Any]:
+        value = self.raw(key)
+        if isinstance(value, list):
+            return value
+        return list(default or [])
+
+    def _scalar_to_text(self, value: Any) -> str:
+        if value is None or isinstance(value, (dict, list)):
+            return ""
+        return str(value).strip()
+
+
+class ChatConfigView(ChatValueReader):
+    @classmethod
+    def from_request(cls, request: ChatRequest):
+        return cls(getattr(request, "Config", None), "chat model configuration")
+
+
+class ChatSecretView(ChatValueReader):
+    @classmethod
+    def from_request(cls, request: ChatRequest):
+        return cls(getattr(request, "Secrets", None), "Mythic user secrets")
+
+    def _scalar_to_text(self, value: Any) -> str:
+        if isinstance(value, dict):
+            for candidate_key in ("value", "Value", "secret", "Secret"):
+                if candidate_key in value:
+                    value = value[candidate_key]
+                    break
+        return super()._scalar_to_text(value)
+
+
+class ChatAPITokenProvider:
+    """Creates and caches Mythic API tokens scoped to an AI chat channel."""
+
+    _cache: dict[tuple[int, int, int], "ChatAPITokenProvider"] = {}
+    _cache_lock = asyncio.Lock()
+
+    def __init__(
+            self,
+            operation_id: int,
+            chat_channel_id: int,
+            backing_apitoken_id: int = 0):
+        self.operation_id = operation_id
+        self.chat_channel_id = chat_channel_id
+        self.backing_apitoken_id = backing_apitoken_id
+        self._api_token = ""
+        self._token_lock = asyncio.Lock()
+
+    @classmethod
+    async def create(cls, operation_id: int, chat_channel_id: int, backing_apitoken_id: int = 0):
+        cache_key = (operation_id, chat_channel_id, backing_apitoken_id)
+        async with cls._cache_lock:
+            cached_provider = cls._cache.get(cache_key)
+            if cached_provider is not None:
+                return cached_provider
+            for existing_key in list(cls._cache):
+                existing_operation_id, existing_channel_id, _ = existing_key
+                if existing_operation_id == operation_id and existing_channel_id == chat_channel_id:
+                    cls._cache.pop(existing_key, None)
+            instance = cls(operation_id, chat_channel_id, backing_apitoken_id)
+            cls._cache[cache_key] = instance
+            return instance
+
+    @classmethod
+    async def from_request(cls, request: ChatRequest):
+        return await cls.create(
+            request.OperationID,
+            request.ChannelID,
+            getattr(request, "APITokenID", 0),
+        )
+
+    async def get_token(self) -> str:
+        if self._api_token:
+            return self._api_token
+        async with self._token_lock:
+            if self._api_token:
+                return self._api_token
+            from mythic_container.MythicGoRPC import SendMythicRPCAPITokenCreate, MythicRPCAPITokenCreateMessage
+            resp = await SendMythicRPCAPITokenCreate(
+                MythicRPCAPITokenCreateMessage(ChatChannelID=self.chat_channel_id)
+            )
+            if not resp.Success:
+                raise RuntimeError(f"failed to create chat-channel Mythic API token: {resp.Error}")
+            self._api_token = resp.APIToken
+            return self._api_token
+
+
+class ChatTurnContext:
+    """Small convenience wrapper for a single Mythic chat request.
+
+    Chat subclasses can pass this object into their provider-specific code so
+    that code can stream one visible output block without re-supplying its
+    response_key for every delta. response_key is the Mythic UI block to update;
+    it is not a provider request ID, auth token, or model-specific identifier.
+    """
+
+    def __init__(
+            self,
+            chat: "Chat",
+            request: ChatRequest,
+            response_key: str,
+            model: str = "",
+            metadata: dict[str, Any] | None = None):
+        self.chat = chat
+        self.request = request
+        self.response_key = chat.require_response_key(response_key)
+        self.model = model or request.Model
+        self.metadata = metadata if metadata is not None else {}
+
+    async def send_streaming(self, content: str = "", metadata: dict[str, Any] | None = None):
+        await self.chat.send_streaming(self.request, self.response_key, content=content, metadata=self._metadata(metadata))
+
+    async def send_delta(self, content: str, metadata: dict[str, Any] | None = None):
+        await self.chat.send_delta(self.request, self.response_key, content=content, metadata=self._metadata(metadata))
+
+    async def send_text(self, content: str, metadata: dict[str, Any] | None = None):
+        await self.chat.send_text(self.request, self.response_key, content=content, metadata=self._metadata(metadata))
+
+    async def send_complete(
+            self,
+            metadata: dict[str, Any] | None = None,
+            content: str = "",
+            complete_request: bool = False):
+        await self.chat.send_complete(
+            self.request,
+            self.response_key,
+            metadata=self._metadata(metadata),
+            content=content,
+            complete_request=complete_request,
+        )
+
+    async def send_error(self, error: str, metadata: dict[str, Any] | None = None, complete_request: bool = True):
+        await self.chat.send_error(
+            self.request,
+            self.response_key,
+            error=error,
+            metadata=self._metadata(metadata),
+            complete_request=complete_request,
+        )
+
+    async def send_mcp_confirmation(self, confirmation: Any, metadata: dict[str, Any] | None = None):
+        await self.chat.send_mcp_confirmation(self.request, confirmation, metadata=self._metadata(metadata))
+
+    def _metadata(self, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+        merged = dict(self.metadata)
+        if extra:
+            merged.update(extra)
+        return merged
+
+
 class Chat:
     """Chat service definition class for AI-backed operation chat.
 
@@ -391,6 +654,239 @@ class Chat:
 
     async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
         return ContainerOnStartMessageResponse(ContainerName=self.name)
+
+    def turn_context(
+            self,
+            request: ChatRequest,
+            response_key: str,
+            model: str = "",
+            metadata: dict[str, Any] | None = None) -> ChatTurnContext:
+        return ChatTurnContext(self, request, response_key=response_key, model=model, metadata=metadata)
+
+    async def run_chat_turn(
+            self,
+            request: ChatRequest,
+            handler: Callable[[ChatTurnContext], Awaitable[Any]],
+            response_key: str = "",
+            model: str = "",
+            metadata: dict[str, Any] | None = None,
+            complete_metadata: dict[str, Any] | None = None,
+            complete_content: str = "",
+            complete_request: bool = True,
+            error_formatter: Callable[[Exception], str] | None = None) -> Any:
+        """Run the common Mythic chat response lifecycle around custom logic.
+
+        This is intentionally provider-neutral. The subclass still owns how it
+        reads settings, connects to an LLM, invokes tools, and streams deltas.
+        response_key is required because Mythic creates and updates visible
+        response parts lazily. Reuse the same key for all deltas in one text
+        block; use a different key for tool cards or later assistant text.
+        """
+
+        response_key = self.require_response_key(response_key)
+        turn = self.turn_context(request, response_key=response_key, model=model, metadata=metadata)
+        try:
+            result = await handler(turn)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            message = error_formatter(error) if error_formatter is not None else str(error)
+            await turn.send_error(message)
+            return None
+
+        if result is None:
+            return None
+
+        merged_metadata = dict(complete_metadata or {})
+        if isinstance(result, dict):
+            merged_metadata.update(result)
+        await self.send_complete(
+            request,
+            response_key,
+            metadata=turn._metadata(merged_metadata),
+            content=complete_content,
+            complete_request=complete_request,
+        )
+        return result
+
+    def require_response_key(self, response_key: str) -> str:
+        response_key = str(response_key or "").strip()
+        if not response_key:
+            raise ValueError("response_key is required for chat responses")
+        return response_key
+
+    async def send_response(
+            self,
+            request: ChatRequest,
+            response_key: str,
+            content: str = "",
+            is_delta: bool = False,
+            complete: bool = False,
+            complete_request: bool = False,
+            status: str = "",
+            error: str = "",
+            metadata: dict[str, Any] | None = None) -> None:
+        response_key = self.require_response_key(response_key)
+        await SendMythicRPCChatResponse(ChatResponse(
+            OperationID=request.OperationID,
+            RequestID=request.RequestID,
+            ResponseKey=response_key,
+            Content=content,
+            IsDelta=is_delta,
+            Complete=complete,
+            CompleteRequest=complete_request,
+            Status=status,
+            Error=error,
+            Metadata=metadata if metadata is not None else {},
+        ))
+
+    async def send_streaming(
+            self,
+            request: ChatRequest,
+            response_key: str,
+            content: str = "",
+            metadata: dict[str, Any] | None = None) -> None:
+        await self.send_response(request, response_key, content=content, status="streaming", metadata=metadata)
+
+    async def send_delta(
+            self,
+            request: ChatRequest,
+            response_key: str,
+            content: str,
+            metadata: dict[str, Any] | None = None) -> None:
+        await self.send_response(request, response_key, content=content, is_delta=True, status="streaming", metadata=metadata)
+
+    async def send_text(
+            self,
+            request: ChatRequest,
+            response_key: str,
+            content: str,
+            metadata: dict[str, Any] | None = None) -> None:
+        await self.send_response(request, response_key, content=content, status="streaming", metadata=metadata)
+
+    async def send_complete(
+            self,
+            request: ChatRequest,
+            response_key: str,
+            metadata: dict[str, Any] | None = None,
+            content: str = "",
+            complete_request: bool = False) -> None:
+        await self.send_response(
+            request,
+            response_key,
+            content=content,
+            complete=True,
+            complete_request=complete_request,
+            status="complete",
+            metadata=metadata,
+        )
+
+    async def send_error(
+            self,
+            request: ChatRequest,
+            response_key: str,
+            error: str,
+            metadata: dict[str, Any] | None = None,
+            complete_request: bool = True) -> None:
+        await self.send_response(
+            request,
+            response_key,
+            status="error",
+            error=error,
+            complete=True,
+            complete_request=complete_request,
+            metadata=metadata,
+        )
+
+    async def send_mcp_confirmation(
+            self,
+            request: ChatRequest,
+            confirmation: Any,
+            metadata: dict[str, Any] | None = None) -> None:
+        confirmation_metadata = (
+            confirmation.to_metadata()
+            if hasattr(confirmation, "to_metadata") and callable(confirmation.to_metadata)
+            else confirmation
+        )
+        if not isinstance(confirmation_metadata, dict):
+            confirmation_metadata = {}
+        tool_label = confirmation_metadata.get("tool_name") or "MCP tool"
+        tool_response_key = f"mcp_confirmation:{tool_label}"
+        await self.send_complete(
+            request,
+            tool_response_key,
+            content=f"MCP tool `{tool_label}` requires operator confirmation before execution.",
+            complete_request=True,
+            metadata={
+                **(metadata or {}),
+                "special_type": CHAT_MCP_CONFIRMATION_SPECIAL_TYPE,
+                "mcp_confirmation_required": True,
+                "mcp_tool_confirmation": confirmation_metadata,
+            },
+        )
+
+    def build_chat_messages(
+            self,
+            request: ChatRequest,
+            system_prompt: str = "",
+            max_context_messages: int = 0,
+            include_sender_names: bool = True,
+            current_sender_default: str = "operator") -> list[dict[str, str]]:
+        context = (
+            request.Context[-max_context_messages:]
+            if max_context_messages > 0
+            else request.Context
+        )
+        current_sender = current_sender_default
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        for context_message in context:
+            if context_message.ID == request.RequestMessageID:
+                current_sender = context_message.SenderDisplayName or current_sender
+                continue
+            role = "assistant" if context_message.AuthorType == "ai" else "user"
+            sender = context_message.SenderDisplayName or context_message.AuthorType or current_sender_default
+            content = context_message.Message
+            if include_sender_names and role == "user":
+                content = f"{sender}: {content}"
+            messages.append({"role": role, "content": content})
+        prompt = request.Prompt
+        if include_sender_names:
+            prompt = f"{current_sender}: {prompt}"
+        messages.append({"role": "user", "content": prompt})
+        return messages
+
+    def normalize_stream_delta(self, delta: Any) -> str:
+        if delta is None:
+            return ""
+        if isinstance(delta, str):
+            return delta
+        if isinstance(delta, list):
+            return "".join(self.normalize_stream_delta(part) for part in delta)
+        if isinstance(delta, dict):
+            for key in ("text", "content"):
+                value = delta.get(key)
+                if isinstance(value, str):
+                    return value
+                if isinstance(value, (dict, list)):
+                    normalized = self.normalize_stream_delta(value)
+                    if normalized:
+                        return normalized
+        for attr in ("text", "content"):
+            value = getattr(delta, attr, None)
+            if isinstance(value, str):
+                return value
+            if isinstance(value, (dict, list)):
+                normalized = self.normalize_stream_delta(value)
+                if normalized:
+                    return normalized
+        return ""
+
+    def truncate_text(self, text: str, max_chars: int) -> str:
+        if max_chars <= 0 or len(text) <= max_chars:
+            return text
+        return text[:max_chars] + f"\n\n[truncated to {max_chars} characters]"
 
     def get_sync_message(self):
         subscriptions = []
