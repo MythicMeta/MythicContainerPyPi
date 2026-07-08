@@ -27,6 +27,7 @@ ChatModelMetadata = ChatBase.ChatModelMetadata
 ChatRequest = ChatBase.ChatRequest
 ChatSecretView = ChatBase.ChatSecretView
 ChatSlashCommandDefinition = ChatBase.ChatSlashCommandDefinition
+ChatInputChoice = ChatBase.ChatInputChoice
 
 
 class HelperChat(Chat):
@@ -48,6 +49,21 @@ class ChatBaseTests(unittest.TestCase):
 
         self.assertEqual(request.SlashCommand.Name, "explain")
         self.assertEqual(request.to_json()["slash_command"]["argument"], "callbacks")
+
+    def test_request_preserves_input_response(self):
+        request = ChatRequest(
+            container_name="helper_chat",
+            input_response={
+                "action": "select",
+                "choice": {"id": "one", "label": "One"},
+                "input_request_message_id": 44,
+                "input_request": {"title": "Pick one"},
+                "resolved_by": "alice",
+            },
+        )
+
+        self.assertEqual(request.InputResponse.Action, "select")
+        self.assertEqual(request.to_json()["input_response"]["choice"]["id"], "one")
 
     def test_config_option_serializes_json_string_schema(self):
         option = ChatModelConfigurationOption(
@@ -111,11 +127,19 @@ class ChatBaseTests(unittest.TestCase):
                 await chat.send_streaming(request, "assistant:test", metadata={"phase": "start"})
                 await chat.send_delta(request, "assistant:test", "hi", metadata={"phase": "delta"})
                 await chat.send_complete(request, "assistant:test", metadata={"phase": "done"})
-                await chat.send_mcp_confirmation(request, {
+                await chat.send_input_request(request, {
                     "status": "pending",
-                    "tool_name": "mcp_docs_write",
-                    "arguments": {"path": "x"},
+                    "input_type": "approval",
+                    "title": "Approve write",
+                    "prompt": "Approve writing x?",
+                    "data": {"path": "x"},
                 }, metadata={"phase": "confirm"})
+                await chat.send_single_choice_request(
+                    request,
+                    title="Pick one",
+                    prompt="Choose an option",
+                    choices=[ChatInputChoice(id="a", label="A", data={"value": 1})],
+                )
             finally:
                 ChatBase.SendMythicRPCChatResponse = original
             return captured
@@ -124,8 +148,10 @@ class ChatBaseTests(unittest.TestCase):
         self.assertEqual(captured[0]["status"], "streaming")
         self.assertTrue(captured[1]["is_delta"])
         self.assertTrue(captured[2]["complete"])
-        self.assertEqual(captured[-1]["metadata"]["special_type"], "mcp_tool_confirmation")
-        self.assertTrue(captured[-1]["complete_request"])
+        self.assertEqual(captured[3]["metadata"]["special_type"], "input_requested")
+        self.assertFalse(captured[3]["complete_request"])
+        self.assertEqual(captured[-1]["metadata"]["input_requested"]["input_type"], "single_choice")
+        self.assertFalse(captured[-1]["complete_request"])
 
     def test_run_chat_turn_wraps_streaming_completion_and_errors(self):
         async def run_check():

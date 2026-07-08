@@ -4,7 +4,7 @@ This guide is for developers writing their own Mythic chat container while
 leaning on the helper functions already supplied by `mythic_container.ChatBase`.
 The goal is to keep your container small: define your model contract, read typed
 settings, build provider messages, stream responses, and use the shared helpers
-for completion, errors, tool status, and MCP confirmation.
+for completion, errors, tool status, and human input requests.
 
 The reference implementation is `InstalledServices/basic_chat`. The examples
 below use simplified names, but the same pattern is used there:
@@ -16,8 +16,9 @@ below use simplified names, but the same pattern is used there:
 - Use `turn.send_delta(...)` for streamed assistant text.
 - Use `self.send_response(...)` only when you need a custom response block, such
   as a tool status card.
-- Use `turn.send_mcp_confirmation(...)` when an MCP tool needs Mythic operator
-  approval.
+- Use `turn.send_input_request(...)`, `turn.send_approval_request(...)`, or
+  `turn.send_single_choice_request(...)` when the container needs operator
+  input before continuing.
 
 ## Class Definition
 
@@ -33,6 +34,8 @@ from dataclasses import dataclass
 from mythic_container.ChatBase import (
     Chat,
     ChatConfigView,
+    ChatInputChoice,
+    ChatInputResponse,
     ChatModelConfigurationOption,
     ChatModelConfigurationOptionChoice,
     ChatModelConfigurationOptionType,
@@ -521,21 +524,24 @@ The key design choice is response keys:
 - Do not send tool status through `turn.send_delta`, because that would append
   tool text into the final assistant answer.
 
-## Getting Confirmation
+## Requesting Human Input
 
-Use confirmation when a tool can write state, task an agent, create a payload,
-modify a ticket, edit a file, or otherwise do something the operator should
-approve. There are two common cases:
+Use an input request when a tool can write state, task an agent, create a
+payload, modify a ticket, edit a file, or otherwise needs operator input before
+the current chat flow can continue. Input requests are generic: approval cards,
+free-text responses, and single-choice lists all use the same
+`input_requested` card and the same `msg.InputResponse` continuation.
 
-- Your own custom tool needs confirmation. You can send a normal status block
-  and ask the model or operator to confirm in text, but Mythic will not know it
-  is a native MCP approval card.
-- An MCP tool needs confirmation. Use `MCPToolClient` and
-  `turn.send_mcp_confirmation(...)` so Mythic shows the native approval card and
-  sends a continuation request if approved.
+`turn.send_input_request(...)` accepts a dictionary or object with
+`to_input_request()`. The helper also provides convenience wrappers:
 
-The MCP helper already knows which tools are read-only. Any MCP tool not listed
-in `read_only_tools` raises `MCPConfirmationRequired` when invoked normally.
+- `turn.send_approval_request(...)` for Accept, Reject, or Respond.
+- `turn.send_single_choice_request(...)` for a clickable one-of-many list.
+
+Input request cards complete the visible card message, but they do not complete
+the chat request. When the operator acts, Mythic updates the same card with the
+resolver and response data, then calls the chat container again with the same
+`RequestID` and `msg.InputResponse` populated.
 
 ```python
 from mythic_container.chat_mcp import (
@@ -552,8 +558,8 @@ class ConfirmingMCPRunner:
         self.settings = settings
 
     async def run(self) -> dict | None:
-        if self.request.ConfirmedToolCall:
-            return await self._run_approved_mcp_tool(self.request.ConfirmedToolCall)
+        if self.request.InputResponse:
+            return await self._run_input_response(self.request.InputResponse)
         return await self._run_first_pass()
 
     async def _mcp_client(self) -> MCPToolClient:
@@ -592,10 +598,9 @@ class ConfirmingMCPRunner:
                 try:
                     result = await mcp_client.invoke(tool_name, arguments)
                 except MCPConfirmationRequired as confirmation:
-                    # Operators see a native Mythic approval card. This helper
-                    # marks the request complete, because no more work should
-                    # happen until an operator approves or rejects the card.
-                    await self.turn.send_mcp_confirmation(confirmation)
+                    # Operators see a generic Mythic input request card. The
+                    # current chat request remains active while waiting.
+                    await self.turn.send_input_request(confirmation)
                     return None
 
                 messages.append({
@@ -609,20 +614,20 @@ class ConfirmingMCPRunner:
                 delta_text = self.turn.chat.normalize_stream_delta(chunk)
                 if delta_text:
                     await self.turn.send_delta(delta_text)
-            return {"mcp_confirmation": "not_required"}
+            return {"input_request": "not_required"}
         finally:
             await mcp_client.close()
 ```
 
-Why `return None` after `send_mcp_confirmation` matters:
+Why `return None` after an input request matters:
 
-- `send_mcp_confirmation` sends a complete response with the MCP confirmation
-  metadata Mythic needs.
-- It also sets `complete_request=True` so the current request is finished.
+- `send_input_request` sends a completed card with the metadata Mythic needs.
+- It leaves `complete_request=False`, so the current request is still the
+  active flow.
 - Returning `None` tells `run_chat_turn` not to send another final completion for
   the assistant response key.
-- If the operator approves, Mythic sends a new `ChatRequest` with
-  `msg.ConfirmedToolCall` populated.
+- When the operator acts, Mythic calls the container with `msg.InputResponse`
+  populated.
 
 Continuation handler:
 
@@ -630,12 +635,20 @@ Continuation handler:
 class ConfirmingMCPRunner:
     # __init__, _mcp_client, and _run_first_pass omitted
 
-    async def _run_approved_mcp_tool(self, confirmed_tool_call: dict) -> dict:
+    async def _run_input_response(self, input_response: ChatInputResponse) -> dict:
+        if input_response.Action != "accept":
+            return {
+                "input_action": input_response.Action,
+                "operator_response": input_response.Response,
+                "selected_choice": input_response.Choice,
+            }
+
+        request_data = input_response.InputRequest.get("data") or {}
         mcp_client = await self._mcp_client()
         try:
-            tool_name = str(confirmed_tool_call.get("tool_name") or "")
-            server_name = str(confirmed_tool_call.get("server_name") or "")
-            arguments = confirmed_tool_call.get("arguments")
+            tool_name = str(request_data.get("tool_name") or "")
+            server_name = str(request_data.get("server_name") or "")
+            arguments = request_data.get("arguments")
             if not isinstance(arguments, dict):
                 arguments = {}
 
@@ -643,7 +656,7 @@ class ConfirmingMCPRunner:
                 content=f"Using approved MCP tool `{tool_name}`...",
                 status="started",
                 complete=False,
-                confirmed_tool_call=confirmed_tool_call,
+                input_response=input_response,
             )
 
             # invoke_confirmed bypasses the read-only check, but only for the
@@ -658,7 +671,7 @@ class ConfirmingMCPRunner:
                 content=f"Approved MCP tool `{tool_name}` finished.",
                 status="completed",
                 complete=True,
-                confirmed_tool_call=confirmed_tool_call,
+                input_response=input_response,
                 result_preview=self.turn.chat.truncate_text(result.replace("\n", " "), 240),
             )
 
@@ -680,8 +693,8 @@ class ConfirmingMCPRunner:
                     await self.turn.send_delta(delta_text)
 
             return {
-                "confirmed_mcp_tool": tool_name,
-                "confirmed_mcp_server": server_name,
+                "approved_tool": tool_name,
+                "approved_server": server_name,
             }
         finally:
             await mcp_client.close()
@@ -691,11 +704,11 @@ class ConfirmingMCPRunner:
             content: str,
             status: str,
             complete: bool,
-            confirmed_tool_call: dict,
+            input_response: ChatInputResponse,
             result_preview: str = "") -> None:
-        tool_name = str(confirmed_tool_call.get("tool_name") or "unknown_tool")
-        confirmation_id = confirmed_tool_call.get("confirmation_message_id") or "confirmed"
-        response_key = f"tool_use:confirmed:{confirmation_id}:{tool_name}"
+        request_data = input_response.InputRequest.get("data") or {}
+        tool_name = str(request_data.get("tool_name") or "unknown_tool")
+        response_key = f"tool_use:approved:{input_response.InputRequestMessageID}:{tool_name}"
 
         await self.turn.chat.send_response(
             self.request,
@@ -711,14 +724,14 @@ class ConfirmingMCPRunner:
                     "tool_source": "mcp",
                     "confirmed": True,
                     "requires_confirmation": False,
-                    "confirmation_message_id": confirmation_id,
+                    "input_request_message_id": input_response.InputRequestMessageID,
                     "result_preview": result_preview,
                 },
             }),
         )
 ```
 
-Confirmation flow:
+Input request flow:
 
 ```mermaid
 sequenceDiagram
@@ -730,17 +743,17 @@ sequenceDiagram
     participant MCP as MCPToolClient
 
     Operator->>Mythic: Ask for an action that needs an MCP write tool
-    Mythic->>Chat: chat(ChatRequest confirmed_tool_call={})
+    Mythic->>Chat: chat(ChatRequest)
     Chat->>Runner: run(turn, settings)
     Runner->>Provider: create_chat_completion(stream=false, tools=mcp_client.openai_tools())
     Provider-->>Runner: tool_call(write_note, arguments)
     Runner->>MCP: invoke(write_note, arguments)
     MCP-->>Runner: raise MCPConfirmationRequired
-    Runner->>Mythic: turn.send_mcp_confirmation(confirmation)
-    Mythic->>Operator: Show native approval card
-    Note over Chat,Runner: First request is complete. No coroutine is resumed later.
+    Runner->>Mythic: turn.send_input_request(confirmation)
+    Mythic->>Operator: Show input request card
+    Note over Chat,Runner: Request remains active while waiting.
     Operator->>Mythic: Approve card
-    Mythic->>Chat: chat(ChatRequest confirmed_tool_call={server_name, tool_name, arguments})
+    Mythic->>Chat: chat(ChatRequest input_response={action, input_request})
     Chat->>Runner: run(turn, settings)
     Runner->>MCP: invoke_confirmed(tool_name, arguments, server_name)
     MCP-->>Runner: result
@@ -751,16 +764,18 @@ sequenceDiagram
     Chat->>Mythic: send_complete(final response, complete_request=true)
 ```
 
-Rules for confirmed continuations:
+Rules for input continuations:
 
-- Treat `msg.ConfirmedToolCall` as the source of truth.
+- Treat `msg.InputResponse` as the source of truth.
 - Rebuild your settings and MCP connections from the new request.
-- Execute only the approved server, tool name, and arguments.
-- Do not ask the model to choose another write tool during the continuation.
+- For approvals, execute only the approved server, tool name, and arguments
+  embedded in `msg.InputResponse.InputRequest["data"]`.
+- For rejections, text responses, and choices, continue from the supplied
+  action/response/choice data.
 - Use a separate tool status `response_key` so the operator can see the approved
   action run.
 - Stream the final answer through the original assistant response key for the
-  new request.
+  same request.
 
 ## Helper Reference
 
@@ -776,7 +791,9 @@ Use this table when deciding which helper belongs in your code:
 | `turn.send_streaming(...)` | Handler or runner | Starts/replaces the active assistant block. | A visible assistant block begins or updates. |
 | `turn.send_delta(...)` | Streaming loop | Appends provider text to the active assistant block. | The answer grows chunk by chunk. |
 | `turn.send_text(...)` | Non-streaming response | Sets the active assistant block to a full string. | The answer appears or is replaced at once. |
-| `turn.send_mcp_confirmation(...)` | MCP confirmation catch block | Sends Mythic's native MCP approval card and completes the request. | Operator sees an approval card. |
+| `turn.send_input_request(...)` | Handler or tool approval path | Sends a generic input request card without completing the request. | Operator sees an input card. |
+| `turn.send_approval_request(...)` | Approval path | Sends an Accept, Reject, or Respond card. | Operator sees approval actions. |
+| `turn.send_single_choice_request(...)` | Choice path | Sends a one-of-many clickable choice list. | Operator picks one option. |
 | `self.send_response(...)` | Custom blocks | Sends a response to any `response_key`, with custom metadata. | Tool cards, status blocks, or other custom UI blocks. |
 | `self.send_complete(...)` | Manual lifecycle | Marks one response block complete. | Response block stops streaming; request may complete. |
 | `self.send_error(...)` | Manual error handling | Marks a response as failed. | Operator sees an error message. |

@@ -9,7 +9,6 @@ from mythic_container.logging import logger
 
 
 MCP_LIST_TOOL_NAME = "mcp_list_available_tools"
-MCP_CONFIRMATION_SPECIAL_TYPE = "mcp_tool_confirmation"
 
 
 class MCPConfirmationRequired(Exception):
@@ -20,8 +19,8 @@ class MCPConfirmationRequired(Exception):
         self.arguments = arguments if isinstance(arguments, dict) else {}
         super().__init__(f"MCP tool {adapter.exposed_name} requires operator confirmation")
 
-    def to_metadata(self) -> dict[str, Any]:
-        return self.adapter.confirmation_metadata(self.arguments)
+    def to_input_request(self) -> dict[str, Any]:
+        return self.adapter.input_request(self.arguments)
 
 
 class MCPConnectionError(RuntimeError):
@@ -157,17 +156,23 @@ class MCPToolAdapter:
         result = await self.tool.ainvoke(arguments)
         return serialize_tool_result(result)
 
-    def confirmation_metadata(self, arguments: dict[str, Any]) -> dict[str, Any]:
+    def input_request(self, arguments: dict[str, Any]) -> dict[str, Any]:
         return {
             "status": "pending",
-            "server_name": self.server_name,
-            "tool_name": self.exposed_name,
-            "server_tool_name": self.server_tool_name,
-            "arguments": arguments,
+            "input_type": "approval",
+            "title": f"Approve {self.exposed_name}",
+            "prompt": f"Approve running {self.exposed_name}?",
             "description": self._description(),
-            "parameters": self._parameters(),
-            "annotations": self._annotations(),
-            "read_only": self.read_only,
+            "data": {
+                "source": "mcp",
+                "server_name": self.server_name,
+                "tool_name": self.exposed_name,
+                "server_tool_name": self.server_tool_name,
+                "arguments": arguments,
+                "parameters": self._parameters(),
+                "annotations": self._annotations(),
+                "read_only": self.read_only,
+            },
         }
 
     def _description(self) -> str:

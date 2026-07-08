@@ -79,9 +79,10 @@ class ChatMCPTests(unittest.TestCase):
             )
             with self.assertRaises(MCPConfirmationRequired) as caught:
                 await guarded.invoke({"path": "x"})
-            metadata = caught.exception.to_metadata()
-            self.assertEqual(metadata["tool_name"], "mcp_docs_write_file")
-            self.assertFalse(metadata["read_only"])
+            input_request = caught.exception.to_input_request()
+            self.assertEqual(input_request["input_type"], "approval")
+            self.assertEqual(input_request["data"]["tool_name"], "mcp_docs_write_file")
+            self.assertFalse(input_request["data"]["read_only"])
 
             read_only = MCPToolAdapter(
                 server_name="docs",

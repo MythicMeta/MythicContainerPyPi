@@ -7,7 +7,7 @@ import mythic_container
 from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
 
 
-CHAT_MCP_CONFIRMATION_SPECIAL_TYPE = "mcp_tool_confirmation"
+CHAT_INPUT_REQUESTED_SPECIAL_TYPE = "input_requested"
 
 
 def _to_json_value(value: Any):
@@ -87,7 +87,7 @@ class ChatRequest:
             context: list[dict] = None,
             secrets: dict = None,
             slash_command: dict = None,
-            confirmed_tool_call: dict = None,
+            input_response: dict = None,
             **kwargs):
         self.ContainerName = container_name
         self.OperationID = operation_id
@@ -103,7 +103,7 @@ class ChatRequest:
         self.Context = [ChatMessageContext(**x) for x in context] if context is not None else []
         self.Secrets = secrets if secrets is not None else {}
         self.SlashCommand = ChatSlashCommandInvocation(**slash_command) if isinstance(slash_command, dict) else None
-        self.ConfirmedToolCall = confirmed_tool_call if confirmed_tool_call is not None else {}
+        self.InputResponse = ChatInputResponse(**input_response) if isinstance(input_response, dict) else None
 
     def to_json(self):
         return {
@@ -121,7 +121,7 @@ class ChatRequest:
             "context": [x.to_json() for x in self.Context],
             "secrets": self.Secrets,
             "slash_command": self.SlashCommand.to_json() if self.SlashCommand is not None else None,
-            "confirmed_tool_call": self.ConfirmedToolCall,
+            "input_response": self.InputResponse.to_json() if self.InputResponse is not None else None,
         }
 
     def __str__(self):
@@ -157,6 +157,68 @@ class ChatCancelRequest:
 
     def __str__(self):
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class ChatInputChoice:
+    def __init__(
+            self,
+            id: str = "",
+            label: str = "",
+            description: str = "",
+            data: dict = None,
+            **kwargs):
+        self.ID = id
+        self.Label = label
+        self.Description = description
+        self.Data = data if data is not None else {}
+        self.AdditionalItems = dict(kwargs)
+
+    def to_json(self):
+        result = {
+            "id": self.ID,
+            "label": self.Label,
+            "description": self.Description,
+            "data": self.Data,
+        }
+        result.update(_to_json_value(self.AdditionalItems))
+        return result
+
+
+class ChatInputResponse:
+    def __init__(
+            self,
+            action: str = "",
+            response: str = "",
+            choice: dict = None,
+            input_request_message_id: int = 0,
+            input_request: dict = None,
+            resolved_by_operator_id: int = 0,
+            resolved_by: str = "",
+            resolved_at: str = "",
+            **kwargs):
+        self.Action = action
+        self.Response = response
+        self.Choice = choice if choice is not None else {}
+        self.InputRequestMessageID = input_request_message_id
+        self.InputRequest = input_request if input_request is not None else {}
+        self.ResolvedByOperatorID = resolved_by_operator_id
+        self.ResolvedBy = resolved_by
+        self.ResolvedAt = resolved_at
+        self.AdditionalItems = dict(kwargs)
+
+    def to_json(self):
+        result = {
+            "action": self.Action,
+            "response": self.Response,
+            "choice": self.Choice,
+            "input_request_message_id": self.InputRequestMessageID,
+            "input_request": self.InputRequest,
+            "resolved_by_operator_id": self.ResolvedByOperatorID,
+            "resolved_by": self.ResolvedBy,
+            "resolved_at": self.ResolvedAt,
+        }
+        result.update(_to_json_value(self.AdditionalItems))
+        return result
 
 
 class ChatResponse:
@@ -629,8 +691,42 @@ class ChatTurnContext:
             complete_request=complete_request,
         )
 
-    async def send_mcp_confirmation(self, confirmation: Any, metadata: dict[str, Any] | None = None):
-        await self.chat.send_mcp_confirmation(self.request, confirmation, metadata=self._metadata(metadata))
+    async def send_input_request(self, input_request: Any, metadata: dict[str, Any] | None = None):
+        await self.chat.send_input_request(self.request, input_request, metadata=self._metadata(metadata))
+
+    async def send_approval_request(
+            self,
+            title: str,
+            prompt: str,
+            description: str = "",
+            data: dict[str, Any] | None = None,
+            metadata: dict[str, Any] | None = None):
+        await self.chat.send_approval_request(
+            self.request,
+            title=title,
+            prompt=prompt,
+            description=description,
+            data=data,
+            metadata=self._metadata(metadata),
+        )
+
+    async def send_single_choice_request(
+            self,
+            title: str,
+            prompt: str,
+            choices: list[Any],
+            description: str = "",
+            data: dict[str, Any] | None = None,
+            metadata: dict[str, Any] | None = None):
+        await self.chat.send_single_choice_request(
+            self.request,
+            title=title,
+            prompt=prompt,
+            choices=choices,
+            description=description,
+            data=data,
+            metadata=self._metadata(metadata),
+        )
 
     def _metadata(self, extra: dict[str, Any] | None = None) -> dict[str, Any]:
         merged = dict(self.metadata)
@@ -798,32 +894,85 @@ class Chat:
             metadata=metadata,
         )
 
-    async def send_mcp_confirmation(
+    async def send_input_request(
             self,
             request: ChatRequest,
-            confirmation: Any,
+            input_request: Any,
             metadata: dict[str, Any] | None = None) -> None:
-        confirmation_metadata = (
-            confirmation.to_metadata()
-            if hasattr(confirmation, "to_metadata") and callable(confirmation.to_metadata)
-            else confirmation
-        )
-        if not isinstance(confirmation_metadata, dict):
-            confirmation_metadata = {}
-        tool_label = confirmation_metadata.get("tool_name") or "MCP tool"
-        tool_response_key = f"mcp_confirmation:{tool_label}"
+        input_request_metadata = self.normalize_input_request(input_request)
+        title = input_request_metadata.get("title") or input_request_metadata.get("input_type") or "input"
+        response_key = f"input_requested:{self._response_key_fragment(title)}"
+        prompt = input_request_metadata.get("prompt") or input_request_metadata.get("description") or "Input is required before continuing."
         await self.send_complete(
             request,
-            tool_response_key,
-            content=f"MCP tool `{tool_label}` requires operator confirmation before execution.",
-            complete_request=True,
+            response_key,
+            content=prompt,
+            complete_request=False,
             metadata={
                 **(metadata or {}),
-                "special_type": CHAT_MCP_CONFIRMATION_SPECIAL_TYPE,
-                "mcp_confirmation_required": True,
-                "mcp_tool_confirmation": confirmation_metadata,
+                "special_type": CHAT_INPUT_REQUESTED_SPECIAL_TYPE,
+                "input_requested": input_request_metadata,
             },
         )
+
+    async def send_approval_request(
+            self,
+            request: ChatRequest,
+            title: str,
+            prompt: str,
+            description: str = "",
+            data: dict[str, Any] | None = None,
+            metadata: dict[str, Any] | None = None) -> None:
+        await self.send_input_request(request, {
+            "status": "pending",
+            "input_type": "approval",
+            "title": title,
+            "prompt": prompt,
+            "description": description,
+            "data": data or {},
+        }, metadata=metadata)
+
+    async def send_single_choice_request(
+            self,
+            request: ChatRequest,
+            title: str,
+            prompt: str,
+            choices: list[Any],
+            description: str = "",
+            data: dict[str, Any] | None = None,
+            metadata: dict[str, Any] | None = None) -> None:
+        await self.send_input_request(request, {
+            "status": "pending",
+            "input_type": "single_choice",
+            "title": title,
+            "prompt": prompt,
+            "description": description,
+            "choices": [_to_json_value(choice) for choice in choices],
+            "data": data or {},
+        }, metadata=metadata)
+
+    def normalize_input_request(self, input_request: Any) -> dict[str, Any]:
+        if hasattr(input_request, "to_input_request") and callable(input_request.to_input_request):
+            normalized = input_request.to_input_request()
+        elif hasattr(input_request, "to_json") and callable(input_request.to_json):
+            normalized = input_request.to_json()
+        else:
+            normalized = input_request
+        if not isinstance(normalized, dict):
+            normalized = {}
+        normalized = dict(_to_json_value(normalized))
+        normalized.setdefault("status", "pending")
+        normalized.setdefault("input_type", "approval")
+        normalized.setdefault("title", "Input requested")
+        normalized.setdefault("prompt", normalized.get("description", "Input is required before continuing."))
+        normalized.setdefault("data", {})
+        if normalized.get("input_type") == "single_choice":
+            normalized["choices"] = [_to_json_value(choice) for choice in normalized.get("choices", [])]
+        return normalized
+
+    def _response_key_fragment(self, value: str) -> str:
+        fragment = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in str(value).strip().lower())
+        return fragment.strip("_")[:80] or "input"
 
     def build_chat_messages(
             self,
