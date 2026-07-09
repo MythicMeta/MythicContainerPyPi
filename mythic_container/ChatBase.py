@@ -2,6 +2,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import asyncio
+import uuid
 import json
 import mythic_container
 from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
@@ -741,8 +742,12 @@ class ChatTurnContext:
             complete_request=complete_request,
         )
 
-    async def send_input_request(self, input_request: Any, metadata: dict[str, Any] | None = None):
-        await self.chat.send_input_request(self.request, input_request, metadata=self._metadata(metadata))
+    async def send_input_request(
+            self,
+            input_request: Any,
+            metadata: dict[str, Any] | None = None,
+            response_key: str = ""):
+        await self.chat.send_input_request(self.request, input_request, metadata=self._metadata(metadata), response_key=response_key)
 
     async def send_approval_request(
             self,
@@ -750,7 +755,8 @@ class ChatTurnContext:
             prompt: str,
             description: str = "",
             data: dict[str, Any] | None = None,
-            metadata: dict[str, Any] | None = None):
+            metadata: dict[str, Any] | None = None,
+            response_key: str = ""):
         await self.chat.send_approval_request(
             self.request,
             title=title,
@@ -758,6 +764,7 @@ class ChatTurnContext:
             description=description,
             data=data,
             metadata=self._metadata(metadata),
+            response_key=response_key,
         )
 
     async def send_single_choice_request(
@@ -767,7 +774,8 @@ class ChatTurnContext:
             choices: list[Any],
             description: str = "",
             data: dict[str, Any] | None = None,
-            metadata: dict[str, Any] | None = None):
+            metadata: dict[str, Any] | None = None,
+            response_key: str = ""):
         await self.chat.send_single_choice_request(
             self.request,
             title=title,
@@ -776,11 +784,13 @@ class ChatTurnContext:
             description=description,
             data=data,
             metadata=self._metadata(metadata),
+            response_key=response_key,
         )
 
     async def send_subagent_status(
             self,
             title: str,
+            prompt: str = "",
             delegation_id: str = "",
             delegation_name: str = "",
             status: str = "running",
@@ -804,6 +814,7 @@ class ChatTurnContext:
         await self.chat.send_subagent_status(
             self.request,
             title=title,
+            prompt=prompt,
             delegation_id=delegation_id,
             delegation_name=delegation_name,
             status=status,
@@ -1007,10 +1018,10 @@ class Chat:
             self,
             request: ChatRequest,
             input_request: Any,
-            metadata: dict[str, Any] | None = None) -> None:
+            metadata: dict[str, Any] | None = None,
+            response_key: str = "") -> None:
         input_request_metadata = self.normalize_input_request(input_request)
-        title = input_request_metadata.get("title") or input_request_metadata.get("input_type") or "input"
-        response_key = f"input_requested:{self._response_key_fragment(title)}"
+        response_key = self.require_response_key(response_key) if response_key else f"input_requested:{uuid.uuid4()}"
         prompt = input_request_metadata.get("prompt") or input_request_metadata.get("description") or "Input is required before continuing."
         await self.send_complete(
             request,
@@ -1031,7 +1042,8 @@ class Chat:
             prompt: str,
             description: str = "",
             data: dict[str, Any] | None = None,
-            metadata: dict[str, Any] | None = None) -> None:
+            metadata: dict[str, Any] | None = None,
+            response_key: str = "") -> None:
         await self.send_input_request(request, {
             "status": "pending",
             "input_type": "approval",
@@ -1039,7 +1051,7 @@ class Chat:
             "prompt": prompt,
             "description": description,
             "data": data or {},
-        }, metadata=metadata)
+        }, metadata=metadata, response_key=response_key)
 
     async def send_single_choice_request(
             self,
@@ -1049,7 +1061,8 @@ class Chat:
             choices: list[Any],
             description: str = "",
             data: dict[str, Any] | None = None,
-            metadata: dict[str, Any] | None = None) -> None:
+            metadata: dict[str, Any] | None = None,
+            response_key: str = "") -> None:
         await self.send_input_request(request, {
             "status": "pending",
             "input_type": "single_choice",
@@ -1058,12 +1071,13 @@ class Chat:
             "description": description,
             "choices": [_to_json_value(choice) for choice in choices],
             "data": data or {},
-        }, metadata=metadata)
+        }, metadata=metadata, response_key=response_key)
 
     async def send_subagent_status(
             self,
             request: ChatRequest,
             title: str,
+            prompt: str = "",
             delegation_id: str = "",
             delegation_name: str = "",
             status: str = "running",
@@ -1090,6 +1104,8 @@ class Chat:
             "title": title,
             "status": status,
         }
+        if prompt:
+            subagent["prompt"] = prompt
         if tool_count is not None:
             subagent["tool_count"] = tool_count
         if tool_total is not None:

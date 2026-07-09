@@ -540,15 +540,19 @@ do not nest tool cards inside the sub-agent card.
 ```python
 delegation_id = f"bloodhound:{msg.RequestID}"
 delegation_name = "BloodHound"
+delegation_title = "BloodHound"
+delegation_prompt = "List all domains and report identifying details, trusts, and collection gaps."
 
 await turn.send_subagent_status(
-    title="BloodHound: List all domains and report identifying details",
+    title=delegation_title,
+    prompt=delegation_prompt,
     delegation_id=delegation_id,
     delegation_name=delegation_name,
     status="running",
     tool_count=0,
     tool_total=13,
-    icon="BH",
+    icon="diagram-project",
+    icon_color="#9b59b6",
 )
 
 # Tool cards, input requests, and final messages should use the same fields.
@@ -570,17 +574,25 @@ await turn.chat.send_response(
 )
 
 await turn.send_subagent_status(
-    title="BloodHound: List all domains and report identifying details",
+    title=delegation_title,
+    prompt=delegation_prompt,
     delegation_id=delegation_id,
     delegation_name=delegation_name,
     status="finished",
     tool_count=13,
     tool_total=13,
-    icon="BH",
+    icon="diagram-project",
+    icon_color="#9b59b6",
     content="Found two domains and their identifying details.",
     complete=True,
 )
 ```
+
+Use `title` for a compact sub-agent label and `prompt` for the longer delegated
+instructions shown in the side panel and expanded summary. `icon` may be a
+short text badge such as `BH`, or a Font Awesome solid icon name using the
+browser-script convention, such as `diagram-project`, `fa-diagram-project`, or
+`fas fa-diagram-project`; pair it with any CSS `icon_color`.
 
 If Mythic sends a side-panel prompt back to the container, `msg.DelegationID`
 and `msg.DelegationName` are populated. `ChatTurnContext._metadata(...)`

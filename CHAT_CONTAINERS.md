@@ -13,8 +13,8 @@ when building a new chat container. It has three useful paths:
 - `LiteLLM Tools`: a realistic provider-backed flow with Mythic tools, MCP
   tools, MCP confirmation cards, and continuation after approval.
 - `Sub-Agent Test`: a deterministic fixture for validating flat delegated
-  sub-agent cards, side-pane filtering, delegated approvals, side-pane prompts,
-  and lazy large tool output.
+  sub-agent cards, short titles, longer prompts, Font Awesome icons, side-pane
+  filtering, delegated approvals, side-pane prompts, and lazy large tool output.
 
 The examples below use BasicChat names so you can compare the documentation to
 that container, but the same patterns apply to any `Chat` subclass.
@@ -371,12 +371,13 @@ Recommended metadata for a sub-agent delegation card:
   "delegation_id": "delegation-01",
   "delegation_name": "BloodHound",
   "subagent": {
-    "title": "BloodHound: List all domains and report identifying details",
+    "title": "BloodHound",
+    "prompt": "List all domains and report identifying details, trusts, and collection gaps.",
     "status": "running",
     "tool_count": 3,
     "tool_total": 13,
-    "icon": "BH",
-    "icon_color": "#5b8def"
+    "icon": "diagram-project",
+    "icon_color": "#9b59b6"
   }
 }
 ```
@@ -387,10 +388,14 @@ card, operator prompt, and final response that belongs to that delegated turn.
 The main chat shows the sub-agent card and pending human input prompts; the
 drill-down pane filters the same channel messages by `delegation_id`.
 
-The `subagent.icon` field is optional text, such as `BH` or a small emoji.
-`subagent.icon_color` is optional CSS color text. If either is omitted, Mythic
-derives a deterministic fallback from `delegation_id` so the card and side pane
-remain visually stable.
+Use `subagent.title` for the compact card/header label and `subagent.prompt`
+for the longer delegated instructions shown in the side pane and expanded
+summary. The `subagent.icon` field can be a short text badge such as `BH`, or a
+Font Awesome solid icon name using the same convention as browser scripts, such
+as `diagram-project`, `fa-diagram-project`, or `fas fa-diagram-project`.
+`subagent.icon_color` is optional CSS color text. If either visual field is
+omitted, Mythic derives a deterministic fallback from `delegation_id` so the
+card and side pane remain visually stable.
 
 The sub-agent card's `content` is the delegated process summary shown when the
 operator expands the card. The side pane is a filtered view of the same flat
@@ -441,8 +446,9 @@ namespaced key. BasicChat currently uses:
 Select BasicChat's `Sub-Agent Test` model to exercise the UI without LiteLLM or
 MCP credentials. The fixture emits:
 
-- A sub-agent summary card with `delegation_id`, `delegation_name`, `icon`,
-  `icon_color`, running/finished statuses, and progress counts.
+- A sub-agent summary card with `delegation_id`, `delegation_name`, short
+  `title`, longer `prompt`, Font Awesome `icon`, `icon_color`,
+  running/finished statuses, and progress counts.
 - Delegated tool-use cards, including one with large `tool_use.output` for the
   lazy output modal.
 - A delegated `input_requested` approval that appears in the main chat while
@@ -451,7 +457,8 @@ MCP credentials. The fixture emits:
   approves or responds.
 
 This is the quickest way to verify that your Mythic UI and chat-container SDK
-agree on the flat grouping contract.
+agree on the flat grouping contract, including side-panel prompt rendering and
+Font Awesome sub-agent icons.
 
 For context messages, `ChatMessageContext.Metadata` is whatever was attached to
 that prior message. The default `build_chat_messages(...)` ignores metadata and

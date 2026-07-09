@@ -175,6 +175,19 @@ class ChatBaseTests(unittest.TestCase):
                     "prompt": "Approve writing x?",
                     "data": {"path": "x"},
                 }, metadata={"phase": "confirm"})
+                await chat.send_input_request(request, {
+                    "status": "pending",
+                    "input_type": "approval",
+                    "title": "Approve write",
+                    "prompt": "Approve writing x again?",
+                    "data": {"path": "x"},
+                })
+                await chat.send_input_request(request, {
+                    "status": "pending",
+                    "input_type": "approval",
+                    "title": "Approve write",
+                    "prompt": "Update this same request?",
+                }, response_key="input_requested:stable")
                 await chat.send_single_choice_request(
                     request,
                     title="Pick one",
@@ -191,6 +204,10 @@ class ChatBaseTests(unittest.TestCase):
         self.assertTrue(captured[2]["complete"])
         self.assertEqual(captured[3]["metadata"]["special_type"], "input_requested")
         self.assertFalse(captured[3]["complete_request"])
+        self.assertTrue(captured[3]["response_key"].startswith("input_requested:"))
+        self.assertTrue(captured[4]["response_key"].startswith("input_requested:"))
+        self.assertNotEqual(captured[3]["response_key"], captured[4]["response_key"])
+        self.assertEqual(captured[5]["response_key"], "input_requested:stable")
         self.assertEqual(captured[-1]["metadata"]["input_requested"]["input_type"], "single_choice")
         self.assertFalse(captured[-1]["complete_request"])
 
@@ -247,7 +264,8 @@ class ChatBaseTests(unittest.TestCase):
                 )
                 turn = chat.turn_context(request, response_key="assistant:test")
                 await turn.send_subagent_status(
-                    title="BloodHound: List domains",
+                    title="BloodHound",
+                    prompt="List domains and summarize trust relationships.",
                     status="finished",
                     tool_count=3,
                     tool_total=13,
@@ -267,7 +285,8 @@ class ChatBaseTests(unittest.TestCase):
         self.assertEqual(captured[0]["metadata"]["special_type"], "subagent")
         self.assertEqual(captured[0]["metadata"]["delegation_id"], "delegation-1")
         self.assertEqual(captured[0]["metadata"]["delegation_name"], "BloodHound")
-        self.assertEqual(captured[0]["metadata"]["subagent"]["title"], "BloodHound: List domains")
+        self.assertEqual(captured[0]["metadata"]["subagent"]["title"], "BloodHound")
+        self.assertEqual(captured[0]["metadata"]["subagent"]["prompt"], "List domains and summarize trust relationships.")
         self.assertEqual(captured[0]["metadata"]["subagent"]["status"], "finished")
         self.assertEqual(captured[0]["metadata"]["subagent"]["tool_count"], 3)
         self.assertEqual(captured[0]["metadata"]["subagent"]["tool_total"], 13)
