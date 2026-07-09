@@ -384,9 +384,11 @@ Recommended metadata for a sub-agent delegation card:
 
 Delegation grouping is flat. Set the same top-level `delegation_id` and
 `delegation_name` on the sub-agent card, every tool-use card, approval/input
-card, operator prompt, and final response that belongs to that delegated turn.
-The main chat shows the sub-agent card and pending human input prompts; the
-drill-down pane filters the same channel messages by `delegation_id`.
+card, and operator prompt that belongs to that delegated turn. Put the final
+delegated answer in the terminal sub-agent status `content`; Mythic persists
+that content as the side-panel agent message. The main chat shows the sub-agent
+card and pending human input prompts; the drill-down pane filters the same
+channel messages by `delegation_id`.
 
 Use `subagent.title` for the compact card/header label and `subagent.prompt`
 for the longer delegated instructions shown in the side pane and expanded
@@ -398,12 +400,14 @@ omitted, Mythic derives a deterministic fallback from `delegation_id` so the
 card and side pane remain visually stable.
 
 The sub-agent card's `content` is the delegated process summary shown when the
-operator expands the card. The side pane is a filtered view of the same flat
-channel messages, not a nested card tree. When the operator sends a prompt from
-that side pane, Mythic creates a normal chat request with the pane's
-`delegation_id` and `delegation_name`; your container should treat that as a
-direct prompt to the delegated process and keep future responses tagged with the
-same metadata.
+operator expands the card. For a terminal sub-agent status, this `content` is
+also the source of the delegated final agent message that Mythic adds to the
+side pane. Do not send a separate normal delegated assistant response for the
+same final text. The side pane is a filtered view of the same flat channel
+messages, not a nested card tree. When the operator sends a prompt from that
+side pane, Mythic creates a normal chat request with the pane's `delegation_id`
+and `delegation_name`; your container should treat that as a direct prompt to
+the delegated process and keep future responses tagged with the same metadata.
 
 Human-in-the-loop prompts from a delegated turn should also carry the same
 delegation metadata. Mythic surfaces pending prompts in the main chat so the
@@ -453,8 +457,8 @@ MCP credentials. The fixture emits:
   lazy output modal.
 - A delegated `input_requested` approval that appears in the main chat while
   pending and stays visible in the sub-agent drill-down after resolution.
-- A delegated final response and closing sub-agent status after the operator
-  approves or responds.
+- A terminal sub-agent status whose `content` is the final delegated answer;
+  Mythic persists that content as the side-panel agent message.
 
 This is the quickest way to verify that your Mythic UI and chat-container SDK
 agree on the flat grouping contract, including side-panel prompt rendering and

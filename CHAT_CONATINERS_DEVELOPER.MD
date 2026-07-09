@@ -555,7 +555,8 @@ await turn.send_subagent_status(
     icon_color="#9b59b6",
 )
 
-# Tool cards, input requests, and final messages should use the same fields.
+# Tool cards and input requests should use the same delegation fields.
+# Put the final delegated answer in the terminal subagent status content.
 await turn.chat.send_response(
     msg,
     response_key=f"tool_use:{delegation_id}:domains",
@@ -587,6 +588,10 @@ await turn.send_subagent_status(
     complete=True,
 )
 ```
+
+Do not also send a separate normal delegated assistant response for this same
+final text; Mythic persists terminal subagent `content` as the side-panel final
+agent message.
 
 Use `title` for a compact sub-agent label and `prompt` for the longer delegated
 instructions shown in the side panel and expanded summary. `icon` may be a
