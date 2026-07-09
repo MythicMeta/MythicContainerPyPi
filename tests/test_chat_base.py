@@ -1,7 +1,9 @@
 import asyncio
+import base64
 import importlib.util
 from pathlib import Path
 import sys
+import tempfile
 import types
 import unittest
 
@@ -9,6 +11,13 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "mythic_container"
 mythic_package = types.ModuleType("mythic_container")
 mythic_package.__path__ = [str(PACKAGE_ROOT)]
 sys.modules["mythic_container"] = mythic_package
+logging_module = types.ModuleType("mythic_container.logging")
+logging_module.logger = types.SimpleNamespace(
+    error=lambda *args, **kwargs: None,
+    exception=lambda *args, **kwargs: None,
+    info=lambda *args, **kwargs: None,
+)
+sys.modules["mythic_container.logging"] = logging_module
 
 spec = importlib.util.spec_from_file_location(
     "mythic_container.ChatBase",
@@ -33,6 +42,17 @@ ChatChannelMetadataUpdate = ChatBase.ChatChannelMetadataUpdate
 
 class HelperChat(Chat):
     name = "helper_chat"
+
+
+class IconBytesChat(Chat):
+    name = "icon_bytes_chat"
+    agent_icon_bytes = b"<svg>light</svg>"
+    dark_mode_agent_icon_bytes = b"<svg>dark</svg>"
+
+
+class IconFallbackChat(Chat):
+    name = "icon_fallback_chat"
+    agent_icon_bytes = b"<svg>light</svg>"
 
 
 class ChatBaseTests(unittest.TestCase):
@@ -119,6 +139,46 @@ class ChatBaseTests(unittest.TestCase):
         self.assertEqual(serialized["container_name"], "basic_chat")
         self.assertEqual(serialized["channel_metadata"]["items"][0]["key"], "total_cost")
 
+    def test_chat_channel_metadata_update_preserves_color_shapes(self):
+        update = ChatChannelMetadataUpdate(
+            OperationID=1,
+            ChannelID=2,
+            ContainerName="basic_chat",
+            ChannelMetadata={
+                "items": [
+                    {"key": "provider", "value": "LiteLLM", "color": "neutral"},
+                    {"key": "accent", "value": "custom", "color": "#4f46e5"},
+                    {
+                        "key": "last_update",
+                        "value": "2026-07-09 18:20 UTC",
+                        "color": "info",
+                        "click": "/stats",
+                        "click_confirmation_text": "Run /stats to refresh metadata?",
+                    },
+                    {
+                        "key": "usage",
+                        "value": 91,
+                        "color": {
+                            "type": "scale",
+                            "source": "value",
+                            "stops": [
+                                {"at": 0, "color": "success"},
+                                {"at": 75, "color": "warning"},
+                                {"at": 90, "color": "error"},
+                            ],
+                        },
+                    },
+                ],
+            },
+        )
+
+        items = update.to_json()["channel_metadata"]["items"]
+        self.assertEqual(items[0]["color"], "neutral")
+        self.assertEqual(items[1]["color"], "#4f46e5")
+        self.assertEqual(items[2]["click"], "/stats")
+        self.assertIn("/stats", items[2]["click_confirmation_text"])
+        self.assertEqual(items[3]["color"]["stops"][2]["color"], "error")
+
     def test_metadata_serializes_slash_commands(self):
         metadata = ChatModelMetadata(
             Provider="example",
@@ -129,6 +189,35 @@ class ChatBaseTests(unittest.TestCase):
 
         serialized = metadata.to_json()
         self.assertEqual(serialized["slash_commands"][0]["name"], "summarize")
+
+    def test_sync_message_includes_base64_chat_icons_from_bytes(self):
+        sync_message = IconBytesChat().get_sync_message()
+
+        self.assertEqual(base64.b64decode(sync_message["agent_icon"]), b"<svg>light</svg>")
+        self.assertEqual(base64.b64decode(sync_message["dark_mode_agent_icon"]), b"<svg>dark</svg>")
+
+    def test_sync_message_uses_light_icon_for_missing_dark_icon(self):
+        sync_message = IconFallbackChat().get_sync_message()
+
+        self.assertEqual(sync_message["agent_icon"], sync_message["dark_mode_agent_icon"])
+        self.assertEqual(base64.b64decode(sync_message["agent_icon"]), b"<svg>light</svg>")
+
+    def test_sync_message_reads_chat_icons_from_paths(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            light_icon = Path(temp_dir) / "light.svg"
+            dark_icon = Path(temp_dir) / "dark.svg"
+            light_icon.write_bytes(b"<svg>path-light</svg>")
+            dark_icon.write_bytes(b"<svg>path-dark</svg>")
+
+            class IconPathChat(Chat):
+                name = "icon_path_chat"
+                agent_icon_path = str(light_icon)
+                dark_mode_agent_icon_path = str(dark_icon)
+
+            sync_message = IconPathChat().get_sync_message()
+
+        self.assertEqual(base64.b64decode(sync_message["agent_icon"]), b"<svg>path-light</svg>")
+        self.assertEqual(base64.b64decode(sync_message["dark_mode_agent_icon"]), b"<svg>path-dark</svg>")
 
     def test_typed_config_and_secret_readers(self):
         request = ChatRequest(

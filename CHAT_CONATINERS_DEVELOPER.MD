@@ -136,6 +136,8 @@ class ExampleChat(Chat):
     name = "example_chat"
     description = "Example chat container that uses ChatBase helpers."
     semver = "0.1.0"
+    agent_icon_path = "./agent_icons/example-light.svg"
+    dark_mode_agent_icon_path = "./agent_icons/example-dark.svg"
 
     models = [
         ChatModelDefinition(
@@ -184,6 +186,10 @@ What each class piece affects in Mythic:
 - `name`: the installed service name Mythic syncs and routes requests to.
 - `description`: operator-facing service description.
 - `semver`: version string Mythic can display during sync.
+- `agent_icon_path` / `agent_icon_bytes`: optional light-mode SVG icon Mythic
+  syncs for the installed service and AI chat messages.
+- `dark_mode_agent_icon_path` / `dark_mode_agent_icon_bytes`: optional
+  dark-mode SVG icon. If omitted, Mythic uses the light-mode icon.
 - `models`: model choices available in the chat UI.
 - `ChatModelConfigurationOption`: fields operators configure per chat model.
 - `RequiredUserSecrets`: user secret names Mythic expects before the model can

@@ -155,6 +155,8 @@ class MyChat(Chat):
     name = "my_chat"
     description = "Example provider-backed chat container."
     semver = "0.1.0"
+    agent_icon_path = "./agent_icons/my-chat-light.svg"
+    dark_mode_agent_icon_path = "./agent_icons/my-chat-dark.svg"
     models = [
         ChatModelDefinition(
             Name="My Provider",
@@ -211,12 +213,21 @@ single compact string in the channel edit dialog.
 await self.update_channel_metadata(msg, {
     "items": [
         {
+            "key": "last_update",
+            "label": "Last Update",
+            "value": "2026-07-09 18:20 UTC",
+            "color": "info",
+            "click": "/stats",
+            "click_confirmation_text": "Run /stats to refresh this channel's metadata values?",
+            "tooltip": "Last time the chat container updated these metadata values.",
+            "order": 0,
+        },
+        {
             "key": "five_hour_tokens",
             "label": "5hr",
             "value": 64,
             "display_value": "64%",
             "format": "percent",
-            "status": "warning",
             "color": {
                 "type": "scale",
                 "source": "value",
@@ -234,6 +245,7 @@ await self.update_channel_metadata(msg, {
             "label": "Cost",
             "value": 1.25,
             "format": "currency",
+            "color": "#4f46e5",
             "order": 20,
         },
     ],
@@ -255,6 +267,11 @@ expanded; max=6; chips: 5hr=five_hour_tokens, Cost=total_cost:currency; hide: ra
 `color` can be a named chip color (`neutral`, `info`, `success`, `warning`,
 `error`, `danger`), a `#RRGGBB` color, or a scale object. Operators can override
 container colors in the display string with `colors: key=color`.
+
+`click` can be a slash command such as `/stats`. When present, Mythic renders
+the chip as clickable, asks for confirmation, and sends that slash command to
+the current AI chat channel. Use `click_confirmation_text` to provide the exact
+confirmation prompt operators should see.
 
 The important pattern is that `MyProviderSettings` owns the config contract. The
 base class only helps read typed values from `msg.Config` and `msg.Secrets`. You
@@ -984,6 +1001,10 @@ When creating your own installed service from BasicChat, keep the lifecycle and
 replace the provider-specific pieces:
 
 - `models`: list the chat models operators can select.
+- `agent_icon_path` / `agent_icon_bytes`: optionally sync a light-mode SVG icon
+  for the installed service and AI chat messages.
+- `dark_mode_agent_icon_path` / `dark_mode_agent_icon_bytes`: optionally sync a
+  dark-mode SVG icon. If omitted, Mythic uses the light-mode icon.
 - A typed settings dataclass like `BasicChatSettings.from_request`: define your
   config keys, defaults, and required secrets.
 - `build_system_prompt`: customize the assistant persona and tool instructions.

@@ -26,7 +26,8 @@ mythic_container.mythic_service.start_and_run_forever()
 
 AI chat containers subclass `mythic_container.ChatBase.Chat`. The base class
 provides Mythic request/response types, response helpers, typed config/secret
-readers, chat-channel API token delegation, and reusable MCP tool primitives.
+readers, chat-channel API token delegation, reusable MCP tool primitives, and
+optional light/dark SVG icon sync via `agent_icon_path` or `agent_icon_bytes`.
 Provider connection semantics stay in each chat container.
 
 See [CHAT_CONTAINERS.md](CHAT_CONTAINERS.md) for subclassing, typed settings,

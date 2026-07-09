@@ -2,9 +2,11 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import asyncio
+import base64
 import uuid
 import json
 import mythic_container
+from .logging import logger
 from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageResponse
 
 
@@ -21,6 +23,15 @@ def _to_json_value(value: Any):
     if isinstance(value, dict):
         return {k: _to_json_value(v) for k, v in value.items()}
     return value
+
+
+def _read_chat_icon_bytes(chat_name: str, icon_path: str | None, icon_type: str) -> bytes:
+    try:
+        with open(icon_path, "rb") as f:
+            return f.read()
+    except Exception as e:
+        logger.exception(f"failed to read {icon_type} chat icon for {chat_name} from ({icon_path}): {e}")
+        return b""
 
 
 class ChatMessageContext:
@@ -850,11 +861,25 @@ class Chat:
     Implement chat to receive a ChatRequest and send one or more ChatResponse
     messages back with SendMythicRPCChatResponse. Mythic cancels the active
     chat coroutine when operators cancel the request.
+
+    Attributes:
+        agent_icon_path (str):
+            Path to the chat icon you want to use with Mythic. This MUST be a .svg file.
+        agent_icon_bytes (bytes):
+            If you don't want to provide the path, you can optionally provide the raw bytes to the .svg file here.
+        dark_mode_agent_icon_path (str):
+            Path to the dark mode chat icon you want to use with Mythic. This MUST be a .svg file.
+        dark_mode_agent_icon_bytes (bytes):
+            If you don't want to provide the path, you can optionally provide the raw bytes to the dark mode .svg file here.
     """
     name: str = ""
     description: str = ""
     semver: str = ""
     models: list[ChatModelDefinition] = []
+    agent_icon_path: str = None
+    agent_icon_bytes: bytes = None
+    dark_mode_agent_icon_path: str = None
+    dark_mode_agent_icon_bytes: bytes = None
     chat: Callable[[ChatRequest], Awaitable[None]] = None
 
     async def on_container_start(self, message: ContainerOnStartMessage) -> ContainerOnStartMessageResponse:
@@ -1222,12 +1247,28 @@ class Chat:
         subscriptions = []
         for model in self.models:
             subscriptions.append(json.dumps(model.to_json()))
+        agent_bytes = self.agent_icon_bytes
+        dark_mode_agent_bytes = self.dark_mode_agent_icon_bytes
+        if agent_bytes is None:
+            if self.agent_icon_path is not None:
+                agent_bytes = _read_chat_icon_bytes(self.name, self.agent_icon_path, "agent")
+            else:
+                agent_bytes = b""
+        if dark_mode_agent_bytes is None:
+            if self.dark_mode_agent_icon_path is not None:
+                dark_mode_agent_bytes = _read_chat_icon_bytes(
+                    self.name, self.dark_mode_agent_icon_path, "dark mode agent"
+                )
+            else:
+                dark_mode_agent_bytes = agent_bytes
         return {
             "name": self.name,
             "type": "chat",
             "description": self.description,
             "subscriptions": subscriptions,
             "semver": self.semver,
+            "agent_icon": base64.b64encode(agent_bytes).decode(),
+            "dark_mode_agent_icon": base64.b64encode(dark_mode_agent_bytes).decode(),
         }
 
 
