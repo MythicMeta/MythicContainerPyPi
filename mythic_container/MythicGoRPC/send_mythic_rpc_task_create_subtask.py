@@ -9,16 +9,20 @@ class MythicRPCTaskCreateSubtaskMessage:
                  TaskID: int,
                  SubtaskCallbackFunction: str = None,
                  CommandName: str = None,
+                 PayloadTypeName: str = None,
                  Params: str = None,
                  ParameterGroupName: str = None,
                  Token: int = None,
+                 ResolveTaskReferences: bool = None,
                  **kwargs):
         self.TaskID = TaskID
         self.SubtaskCallbackFunction = SubtaskCallbackFunction
         self.CommandName = CommandName
+        self.PayloadTypeName = PayloadTypeName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
         self.Token = Token
+        self.ResolveTaskReferences = ResolveTaskReferences
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -27,9 +31,11 @@ class MythicRPCTaskCreateSubtaskMessage:
             "task_id": self.TaskID,
             "subtask_callback_function": self.SubtaskCallbackFunction,
             "command_name": self.CommandName,
+            "payload_type_name": self.PayloadTypeName,
             "params": self.Params,
             "parameter_group_name": self.ParameterGroupName,
-            "token": self.Token
+            "token": self.Token,
+            "resolve_task_references": self.ResolveTaskReferences,
         }
 
 

@@ -416,6 +416,7 @@ class ExampleToolRunner:
                 tool_name=tool_name,
                 complete=True,
                 result_preview=self.turn.chat.truncate_text(result.replace("\n", " "), 240),
+                output=result,
             )
 
             messages.append({
@@ -442,7 +443,8 @@ class ExampleToolRunner:
             status: str,
             tool_name: str,
             complete: bool,
-            result_preview: str = "") -> None:
+            result_preview: str = "",
+            output: str = "") -> None:
         """Create or update a separate Mythic response block for one tool.
 
         Use send_response directly here because this block is not the final
@@ -464,6 +466,7 @@ class ExampleToolRunner:
                     "tool_source": "example",
                     "requires_confirmation": False,
                     "result_preview": result_preview,
+                    "output": output,
                 },
             }),
         )
@@ -523,6 +526,66 @@ The key design choice is response keys:
 - Use separate keys for tool status, such as `tool_use:<tool_call_id>:<tool_name>`.
 - Do not send tool status through `turn.send_delta`, because that would append
   tool text into the final assistant answer.
+- Keep `result_preview` short, and put the full raw result in
+  `tool_use.output` only on the completed tool card. Mythic stores that output
+  outside normal chat subscriptions and loads it lazily from the tool card.
+
+## Sub-Agent Delegations
+
+When a supervisor delegates work, emit one sub-agent card in the main timeline
+and tag every message from that delegated turn with the same top-level
+`delegation_id`. The drill-down pane is just a filtered view of the flat channel;
+do not nest tool cards inside the sub-agent card.
+
+```python
+delegation_id = f"bloodhound:{msg.RequestID}"
+delegation_name = "BloodHound"
+
+await turn.send_subagent_status(
+    title="BloodHound: List all domains and report identifying details",
+    delegation_id=delegation_id,
+    delegation_name=delegation_name,
+    status="running",
+    tool_count=0,
+    tool_total=13,
+    icon="BH",
+)
+
+# Tool cards, input requests, and final messages should use the same fields.
+await turn.chat.send_response(
+    msg,
+    response_key=f"tool_use:{delegation_id}:domains",
+    content="Using tool `list_domains`...",
+    status="streaming",
+    metadata=turn._metadata({
+        "delegation_id": delegation_id,
+        "delegation_name": delegation_name,
+        "special_type": "tool_use",
+        "tool_use": {
+            "status": "started",
+            "tool_name": "list_domains",
+            "tool_source": "bloodhound",
+        },
+    }),
+)
+
+await turn.send_subagent_status(
+    title="BloodHound: List all domains and report identifying details",
+    delegation_id=delegation_id,
+    delegation_name=delegation_name,
+    status="finished",
+    tool_count=13,
+    tool_total=13,
+    icon="BH",
+    content="Found two domains and their identifying details.",
+    complete=True,
+)
+```
+
+If Mythic sends a side-panel prompt back to the container, `msg.DelegationID`
+and `msg.DelegationName` are populated. `ChatTurnContext._metadata(...)`
+automatically carries those fields onto responses and input requests unless you
+explicitly set different values.
 
 ## Requesting Human Input
 
@@ -673,6 +736,7 @@ class ConfirmingMCPRunner:
                 complete=True,
                 input_response=input_response,
                 result_preview=self.turn.chat.truncate_text(result.replace("\n", " "), 240),
+                output=result,
             )
 
             messages = self.turn.chat.build_chat_messages(
@@ -705,7 +769,8 @@ class ConfirmingMCPRunner:
             status: str,
             complete: bool,
             input_response: ChatInputResponse,
-            result_preview: str = "") -> None:
+            result_preview: str = "",
+            output: str = "") -> None:
         request_data = input_response.InputRequest.get("data") or {}
         tool_name = str(request_data.get("tool_name") or "unknown_tool")
         response_key = f"tool_use:approved:{input_response.InputRequestMessageID}:{tool_name}"
@@ -726,6 +791,7 @@ class ConfirmingMCPRunner:
                     "requires_confirmation": False,
                     "input_request_message_id": input_response.InputRequestMessageID,
                     "result_preview": result_preview,
+                    "output": output,
                 },
             }),
         )

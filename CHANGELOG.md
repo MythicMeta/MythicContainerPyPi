@@ -1,4 +1,12 @@
 
+## [Unreleased]
+
+### Added
+
+- Documented chat sub-agent delegation metadata, side-pane delegated prompts,
+  pending approval surfacing, deterministic fallback icons, and lazy
+  `tool_use.output` storage for large tool results.
+
 ## [v0.6.16] - 2026-03-23
 
 ### Changed

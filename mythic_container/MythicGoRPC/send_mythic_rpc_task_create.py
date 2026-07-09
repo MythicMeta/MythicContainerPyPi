@@ -15,16 +15,20 @@ class MythicRPCTaskCreateMessage:
                  TaskID: int = None,
                  EventStepInstanceID: int = None,
                  CommandName: str = None,
+                 PayloadTypeName: str = None,
                  Params: str = None,
                  ParameterGroupName: str = None,
                  Token: int = None,
+                 ResolveTaskReferences: bool = None,
                  **kwargs):
         self.AgentCallbackID = AgentCallbackID
         self.CallbackID = CallbackID
         self.CommandName = CommandName
+        self.PayloadTypeName = PayloadTypeName
         self.Params = Params
         self.ParameterGroupName = ParameterGroupName
         self.Token = Token
+        self.ResolveTaskReferences = ResolveTaskReferences
         self.OperatorID = OperatorID
         self.TaskID = TaskID
         self.EventStepInstanceID = EventStepInstanceID
@@ -36,9 +40,11 @@ class MythicRPCTaskCreateMessage:
             "agent_callback_id": self.AgentCallbackID,
             "callback_id": self.CallbackID,
             "command_name": self.CommandName,
+            "payload_type_name": self.PayloadTypeName,
             "params": self.Params,
             "parameter_group_name": self.ParameterGroupName,
             "token": self.Token,
+            "resolve_task_references": self.ResolveTaskReferences,
             "eventstepinstance_id": self.EventStepInstanceID,
             "operator_id": self.OperatorID,
             "task_id": self.TaskID,

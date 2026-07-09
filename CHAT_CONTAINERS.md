@@ -7,11 +7,14 @@ stays provider-neutral. Your container decides how model names, API keys, HTTP
 headers, tool policies, MCP servers, and prompt templates work.
 
 `basic_chat` is the reference implementation to copy from
-when building a new chat container. It has two useful paths:
+when building a new chat container. It has three useful paths:
 
 - `Echo`: a tiny streaming model that demonstrates the Mythic chat lifecycle.
 - `LiteLLM Tools`: a realistic provider-backed flow with Mythic tools, MCP
   tools, MCP confirmation cards, and continuation after approval.
+- `Sub-Agent Test`: a deterministic fixture for validating flat delegated
+  sub-agent cards, side-pane filtering, delegated approvals, side-pane prompts,
+  and lazy large tool output.
 
 The examples below use BasicChat names so you can compare the documentation to
 that container, but the same patterns apply to any `Chat` subclass.
@@ -32,6 +35,8 @@ From an operator's point of view, the flow is:
    confirmation response. Mythic finishes the first request, shows the approval
    card, and later sends a second `ChatRequest` with `msg.ConfirmedToolCall`
    populated if an operator approves it.
+8. If an operator sends a prompt from a sub-agent drill-down pane, Mythic sends a
+   normal `ChatRequest` with `delegation_id` and `delegation_name` populated.
 
 The important implementation rule is that `chat(msg)` is called once per Mythic
 request. A continuation approval is not an in-process callback into the old
@@ -73,9 +78,16 @@ and run only the approved tool call.
     }
   ],
   "slash_command": null,
-  "confirmed_tool_call": {}
+  "confirmed_tool_call": {},
+  "input_response": null,
+  "delegation_id": "",
+  "delegation_name": ""
 }
 ```
+
+`delegation_id` and `delegation_name` are set when an operator sends a prompt
+from a sub-agent drill-down pane. `ChatTurnContext` automatically adds these
+values to helper-sent metadata unless you explicitly provide those keys.
 
 `ChatResponse` is the output your container sends back through the helper
 methods:
@@ -174,6 +186,76 @@ class MyChat(Chat):
         await self.send_complete(msg, response_key, metadata=metadata, complete_request=True)
 ```
 
+### Channel Display Metadata
+
+Per-model configuration options can opt into compact Mythic UI chips with
+`DisplayAsChip=True`. Use this for scalar fields that help operators
+differentiate otherwise similar AI chats, such as a provider route or backing
+model name:
+
+```python
+ChatModelConfigurationOption(
+    Name="PROVIDER_MODEL",
+    DisplayName="Provider",
+    DefaultValue="bedrock/claude",
+    DisplayAsChip=True,
+)
+```
+
+Chat containers can also publish live channel metadata, such as token budget,
+cost, or context-window usage. Mythic stores this under the chat channel's
+`ai_metadata.channel_metadata`; operators can customize the display with a
+single compact string in the channel edit dialog.
+
+```python
+await self.update_channel_metadata(msg, {
+    "items": [
+        {
+            "key": "five_hour_tokens",
+            "label": "5hr",
+            "value": 64,
+            "display_value": "64%",
+            "format": "percent",
+            "status": "warning",
+            "color": {
+                "type": "scale",
+                "source": "value",
+                "stops": [
+                    {"at": 0, "color": "success"},
+                    {"at": 75, "color": "warning"},
+                    {"at": 90, "color": "error"},
+                ],
+            },
+            "tooltip": "5 hour token limit usage",
+            "order": 10,
+        },
+        {
+            "key": "total_cost",
+            "label": "Cost",
+            "value": 1.25,
+            "format": "currency",
+            "order": 20,
+        },
+    ],
+})
+```
+
+A `ChatTurnContext` has the same helper:
+
+```python
+await turn.update_channel_metadata({"items": [{"key": "weekly_tokens", "value": 12}]})
+```
+
+Operator display strings use this shape:
+
+```text
+expanded; max=6; chips: 5hr=five_hour_tokens, Cost=total_cost:currency; hide: raw_context_window; colors: five_hour_tokens=scale(0:success|75:warning|90:error)
+```
+
+`color` can be a named chip color (`neutral`, `info`, `success`, `warning`,
+`error`, `danger`), a `#RRGGBB` color, or a scale object. Operators can override
+container colors in the display string with `colors: key=color`.
+
 The important pattern is that `MyProviderSettings` owns the config contract. The
 base class only helps read typed values from `msg.Config` and `msg.Secrets`. You
 can also build this yourself each time in the `chat` call or use a helper class.
@@ -228,7 +310,7 @@ Good metadata is:
 
 - Small and stable across updates to the same `response_key`.
 - Safe to show to operation members.
-- Free of API keys, bearer tokens, raw secrets, and large tool results.
+- Free of API keys, bearer tokens, and raw secrets.
 - Specific enough that a future request can understand what happened.
 - JSON-compatible: strings, numbers, booleans, lists, objects, or null.
 
@@ -265,10 +347,63 @@ Recommended metadata for tool-use status cards:
     "tool_call_round": 1,
     "tool_call_index": 1,
     "tool_call_count": 1,
-    "result_preview": "3 active callbacks returned..."
+    "result_preview": "3 active callbacks returned...",
+    "output": "{...full raw tool output...}"
   }
 }
 ```
+
+Use `result_preview` for the concise text shown on the tool card. When a tool
+finishes, put the full raw output in `tool_use.output`; Mythic stores that value
+in `chat_message.tool_output`, removes it from message metadata, and exposes it
+only through the UI's lazy "View output" action. Normal chat subscriptions do
+not include `tool_output`, so large tool responses do not inflate page rendering.
+Operators can view lazy output as plaintext, Markdown, or terminal-style text in
+the output modal.
+
+Recommended metadata for a sub-agent delegation card:
+
+```json
+{
+  "container": "sage",
+  "model": "Supervisor",
+  "special_type": "subagent",
+  "delegation_id": "delegation-01",
+  "delegation_name": "BloodHound",
+  "subagent": {
+    "title": "BloodHound: List all domains and report identifying details",
+    "status": "running",
+    "tool_count": 3,
+    "tool_total": 13,
+    "icon": "BH",
+    "icon_color": "#5b8def"
+  }
+}
+```
+
+Delegation grouping is flat. Set the same top-level `delegation_id` and
+`delegation_name` on the sub-agent card, every tool-use card, approval/input
+card, operator prompt, and final response that belongs to that delegated turn.
+The main chat shows the sub-agent card and pending human input prompts; the
+drill-down pane filters the same channel messages by `delegation_id`.
+
+The `subagent.icon` field is optional text, such as `BH` or a small emoji.
+`subagent.icon_color` is optional CSS color text. If either is omitted, Mythic
+derives a deterministic fallback from `delegation_id` so the card and side pane
+remain visually stable.
+
+The sub-agent card's `content` is the delegated process summary shown when the
+operator expands the card. The side pane is a filtered view of the same flat
+channel messages, not a nested card tree. When the operator sends a prompt from
+that side pane, Mythic creates a normal chat request with the pane's
+`delegation_id` and `delegation_name`; your container should treat that as a
+direct prompt to the delegated process and keep future responses tagged with the
+same metadata.
+
+Human-in-the-loop prompts from a delegated turn should also carry the same
+delegation metadata. Mythic surfaces pending prompts in the main chat so the
+operator cannot miss them. After the prompt is resolved, it remains available in
+the sub-agent drill-down and no longer clutters the main channel.
 
 Recommended metadata for an MCP confirmation card:
 
@@ -297,8 +432,26 @@ For special UI blocks, use `special_type` and place the special payload under a
 namespaced key. BasicChat currently uses:
 
 - `special_type: "tool_use"` with `tool_use` for tool status cards.
+- `special_type: "subagent"` with `subagent` for delegation summary cards.
 - `special_type: "mcp_tool_confirmation"` with `mcp_tool_confirmation` for MCP
   approval cards.
+
+### Testing Sub-Agents With BasicChat
+
+Select BasicChat's `Sub-Agent Test` model to exercise the UI without LiteLLM or
+MCP credentials. The fixture emits:
+
+- A sub-agent summary card with `delegation_id`, `delegation_name`, `icon`,
+  `icon_color`, running/finished statuses, and progress counts.
+- Delegated tool-use cards, including one with large `tool_use.output` for the
+  lazy output modal.
+- A delegated `input_requested` approval that appears in the main chat while
+  pending and stays visible in the sub-agent drill-down after resolution.
+- A delegated final response and closing sub-agent status after the operator
+  approves or responds.
+
+This is the quickest way to verify that your Mythic UI and chat-container SDK
+agree on the flat grouping contract.
 
 For context messages, `ChatMessageContext.Metadata` is whatever was attached to
 that prior message. The default `build_chat_messages(...)` ignores metadata and

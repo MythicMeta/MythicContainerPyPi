@@ -20,11 +20,13 @@ class MythicRPCCallbackCreateMessage:
                  ExtraInfo: str = "",
                  SleepInfo: str = "",
                  Ip: str = "",
+                 IPs: list[str] = None,
                  ExternalIP: str = "",
                  IntegrityLevel: int = 2,
                  Os: str = "",
                  Domain: str = "",
                  Architecture: str = "",
+                 Description: str = "",
                  Cwd: str = "",
                  Impersonation_Context: str = "",
                  ProcessName: str = "",
@@ -46,11 +48,13 @@ class MythicRPCCallbackCreateMessage:
         self.ExtraInfo = ExtraInfo
         self.SleepInfo = SleepInfo
         self.Ip = Ip
+        self.IPs = IPs
         self.ExternalIP = ExternalIP
         self.IntegrityLevel = IntegrityLevel
         self.Os = Os
         self.Domain = Domain
         self.Architecture = Architecture
+        self.Description = Description
         self.Cwd = Cwd
         self.Impersonation_Context = Impersonation_Context
         self.ProcessName = ProcessName
@@ -70,11 +74,13 @@ class MythicRPCCallbackCreateMessage:
             "extra_info": self.ExtraInfo,
             "sleep_info": self.SleepInfo,
             "ip": self.Ip,
+            "ips": self.IPs,
             "external_ip": self.ExternalIP,
             "integrity_level": self.IntegrityLevel,
             "os": self.Os,
             "domain": self.Domain,
             "architecture": self.Architecture,
+            "description": self.Description,
             "cwd": self.Cwd,
             "impersonation_context": self.Impersonation_Context,
             "process_name": self.ProcessName,
@@ -86,10 +92,16 @@ class MythicRPCCallbackCreateMessageResponse:
                  success: bool = False,
                  error: str = "",
                  callback_uuid: str = None,
+                 agent_callback_id: str = None,
+                 callback_id: int = None,
+                 callback_display_id: int = None,
                  **kwargs):
         self.Success = success
         self.Error = error
-        self.CallbackUUID = callback_uuid
+        self.AgentCallbackID = agent_callback_id or callback_uuid
+        self.CallbackUUID = self.AgentCallbackID
+        self.CallbackID = callback_id
+        self.CallbackDisplayID = callback_display_id
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 

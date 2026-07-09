@@ -104,6 +104,7 @@ AUTH_RPC_PROCESS_NONIDP_RESPONSE = "auth_rpc_process_nonidp_response"
 CHAT_REQUEST_ROUTING_KEY = "chat_request"
 CHAT_CANCEL_ROUTING_KEY = "chat_cancel"
 CHAT_RESPONSE_ROUTING_KEY = "chat_response"
+CHAT_CHANNEL_METADATA_UPDATE_ROUTING_KEY = "mythic_rpc_chat_channel_metadata_update"
 
 CONTAINER_ON_START          = "container_on_start"
 CONTAINER_ON_START_RESPONSE = "container_on_start_response"

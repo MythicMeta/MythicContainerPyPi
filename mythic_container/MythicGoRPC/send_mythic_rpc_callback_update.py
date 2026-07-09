@@ -18,6 +18,7 @@ class MythicRPCCallbackUpdateMessage:
                  ExtraInfo: str = None,
                  SleepInfo: str = None,
                  IP: str = None,
+                 IPs: list[str] = None,
                  ExternalIP: str = None,
                  IntegrityLevel: int = None,
                  OS: str = None,
@@ -43,6 +44,7 @@ class MythicRPCCallbackUpdateMessage:
         self.ExtraInfo = ExtraInfo
         self.SleepInfo = SleepInfo
         self.Ip = IP
+        self.IPs = IPs
         self.ExternalIP = ExternalIP
         self.IntegrityLevel = IntegrityLevel
         self.Os = OS
@@ -76,6 +78,7 @@ class MythicRPCCallbackUpdateMessage:
             "extra_info": self.ExtraInfo,
             "sleep_info": self.SleepInfo,
             "ip": self.Ip,
+            "ips": self.IPs,
             "external_ip": self.ExternalIP,
             "integrity_level": self.IntegrityLevel,
             "os": self.Os,

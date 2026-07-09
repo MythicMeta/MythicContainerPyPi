@@ -30,7 +30,8 @@ readers, chat-channel API token delegation, and reusable MCP tool primitives.
 Provider connection semantics stay in each chat container.
 
 See [CHAT_CONTAINERS.md](CHAT_CONTAINERS.md) for subclassing, typed settings,
-response helper, MCP connection, and confirmation-flow examples.
+response helper, MCP connection, confirmation-flow, sub-agent delegation, and
+lazy tool-output examples.
 
 ## Where is the code?
 

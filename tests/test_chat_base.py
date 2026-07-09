@@ -28,6 +28,7 @@ ChatRequest = ChatBase.ChatRequest
 ChatSecretView = ChatBase.ChatSecretView
 ChatSlashCommandDefinition = ChatBase.ChatSlashCommandDefinition
 ChatInputChoice = ChatBase.ChatInputChoice
+ChatChannelMetadataUpdate = ChatBase.ChatChannelMetadataUpdate
 
 
 class HelperChat(Chat):
@@ -65,6 +66,18 @@ class ChatBaseTests(unittest.TestCase):
         self.assertEqual(request.InputResponse.Action, "select")
         self.assertEqual(request.to_json()["input_response"]["choice"]["id"], "one")
 
+    def test_request_preserves_delegation_fields(self):
+        request = ChatRequest(
+            container_name="helper_chat",
+            delegation_id="delegation-1",
+            delegation_name="BloodHound",
+        )
+
+        self.assertEqual(request.DelegationID, "delegation-1")
+        self.assertEqual(request.DelegationName, "BloodHound")
+        self.assertEqual(request.to_json()["delegation_id"], "delegation-1")
+        self.assertEqual(request.to_json()["delegation_name"], "BloodHound")
+
     def test_config_option_serializes_json_string_schema(self):
         option = ChatModelConfigurationOption(
             Name="MCP",
@@ -77,6 +90,34 @@ class ChatBaseTests(unittest.TestCase):
         serialized = option.to_json()
         self.assertEqual(serialized["json_string_schema"]["label"], "MCP")
         self.assertEqual(serialized["min_rows"], 12)
+
+    def test_config_option_serializes_display_as_chip(self):
+        option = ChatModelConfigurationOption(
+            Name="PROVIDER_MODEL",
+            DisplayName="Provider",
+            DisplayAsChip=True,
+        )
+
+        serialized = option.to_json()
+        self.assertTrue(serialized["display_as_chip"])
+
+    def test_chat_channel_metadata_update_shape(self):
+        update = ChatChannelMetadataUpdate(
+            OperationID=1,
+            ChannelID=2,
+            ContainerName="basic_chat",
+            ChannelMetadata={
+                "items": [
+                    {"key": "total_cost", "value": 1.25, "format": "currency"},
+                ],
+            },
+        )
+
+        serialized = update.to_json()
+        self.assertEqual(serialized["operation_id"], 1)
+        self.assertEqual(serialized["channel_id"], 2)
+        self.assertEqual(serialized["container_name"], "basic_chat")
+        self.assertEqual(serialized["channel_metadata"]["items"][0]["key"], "total_cost")
 
     def test_metadata_serializes_slash_commands(self):
         metadata = ChatModelMetadata(
@@ -152,6 +193,116 @@ class ChatBaseTests(unittest.TestCase):
         self.assertFalse(captured[3]["complete_request"])
         self.assertEqual(captured[-1]["metadata"]["input_requested"]["input_type"], "single_choice")
         self.assertFalse(captured[-1]["complete_request"])
+
+    def test_turn_metadata_carries_delegation_fields(self):
+        chat = HelperChat()
+        request = ChatRequest(
+            operation_id=1,
+            request_id=2,
+            delegation_id="delegation-1",
+            delegation_name="BloodHound",
+        )
+        turn = chat.turn_context(request, response_key="assistant:test", metadata={"phase": "start"})
+
+        metadata = turn._metadata({"phase": "delta"})
+
+        self.assertEqual(metadata["phase"], "delta")
+        self.assertEqual(metadata["delegation_id"], "delegation-1")
+        self.assertEqual(metadata["delegation_name"], "BloodHound")
+
+    def test_turn_metadata_allows_explicit_delegation_override(self):
+        chat = HelperChat()
+        request = ChatRequest(
+            operation_id=1,
+            request_id=2,
+            delegation_id="request-delegation",
+            delegation_name="Request Name",
+        )
+        turn = chat.turn_context(request, response_key="assistant:test")
+
+        metadata = turn._metadata({
+            "delegation_id": "explicit-delegation",
+            "delegation_name": "Explicit Name",
+        })
+
+        self.assertEqual(metadata["delegation_id"], "explicit-delegation")
+        self.assertEqual(metadata["delegation_name"], "Explicit Name")
+
+    def test_subagent_status_helper_shapes_special_card(self):
+        async def run_check():
+            captured = []
+            original = ChatBase.SendMythicRPCChatResponse
+
+            async def fake_send(response):
+                captured.append(response.to_json())
+
+            ChatBase.SendMythicRPCChatResponse = fake_send
+            try:
+                chat = HelperChat()
+                request = ChatRequest(
+                    operation_id=1,
+                    request_id=2,
+                    delegation_id="delegation-1",
+                    delegation_name="BloodHound",
+                )
+                turn = chat.turn_context(request, response_key="assistant:test")
+                await turn.send_subagent_status(
+                    title="BloodHound: List domains",
+                    status="finished",
+                    tool_count=3,
+                    tool_total=13,
+                    icon="BH",
+                    content="Found two domains.",
+                    complete=True,
+                )
+            finally:
+                ChatBase.SendMythicRPCChatResponse = original
+            return captured
+
+        captured = asyncio.run(run_check())
+        self.assertEqual(captured[0]["response_key"], "subagent:delegation-1")
+        self.assertEqual(captured[0]["status"], "complete")
+        self.assertTrue(captured[0]["complete"])
+        self.assertEqual(captured[0]["content"], "Found two domains.")
+        self.assertEqual(captured[0]["metadata"]["special_type"], "subagent")
+        self.assertEqual(captured[0]["metadata"]["delegation_id"], "delegation-1")
+        self.assertEqual(captured[0]["metadata"]["delegation_name"], "BloodHound")
+        self.assertEqual(captured[0]["metadata"]["subagent"]["title"], "BloodHound: List domains")
+        self.assertEqual(captured[0]["metadata"]["subagent"]["status"], "finished")
+        self.assertEqual(captured[0]["metadata"]["subagent"]["tool_count"], 3)
+        self.assertEqual(captured[0]["metadata"]["subagent"]["tool_total"], 13)
+        self.assertEqual(captured[0]["metadata"]["subagent"]["icon"], "BH")
+
+    def test_update_channel_metadata_helper_uses_current_request(self):
+        async def run_check():
+            captured = []
+            original = ChatBase.SendMythicRPCChatChannelMetadataUpdate
+
+            async def fake_send(update):
+                captured.append(update.to_json())
+                return ChatBase.ChatChannelMetadataUpdateResponse(success=True)
+
+            ChatBase.SendMythicRPCChatChannelMetadataUpdate = fake_send
+            try:
+                chat = HelperChat()
+                request = ChatRequest(
+                    operation_id=1,
+                    channel_id=2,
+                    container_name="helper_chat",
+                )
+                response = await chat.update_channel_metadata(request, {
+                    "items": [{"key": "weekly_tokens", "value": 12}],
+                })
+            finally:
+                ChatBase.SendMythicRPCChatChannelMetadataUpdate = original
+            return captured, response
+
+        captured, response = asyncio.run(run_check())
+        self.assertTrue(response.Success)
+        self.assertEqual(captured[0]["operation_id"], 1)
+        self.assertEqual(captured[0]["channel_id"], 2)
+        self.assertEqual(captured[0]["container_name"], "helper_chat")
+        self.assertEqual(captured[0]["channel_metadata"]["items"][0]["key"], "weekly_tokens")
 
     def test_run_chat_turn_wraps_streaming_completion_and_errors(self):
         async def run_check():

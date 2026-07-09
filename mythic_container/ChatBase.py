@@ -8,6 +8,8 @@ from .SharedClasses import ContainerOnStartMessage, ContainerOnStartMessageRespo
 
 
 CHAT_INPUT_REQUESTED_SPECIAL_TYPE = "input_requested"
+CHAT_TOOL_USE_SPECIAL_TYPE = "tool_use"
+CHAT_SUBAGENT_SPECIAL_TYPE = "subagent"
 
 
 def _to_json_value(value: Any):
@@ -88,6 +90,8 @@ class ChatRequest:
             secrets: dict = None,
             slash_command: dict = None,
             input_response: dict = None,
+            delegation_id: str = "",
+            delegation_name: str = "",
             **kwargs):
         self.ContainerName = container_name
         self.OperationID = operation_id
@@ -104,6 +108,8 @@ class ChatRequest:
         self.Secrets = secrets if secrets is not None else {}
         self.SlashCommand = ChatSlashCommandInvocation(**slash_command) if isinstance(slash_command, dict) else None
         self.InputResponse = ChatInputResponse(**input_response) if isinstance(input_response, dict) else None
+        self.DelegationID = delegation_id
+        self.DelegationName = delegation_name
 
     def to_json(self):
         return {
@@ -122,6 +128,8 @@ class ChatRequest:
             "secrets": self.Secrets,
             "slash_command": self.SlashCommand.to_json() if self.SlashCommand is not None else None,
             "input_response": self.InputResponse.to_json() if self.InputResponse is not None else None,
+            "delegation_id": self.DelegationID,
+            "delegation_name": self.DelegationName,
         }
 
     def __str__(self):
@@ -264,6 +272,41 @@ class ChatResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class ChatChannelMetadataUpdate:
+    def __init__(
+            self,
+            OperationID: int = 0,
+            ChannelID: int = 0,
+            ContainerName: str = "",
+            ChannelMetadata: dict[str, Any] | None = None,
+            **kwargs):
+        self.OperationID = OperationID
+        self.ChannelID = ChannelID
+        self.ContainerName = ContainerName
+        self.ChannelMetadata = ChannelMetadata if ChannelMetadata is not None else {}
+
+    def to_json(self):
+        return {
+            "operation_id": self.OperationID,
+            "channel_id": self.ChannelID,
+            "container_name": self.ContainerName,
+            "channel_metadata": _to_json_value(self.ChannelMetadata),
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class ChatChannelMetadataUpdateResponse:
+    def __init__(
+            self,
+            success: bool = False,
+            error: str = "",
+            **kwargs):
+        self.Success = success
+        self.Error = error
+
+
 class ChatModelConfigurationOptionType:
     """Types available for per-chat model configuration options.
 
@@ -361,6 +404,7 @@ class ChatModelConfigurationOption:
         Examples (list[dict]): Optional examples operators can load into json config editors.
         HelpText (str): Longer operator-facing help for complex config fields.
         MinRows (int): Preferred minimum visible rows for multiline/json config editors.
+        DisplayAsChip (bool): True to show this scalar value as a compact chip in the Mythic chat UI.
     """
 
     def __init__(
@@ -377,6 +421,7 @@ class ChatModelConfigurationOption:
             Examples: list[dict] = None,
             HelpText: str = "",
             MinRows: int = 0,
+            DisplayAsChip: bool = False,
             **kwargs):
         self.Name = Name
         self.DisplayName = DisplayName
@@ -390,9 +435,12 @@ class ChatModelConfigurationOption:
         self.Examples = Examples if Examples is not None else []
         self.HelpText = HelpText
         self.MinRows = MinRows
+        self.DisplayAsChip = DisplayAsChip
         self.AdditionalItems = {}
         if self.JSONStringSchema is None and "json_string_schema" in kwargs:
             self.JSONStringSchema = kwargs.pop("json_string_schema")
+        if "display_as_chip" in kwargs:
+            self.DisplayAsChip = kwargs.pop("display_as_chip")
         for k, v in kwargs.items():
             self.AdditionalItems[k] = v
 
@@ -417,6 +465,8 @@ class ChatModelConfigurationOption:
             r["help_text"] = self.HelpText
         if self.MinRows:
             r["min_rows"] = self.MinRows
+        if self.DisplayAsChip:
+            r["display_as_chip"] = self.DisplayAsChip
         r.update(_to_json_value(self.AdditionalItems))
         return r
 
@@ -728,10 +778,58 @@ class ChatTurnContext:
             metadata=self._metadata(metadata),
         )
 
+    async def send_subagent_status(
+            self,
+            title: str,
+            delegation_id: str = "",
+            delegation_name: str = "",
+            status: str = "running",
+            tool_count: int | None = None,
+            tool_total: int | None = None,
+            icon: str = "",
+            icon_color: str = "",
+            content: str = "",
+            response_key: str = "",
+            complete: bool = False,
+            complete_request: bool = False,
+            metadata: dict[str, Any] | None = None):
+        """Send or update a flat sub-agent delegation summary card.
+
+        Use one stable ``delegation_id`` for the sub-agent card, delegated tool
+        cards, delegated input requests, side-pane operator prompts, and the
+        final delegated response. Mythic shows the summary card in the main
+        chat, filters the drill-down pane by ``delegation_id``, and keeps
+        delegated approvals visible in the main chat while pending.
+        """
+        await self.chat.send_subagent_status(
+            self.request,
+            title=title,
+            delegation_id=delegation_id,
+            delegation_name=delegation_name,
+            status=status,
+            tool_count=tool_count,
+            tool_total=tool_total,
+            icon=icon,
+            icon_color=icon_color,
+            content=content,
+            response_key=response_key,
+            complete=complete,
+            complete_request=complete_request,
+            metadata=self._metadata(metadata),
+        )
+
+    async def update_channel_metadata(self, channel_metadata: dict[str, Any]) -> ChatChannelMetadataUpdateResponse:
+        return await self.chat.update_channel_metadata(self.request, channel_metadata)
+
     def _metadata(self, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Merge turn metadata and propagate delegated side-pane metadata."""
         merged = dict(self.metadata)
         if extra:
             merged.update(extra)
+        if self.request.DelegationID and "delegation_id" not in merged:
+            merged["delegation_id"] = self.request.DelegationID
+        if self.request.DelegationName and "delegation_name" not in merged:
+            merged["delegation_name"] = self.request.DelegationName
         return merged
 
 
@@ -834,6 +932,17 @@ class Chat:
             Status=status,
             Error=error,
             Metadata=metadata if metadata is not None else {},
+        ))
+
+    async def update_channel_metadata(
+            self,
+            request: ChatRequest,
+            channel_metadata: dict[str, Any]) -> ChatChannelMetadataUpdateResponse:
+        return await SendMythicRPCChatChannelMetadataUpdate(ChatChannelMetadataUpdate(
+            OperationID=request.OperationID,
+            ChannelID=request.ChannelID,
+            ContainerName=self.name or request.ContainerName,
+            ChannelMetadata=channel_metadata,
         ))
 
     async def send_streaming(
@@ -951,6 +1060,62 @@ class Chat:
             "data": data or {},
         }, metadata=metadata)
 
+    async def send_subagent_status(
+            self,
+            request: ChatRequest,
+            title: str,
+            delegation_id: str = "",
+            delegation_name: str = "",
+            status: str = "running",
+            tool_count: int | None = None,
+            tool_total: int | None = None,
+            icon: str = "",
+            icon_color: str = "",
+            content: str = "",
+            response_key: str = "",
+            complete: bool = False,
+            complete_request: bool = False,
+            metadata: dict[str, Any] | None = None) -> None:
+        """Send or update a sub-agent summary card.
+
+        ``delegation_id`` is the flat grouping key. Mythic does not nest cards;
+        it renders the sub-agent card in the main chat and opens a drill-down
+        pane by filtering channel messages with this id. ``icon`` and
+        ``icon_color`` are optional developer-provided visuals; the UI derives
+        deterministic fallbacks when they are omitted.
+        """
+        delegation_id = delegation_id or request.DelegationID
+        delegation_name = delegation_name or request.DelegationName
+        subagent = {
+            "title": title,
+            "status": status,
+        }
+        if tool_count is not None:
+            subagent["tool_count"] = tool_count
+        if tool_total is not None:
+            subagent["tool_total"] = tool_total
+        if icon:
+            subagent["icon"] = icon
+        if icon_color:
+            subagent["icon_color"] = icon_color
+        response_metadata = dict(metadata or {})
+        response_metadata["special_type"] = CHAT_SUBAGENT_SPECIAL_TYPE
+        response_metadata["subagent"] = subagent
+        if delegation_id:
+            response_metadata["delegation_id"] = delegation_id
+        if delegation_name:
+            response_metadata["delegation_name"] = delegation_name
+        response_key = response_key or f"subagent:{self._response_key_fragment(delegation_id or title)}"
+        await self.send_response(
+            request,
+            response_key=response_key,
+            content=content,
+            status="complete" if complete else "streaming",
+            complete=complete,
+            complete_request=complete_request,
+            metadata=response_metadata,
+        )
+
     def normalize_input_request(self, input_request: Any) -> dict[str, Any]:
         if hasattr(input_request, "to_input_request") and callable(input_request.to_input_request):
             normalized = input_request.to_input_request()
@@ -1060,6 +1225,15 @@ async def SendMythicRPCChatResponse(response: ChatResponse) -> None:
         queue=mythic_container.CHAT_RESPONSE_ROUTING_KEY,
         body=response.to_json(),
     )
+
+
+async def SendMythicRPCChatChannelMetadataUpdate(
+        update: ChatChannelMetadataUpdate) -> ChatChannelMetadataUpdateResponse:
+    response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
+        queue=mythic_container.CHAT_CHANNEL_METADATA_UPDATE_ROUTING_KEY,
+        body=update.to_json(),
+    )
+    return ChatChannelMetadataUpdateResponse(**response)
 
 
 async def SendMythicRPCSyncChat(chat_name: str) -> bool:

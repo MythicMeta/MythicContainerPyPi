@@ -1,6 +1,6 @@
 import mythic_container
 from mythic_container.logging import logger
-from mythic_container.utils_mythic_file_transfer import sendFileToMythic
+import base64
 
 MYTHIC_RPC_FILE_UPDATE = "mythic_rpc_file_update"
 
@@ -25,12 +25,18 @@ class MythicRPCFileUpdateMessage:
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
+    def _serialize_contents(self, contents):
+        if isinstance(contents, bytes):
+            return base64.b64encode(contents).decode()
+        return contents
+
     def to_json(self):
         return {
             "file_id": self.AgentFileID,
             "filename": self.Filename,
             "comment": self.Comment,
-            "append_contents": self.AppendContents,
+            "append_contents": self._serialize_contents(self.AppendContents),
+            "replace_contents": self._serialize_contents(self.ReplaceContents),
             "delete": self.Delete,
             "delete_after_fetch": self.DeleteAfterFetch,
         }
@@ -51,13 +57,4 @@ async def SendMythicRPCFileUpdate(
         msg: MythicRPCFileUpdateMessage) -> MythicRPCFileUpdateMessageResponse:
     response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(queue=MYTHIC_RPC_FILE_UPDATE,
                                                                             body=msg.to_json())
-    finalResponse = MythicRPCFileUpdateMessageResponse(**response)
-    if finalResponse.Success and msg.ReplaceContents is not None:
-        # we need to ship off the file contents now
-        if await sendFileToMythic(msg.ReplaceContents, msg.AgentFileID):
-            return finalResponse
-        else:
-            finalResponse.Success = False
-            finalResponse.Error = "Failed to upload file contents to Mythic over HTTP"
-            return finalResponse
-    return finalResponse
+    return MythicRPCFileUpdateMessageResponse(**response)
