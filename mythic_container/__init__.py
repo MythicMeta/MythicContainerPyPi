@@ -14,7 +14,7 @@ from .keyword_resolution import PTTaskKeywordResolution, RevertKeywords
 
 containerVersion = "v1.4.3"
 
-PyPi_version = "0.7.0-rc1"
+PyPi_version = "0.7.0-rc8"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 

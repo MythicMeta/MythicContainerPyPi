@@ -59,18 +59,18 @@ async def buildWrapper(msg: bytes) -> None:
                             )
                         )
                 wrapper_bytes = None
-                if "wrapped_payload_uuid" in msgDict and msgDict["wrapped_payload_uuid"] is not None:
-                    wrapper_bytes = await getFileFromMythic(msgDict["wrapped_payload_uuid"])
-                agent_builder = pt.__class__(
-                    uuid=msgDict["uuid"],
-                    c2info=c2info_list,
-                    filename=msgDict["filename"],
-                    selected_os=msgDict["selected_os"],
-                    commands=commands,
-                    wrapped_payload=wrapper_bytes,
-                    wrapped_payload_uuid=msgDict["wrapped_payload_uuid"] if "wrapped_payload_uuid" in msgDict else None
-                )
                 try:
+                    if "wrapped_payload_uuid" in msgDict and msgDict["wrapped_payload_uuid"] is not None:
+                        wrapper_bytes = await getFileFromMythic(msgDict["wrapped_payload_uuid"])
+                    agent_builder = pt.__class__(
+                        uuid=msgDict["uuid"],
+                        c2info=c2info_list,
+                        filename=msgDict["filename"],
+                        selected_os=msgDict["selected_os"],
+                        commands=commands,
+                        wrapped_payload=wrapper_bytes,
+                        wrapped_payload_uuid=msgDict["wrapped_payload_uuid"] if "wrapped_payload_uuid" in msgDict else None
+                    )
                     await agent_builder.set_and_validate_build_parameters(msgDict["build_parameters"])
                     build_resp = await agent_builder.build()
                     await mythic_container.RabbitmqConnection.SendDictDirectMessage(
