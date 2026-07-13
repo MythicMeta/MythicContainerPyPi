@@ -15,6 +15,7 @@ OPSEC_ROLE_OTHER_OPERATOR = "other_operator"
 
 async def makePayloadBuildResponse(buildMessage: dict, buildResponse: PayloadBuilder.BuildResponse) -> dict:
     try:
+        build_metadata = buildResponse.get_build_metadata()
         response = {
             "uuid": str(buildMessage["uuid"]),
             "agent_file_id": str(buildMessage["payload_file_uuid"]),
@@ -23,7 +24,8 @@ async def makePayloadBuildResponse(buildMessage: dict, buildResponse: PayloadBui
             "build_stdout": str(buildResponse.get_build_stdout()),
             "build_message": str(buildResponse.get_build_message()),
             "updated_command_list": buildResponse.get_updated_command_list(),
-            "updated_filename": buildResponse.get_updated_filename()
+            "updated_filename": buildResponse.get_updated_filename(),
+            "build_metadata": build_metadata.to_json() if build_metadata is not None else {}
         }
         if not response["success"]:
             if response["build_stderr"] == "":

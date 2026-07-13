@@ -45,6 +45,128 @@ class SupportedOS:
         return self.os
 
 
+class BuildMetadataArchitecture:
+    """Common exact values for the architecture build metadata key."""
+    X86 = "x86"
+    X64 = "x64"
+    Arm = "arm"
+    Arm64 = "arm64"
+
+    def __init__(self, arch: str):
+        self.arch = arch
+
+    def __str__(self):
+        return self.arch
+
+
+class BuildMetadataFormat:
+    """Common exact values for the format build metadata key."""
+    Exe = "exe"
+    Dll = "dll"
+    Shellcode = "shellcode"
+    Macho = "macho"
+    ELF = "elf"
+    SO = "so"
+    Dylib = "dylib"
+
+    def __init__(self, format: str):
+        self.format = format
+
+    def __str__(self):
+        return self.format
+
+
+class PayloadBuildMetadata:
+    """Architecture and output format of a generated payload file.
+
+    Mythic records the selected operating system itself, so builders only set
+    these two fields.
+
+    This identifies the build properties of the file you created so it can be picked up by wrappers
+    via WrapperPayloadRequirementMetadata
+    """
+
+    def __init__(self, architecture: str, format: str):
+        self.architecture = architecture
+        self.format = format
+
+    def to_json(self):
+        return {
+            "architecture": self.architecture,
+            "format": self.format,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class WrapperPayloadRequirementMetadata:
+    """The exact file metadata required by one wrapper rule.
+
+    ``payload_type`` is optional. Operating system, architecture, and format
+    identify the generated file independently of its payload type.
+
+    This identifies the requirements of the payload you want to wrap in your wrapper.
+    """
+
+    def __init__(self, os: str, architecture: str, format: str, payload_type: str = None):
+        self.os = os
+        self.architecture = architecture
+        self.format = format
+        self.payload_type = payload_type
+
+    def to_json(self):
+        metadata = {
+            "os": self.os,
+            "architecture": self.architecture,
+            "format": self.format,
+        }
+        if self.payload_type is not None:
+            metadata["payload_type"] = self.payload_type
+        return metadata
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
+class WrapperPayloadRequirementCondition:
+    """A wrapper build parameter value that activates a requirement rule."""
+
+    def __init__(self, build_parameter_name: str, build_parameter_value: str):
+        self.build_parameter_name = build_parameter_name
+        self.build_parameter_value = build_parameter_value
+
+
+class WrapperPayloadRequirement:
+    """One exact wrapper compatibility rule.
+
+    Multiple rules are OR comparisons. Every optional ``when`` condition must
+    match to activate its rule.
+
+    One WrapperPayloadRequirement is one specific condition that must be met to be a valid payload for your wrapper.
+    The `when` condition allows you to skip the `requires` conditions based on your own build parameter values.
+    So, for example, you can say you need x86 shellcode when your build parameter target arch is x86 or
+    you need x64 shellcode when your build parameter target arch is x64.
+    """
+
+    def __init__(self, requires: WrapperPayloadRequirementMetadata,
+                 when: list[WrapperPayloadRequirementCondition] = None):
+        self.requires = requires
+        self.when = when
+
+    def to_json(self):
+        rule = {"requires": self.requires.to_json()}
+        if self.when:
+            rule["when"] = {
+                condition.build_parameter_name: condition.build_parameter_value
+                for condition in self.when
+            }
+        return rule
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2)
+
+
 class AgentType:
     """Type of agent container
 
@@ -474,13 +596,16 @@ class BuildResponse:
             An updated list of commands that are actually being built into the payload. This is handy if the user selected commandA but you aren't building it into the payload for some reason. Similarly, it's helpful if the user selected commandA but you also need commandB for that to work, so you can reflect that change back to Mythic.
         updated_filename (str):
             An updated filename - this is useful if the user selects an option during build that changes the file type (ex: exe, dll, zip) and you want to reflect that back in the filename for easier downloading.
+        build_metadata (PayloadBuildMetadata):
+            Architecture and output format of the generated file. Mythic records the selected operating system.
    Functions:
        get_commands:
            Get a list of the command names
    """
 
     def __init__(self, status: BuildStatus, payload: bytes = None, build_message: str = None, build_stderr: str = None,
-                 build_stdout: str = None, updated_command_list: [str] = None, updated_filename: str = None):
+                 build_stdout: str = None, updated_command_list: [str] = None, updated_filename: str = None,
+                 build_metadata: PayloadBuildMetadata = None):
         self.status = status
         self.payload = payload if payload is not None else b""
         self.build_message = build_message if build_message is not None else ""
@@ -488,6 +613,7 @@ class BuildResponse:
         self.build_stdout = build_stdout if build_stdout is not None else ""
         self.updated_command_list = updated_command_list
         self.updated_filename = updated_filename
+        self.build_metadata = build_metadata
 
     def get_status(self) -> BuildStatus:
         return self.status
@@ -530,6 +656,12 @@ class BuildResponse:
 
     def set_updated_filename(self, filename: str):
         self.updated_filename = filename
+
+    def get_build_metadata(self) -> PayloadBuildMetadata:
+        return self.build_metadata
+
+    def set_build_metadata(self, build_metadata: PayloadBuildMetadata):
+        self.build_metadata = build_metadata
 
 
 class BuildStep:
@@ -729,8 +861,8 @@ class PayloadType:
             List of Operating Systems that this Payload Type supports
         wrapper (bool):
             Is this payload type a wrapper (i.e. it takes in other payload types and wraps them up in a new format)
-        wrapped_payloads (list[str]):
-            What wrappers does this payload type support (ex: service_wrapper)
+        wrapper_payload_requirements (list[WrapperPayloadRequirement]):
+            Exact metadata and optional payload type rules accepted by this wrapper
         note (str):
             A description of the payload type to present to users (legacy, still works)
         description (str):
@@ -815,7 +947,7 @@ class PayloadType:
     author: str = ""
     supported_os: list[str] = []
     wrapper: bool = False
-    wrapped_payloads: list[str] = []
+    wrapper_payload_requirements: list[WrapperPayloadRequirement] = []
     note: str = ""
     description: str = ""
     supports_dynamic_loading: bool = False
@@ -956,7 +1088,8 @@ class PayloadType:
             "author": self.author,
             "supported_os": [str(x) for x in self.supported_os],
             "wrapper": self.wrapper,
-            "supported_wrapper_payload_types": self.wrapped_payloads,
+            "wrapper_payload_requirements": [requirement.to_json() for requirement in
+                                             self.wrapper_payload_requirements],
             "supports_dynamic_load": self.supports_dynamic_loading,
             "description": desc,
             "build_parameters": [b.to_json() for b in self.build_parameters],
