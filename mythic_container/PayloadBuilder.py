@@ -45,7 +45,7 @@ class SupportedOS:
         return self.os
 
 
-class BuildMetadataArchitecture:
+class PayloadBuildMetadataArchitecture:
     """Common exact values for the architecture build metadata key."""
     X86 = "x86"
     X64 = "x64"
@@ -59,7 +59,7 @@ class BuildMetadataArchitecture:
         return self.arch
 
 
-class BuildMetadataFormat:
+class PayloadBuildMetadataFormat:
     """Common exact values for the format build metadata key."""
     Exe = "exe"
     Dll = "dll"
@@ -86,7 +86,8 @@ class PayloadBuildMetadata:
     via WrapperPayloadRequirementMetadata
     """
 
-    def __init__(self, architecture: str, format: str):
+    def __init__(self, architecture: PayloadBuildMetadataArchitecture,
+                 format: PayloadBuildMetadataFormat):
         self.architecture = architecture
         self.format = format
 
@@ -100,7 +101,7 @@ class PayloadBuildMetadata:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
-class WrapperPayloadRequirementMetadata:
+class WrapperPayloadRequirementRequires:
     """The exact file metadata required by one wrapper rule.
 
     ``payload_type`` is optional. Operating system, architecture, and format
@@ -129,7 +130,7 @@ class WrapperPayloadRequirementMetadata:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
-class WrapperPayloadRequirementCondition:
+class WrapperPayloadRequirementWhen:
     """A wrapper build parameter value that activates a requirement rule."""
 
     def __init__(self, build_parameter_name: str, build_parameter_value: str):
@@ -149,8 +150,8 @@ class WrapperPayloadRequirement:
     you need x64 shellcode when your build parameter target arch is x64.
     """
 
-    def __init__(self, requires: WrapperPayloadRequirementMetadata,
-                 when: list[WrapperPayloadRequirementCondition] = None):
+    def __init__(self, requires: WrapperPayloadRequirementRequires,
+                 when: list[WrapperPayloadRequirementWhen] = None):
         self.requires = requires
         self.when = when
 
