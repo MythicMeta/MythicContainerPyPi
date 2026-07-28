@@ -31,7 +31,7 @@ setup(
         "ujson==5.9.0",
         "aiohttp",
         "psutil==5.9.8",
-        "grpcio",
+        "grpcio>=1.78.0",
         "grpcio-tools",
     ],
     entry_points={},

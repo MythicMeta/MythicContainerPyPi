@@ -10,11 +10,13 @@ class MythicRPCArtifactCreateMessage:
                  ArtifactMessage: str,
                  BaseArtifactType: str,
                  ArtifactHost: str = None,
+                 NeedsCleanup: bool = False,
                  **kwargs):
         self.TaskID = TaskID
         self.ArtifactMessage = ArtifactMessage
         self.BaseArtifactType = BaseArtifactType
         self.ArtifactHost = ArtifactHost
+        self.NeedsCleanup = NeedsCleanup
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
@@ -23,7 +25,8 @@ class MythicRPCArtifactCreateMessage:
             "task_id": self.TaskID,
             "message": self.ArtifactMessage,
             "base_artifact": self.BaseArtifactType,
-            "host": self.ArtifactHost
+            "host": self.ArtifactHost,
+            "needs_cleanup": self.NeedsCleanup
         }
 
 
