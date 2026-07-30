@@ -1,4 +1,5 @@
 from .logging import logger
+import json
 import ujson
 from . import PayloadBuilder
 from . import MythicCommandBase
@@ -651,6 +652,102 @@ async def processResponse(msg: bytes) -> None:
             queue=mythic_container.PT_TASK_PROCESS_RESPONSE_RESPONSE,
             body={"status": "error", "error": f"{traceback.format_exc()}\n{e}"}
         )
+
+
+def _agent_rpc_error_response(callback_id: int,
+                              agent_task_id: str,
+                              error: str) -> MythicCommandBase.PTTaskAgentRPCMessageResponse:
+    return MythicCommandBase.PTTaskAgentRPCMessageResponse(
+        CallbackID=callback_id,
+        AgentTaskID=agent_task_id,
+        Status="error",
+        Output=error,
+    )
+
+
+async def _send_agent_rpc_response(
+        response: MythicCommandBase.PTTaskAgentRPCMessageResponse) -> None:
+    if not isinstance(response.Status, str) or response.Status == "":
+        response.Status = "error"
+        response.Output = "agent_rpc returned an empty or non-string status"
+    body = response.to_json()
+    try:
+        # Validate the developer-controlled output before handing it to the
+        # RabbitMQ publisher so serialization failures can still be returned
+        # to the agent as a correlated error response.
+        json.dumps(body, allow_nan=False)
+    except Exception as serialization_error:
+        response.Status = "error"
+        response.Output = f"Failed to serialize agent_rpc output: {serialization_error}"
+        body = response.to_json()
+    await mythic_container.RabbitmqConnection.SendDictDirectMessage(
+        queue=mythic_container.PT_TASK_AGENT_RPC_RESPONSE,
+        body=body,
+    )
+
+
+async def agentRPC(msg: bytes) -> None:
+    callback_id = 0
+    agent_task_id = ""
+    try:
+        msg_dict = ujson.loads(msg)
+        request = MythicCommandBase.PTTaskAgentRPCMessage(**msg_dict)
+        callback_id = request.TaskData.Callback.ID
+        agent_task_id = request.TaskData.Task.AgentTaskID
+        response = None
+
+        for _, payload_type in PayloadBuilder.payloadTypes.items():
+            if payload_type.name != request.TaskData.PayloadType:
+                continue
+            if payload_type.name not in MythicCommandBase.commands:
+                logger.error(f"[-] no commands for payload type, can't do agent rpc")
+                response = _agent_rpc_error_response(
+                    callback_id,
+                    agent_task_id,
+                    f"no commands for payload type, can't do agent rpc",
+                )
+                break
+            try:
+                for cmd in MythicCommandBase.commands[payload_type.name]:
+                    if cmd.cmd == request.TaskData.Task.CommandName:
+                        taskData = MythicCommandBase.PTTaskMessageAllData(**msg_dict["task"],
+                                                                          args=cmd.argument_class)
+                        response = await cmd.agent_rpc(task=taskData, name=request.Name, arguments=request.Arguments)
+                        if not isinstance(response, MythicCommandBase.PTTaskAgentRPCMessageResponse):
+                            raise TypeError(
+                                "agent_rpc must return PTTaskAgentRPCMessageResponse, "
+                                f"got {type(response).__name__}"
+                            )
+                        break
+            except Exception as agent_rpc_error:
+                logger.exception(f"Failed to run agent_rpc for payload type {payload_type.name}: {agent_rpc_error}")
+                response = _agent_rpc_error_response(
+                    callback_id,
+                    agent_task_id,
+                    f"Failed to run agent_rpc: {traceback.format_exc()}",
+                )
+            break
+
+        if response is None:
+            response = _agent_rpc_error_response(
+                callback_id,
+                agent_task_id,
+                f"Failed to find payload type {request.TaskData.PayloadType}",
+            )
+
+        # Correlation always comes from the trusted Mythic task envelope, not
+        # from developer-returned values.
+        response.CallbackID = callback_id
+        response.AgentTaskID = agent_task_id
+        await _send_agent_rpc_response(response)
+    except Exception as error:
+        logger.exception(f"Failed to process agent_rpc request: {error}")
+        if callback_id > 0 and agent_task_id != "":
+            await _send_agent_rpc_response(_agent_rpc_error_response(
+                callback_id,
+                agent_task_id,
+                f"Failed to process agent_rpc request: {traceback.format_exc()}",
+            ))
 
 
 async def dynamicQueryFunction(msg: bytes) -> bytes:

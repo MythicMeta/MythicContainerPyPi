@@ -7,7 +7,7 @@ from pathlib import Path
 from .logging import logger
 import sys
 from collections.abc import Callable, Awaitable
-from typing import List
+from typing import Any, List
 from mythic_container.keyword_resolution import NormalizeKeywordResolution, RevertKeywords
 from mythic_container.MythicGoRPC.send_mythic_rpc_payload_create_from_scratch import \
     MythicRPCPayloadConfigurationBuildParameter, MythicRPCPayloadConfigurationC2Profile
@@ -2149,6 +2149,64 @@ class PTTaskProcessResponseMessageResponse:
         return json.dumps(self.to_json(), sort_keys=True, indent=2)
 
 
+class PTTaskAgentRPCMessage:
+    """An asynchronous command-wide RPC request initiated by an agent.
+
+    The payload hook receives TaskData, Name, and Arguments as separate
+    parameters; this class represents the RabbitMQ wire envelope.
+    """
+
+    def __init__(self,
+                 task: dict = None,
+                 name: str = "",
+                 arguments: Any = None,
+                 **kwargs):
+        self.TaskData = PTTaskMessageAllData(**(task or {}))
+        self.Name = name
+        self.Arguments = arguments
+
+    def to_json(self):
+        return {
+            "task": self.TaskData.to_json(),
+            "name": self.Name,
+            "arguments": self.Arguments,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2, cls=BytesEncoder)
+
+
+class PTTaskAgentRPCMessageResponse:
+    """The asynchronous result of a command-wide agent RPC function.
+
+    Payload authors set Status and Output. The container runtime always
+    overwrites CallbackID and AgentTaskID from the request's task context
+    before publishing the response to Mythic.
+    """
+
+    def __init__(self,
+                 Status: str = "success",
+                 Output: Any = None,
+                 CallbackID: int = 0,
+                 AgentTaskID: str = "",
+                 **kwargs):
+        self.CallbackID = CallbackID
+        self.AgentTaskID = AgentTaskID
+        self.Status = Status
+        self.Output = Output
+
+    def to_json(self):
+        return {
+            "callback_id": self.CallbackID,
+            "agent_task_id": self.AgentTaskID,
+            "status": self.Status,
+            "output": self.Output,
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), sort_keys=True, indent=2, cls=BytesEncoder)
+
+
 class CommandBase(metaclass=ABCMeta):
     """The base definition for a command that Mythic tracks for a Payload Type
 
@@ -2181,8 +2239,10 @@ class CommandBase(metaclass=ABCMeta):
             A function for checking for OPSEC issues before a command is executed, but after the create_go_tasking function is executed
         create_go_tasking:
             The main function for doing additional processing of the task before it's ready for the agent to fetch it
-        process_response:
+        process_response(self, task, response):
             Optional additional processing of responses from the agent in any free-form format
+        agent_rpc(self, task, name, arguments):
+            Handle a command's asynchronous RPC request initiated by an agent
 
     """
     cmd = ""
@@ -2233,6 +2293,16 @@ class CommandBase(metaclass=ABCMeta):
     async def process_response(self, task: PTTaskMessageAllData, response: any) -> PTTaskProcessResponseMessageResponse:
         resp = PTTaskProcessResponseMessageResponse(TaskID=task.Task.ID, Success=True)
         return resp
+
+    async def agent_rpc(self,
+                        task: PTTaskMessageAllData,
+                        name: str,
+                        arguments: Any) -> PTTaskAgentRPCMessageResponse:
+        return PTTaskAgentRPCMessageResponse(
+            Status="error",
+            Output=f"agent_rpc is not implemented for command {self.cmd}",
+        )
+
 
     def to_json(self):
         if self.argument_class is not None:

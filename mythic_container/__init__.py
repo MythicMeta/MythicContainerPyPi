@@ -12,9 +12,9 @@ from .mythic_service import start_and_run_forever, test_command
 from .SharedClasses import *
 from .keyword_resolution import PTTaskKeywordResolution, RevertKeywords
 
-containerVersion = "v1.4.3"
+containerVersion = "v1.5.0"
 
-PyPi_version = "0.7.0-rc8"
+PyPi_version = "0.7.0-rc9"
 
 RabbitmqConnection = rabbitmqConnectionClass()
 
@@ -41,6 +41,8 @@ PT_TASK_COMPLETION_FUNCTION = "pt_task_completion_function"
 PT_TASK_COMPLETION_FUNCTION_RESPONSE = "pt_task_completion_function_response"
 PT_TASK_PROCESS_RESPONSE = "pt_task_process_response"
 PT_TASK_PROCESS_RESPONSE_RESPONSE = "pt_task_process_response_response"
+PT_TASK_AGENT_RPC = "pt_task_agent_rpc"
+PT_TASK_AGENT_RPC_RESPONSE = "pt_task_agent_rpc_response"
 PT_COMMAND_HELP_FUNCTION = "pt_command_help_function"
 PT_RPC_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION = "pt_build_parameter_dynamic_query_function"
 # c2 routes
