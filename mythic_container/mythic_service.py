@@ -82,11 +82,9 @@ async def listFile(msg: bytes) -> bytes:
 def resolveFileBrowserPath(base_path: str, requested_path: str = "") -> pathlib.Path:
     base = pathlib.Path(base_path).resolve()
     target = (base / (requested_path or "")).resolve()
-    try:
-        target.relative_to(base)
-    except ValueError:
-        raise ValueError("requested path is outside of the container folder")
-    return target
+    if target.is_relative_to(base):
+        return target
+    raise ValueError("requested path is outside of the container folder")
 
 
 def listFilesOfPath(path: str, requested_path: str = "") -> mythic_container.SharedClasses.ListFileMessageResponse:
@@ -108,10 +106,9 @@ async def removeFile(msg: bytes) -> bytes:
         inputMsg = mythic_container.SharedClasses.RemoveFileMessage(**msgDict)
         for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
             if c2.name == msgDict["container_name"]:
-                response = removeFileOfPath(c2.server_folder_path / inputMsg.Filename)
+                response = removeFileOfPath(c2.server_folder_path, inputMsg.Filename)
                 return ujson.dumps(response.to_json()).encode()
-        path = pathlib.Path(os.path.dirname(os.path.abspath(sys.argv[0]))) / inputMsg.Filename
-        response = removeFileOfPath(path)
+        response = removeFileOfPath(os.path.dirname(os.path.abspath(sys.argv[0])), inputMsg.Filename)
         return ujson.dumps(response.to_json()).encode()
     except Exception as e:
         response = mythic_container.SharedClasses.GetFileMessageResponse(
@@ -121,10 +118,10 @@ async def removeFile(msg: bytes) -> bytes:
         return ujson.dumps(response.to_json()).encode()
 
 
-def removeFileOfPath(path: str) -> mythic_container.SharedClasses.RemoveFileMessageResponse:
+def removeFileOfPath(base_path: str, requested_path: str) -> mythic_container.SharedClasses.RemoveFileMessageResponse:
     response = mythic_container.SharedClasses.RemoveFileMessageResponse(Success=False)
     try:
-        path = path.resolve()
+        path = resolveFileBrowserPath(base_path, requested_path)
         os.remove(path)
         response.Success = True
     except Exception as e:
@@ -138,10 +135,9 @@ async def getFile(msg: bytes) -> bytes:
         inputMsg = mythic_container.SharedClasses.GetFileMessage(**msgDict)
         for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
             if c2.name == msgDict["container_name"]:
-                response = getFileOfPath(c2.server_folder_path / inputMsg.Filename)
+                response = getFileOfPath(c2.server_folder_path,  inputMsg.Filename)
                 return ujson.dumps(response.to_json()).encode()
-        path = pathlib.Path(os.path.dirname(os.path.abspath(sys.argv[0]))) / inputMsg.Filename
-        response = getFileOfPath(path)
+        response = getFileOfPath(os.path.dirname(os.path.abspath(sys.argv[0])), inputMsg.Filename)
         return ujson.dumps(response.to_json()).encode()
     except Exception as e:
         response = mythic_container.SharedClasses.GetFileMessageResponse(
@@ -151,9 +147,10 @@ async def getFile(msg: bytes) -> bytes:
         return ujson.dumps(response.to_json()).encode()
 
 
-def getFileOfPath(path: str) -> mythic_container.SharedClasses.GetFileMessageResponse:
+def getFileOfPath(base_path: str, requested_path: str) -> mythic_container.SharedClasses.GetFileMessageResponse:
     response = mythic_container.SharedClasses.GetFileMessageResponse(Success=False)
     try:
+        path = resolveFileBrowserPath(base_path, requested_path)
         file_data = open(path, "rb").read()
         response.Success = True
         response.Message = file_data
@@ -168,10 +165,9 @@ async def writeFile(msg: bytes) -> bytes:
         inputMsg = mythic_container.SharedClasses.WriteFileMessage(**msgDict)
         for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
             if c2.name == msgDict["container_name"]:
-                response = writeFileOfPath(c2.server_folder_path / inputMsg.Filename, inputMsg.Contents)
+                response = writeFileOfPath(c2.server_folder_path, inputMsg.Filename, inputMsg.Contents)
                 return ujson.dumps(response.to_json()).encode()
-        path = pathlib.Path(os.path.dirname(os.path.abspath(sys.argv[0]))) / inputMsg.Filename
-        response = writeFileOfPath(path, inputMsg.Contents)
+        response = writeFileOfPath(os.path.dirname(os.path.abspath(sys.argv[0])), inputMsg.Filename, inputMsg.Contents)
         return ujson.dumps(response.to_json()).encode()
     except Exception as e:
         logger.exception(f"[-] Failed to write to file with exception: {e}")
@@ -182,9 +178,10 @@ async def writeFile(msg: bytes) -> bytes:
         return ujson.dumps(response.to_json()).encode()
 
 
-def writeFileOfPath(path: str, bytesToWrite: bytes) -> mythic_container.SharedClasses.WriteFileMessageResponse:
+def writeFileOfPath(base_path: str, requested_path: str, bytesToWrite: bytes) -> mythic_container.SharedClasses.WriteFileMessageResponse:
     response = mythic_container.SharedClasses.WriteFileMessageResponse(Success=False)
     try:
+        path = resolveFileBrowserPath(base_path, requested_path)
         with open(path, "wb") as f:
             f.write(bytesToWrite)
         response.Success = True
