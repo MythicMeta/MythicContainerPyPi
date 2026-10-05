@@ -26,11 +26,13 @@ class ContainerOnStartMessage:
 class ContainerOnStartMessageResponse:
     def __init__(self,
                  ContainerName: str = "",
+                 OperationID: int = 0,
                  EventLogInfoMessage: str = "",
                  EventLogErrorMessage: str = "",
                  RestartInternalServer: bool = False
                  ):
         self.ContainerName = ContainerName
+        self.OperationID = OperationID
         self.EventLogInfoMessage = EventLogInfoMessage
         self.EventLogErrorMessage = EventLogErrorMessage
         self.RestartInternalServer = RestartInternalServer
@@ -38,6 +40,7 @@ class ContainerOnStartMessageResponse:
     def to_json(self):
         return {
             "container_name": self.ContainerName,
+            "operation_id": self.OperationID,
             "stdout": self.EventLogInfoMessage,
             "stderr": self.EventLogErrorMessage
         }

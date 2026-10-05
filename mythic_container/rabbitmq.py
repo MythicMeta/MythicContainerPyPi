@@ -8,11 +8,16 @@ import base64
 import mythic_container
 from .config import settings
 from collections.abc import Callable, Awaitable
-from typing import Coroutine
+from typing import Coroutine, Optional
 import ujson
 import asyncio
 from functools import partial
 import uuid
+import hashlib
+import hmac
+import secrets
+import time
+import contextvars
 from typing import MutableMapping
 
 
@@ -21,13 +26,154 @@ mutex = asyncio.Lock()
 failedConnectRetryDelay = 5
 failedConnectTimeout = 1
 
+MYTHIC_AUTH_CONTEXT_HEADER = "mythic-auth-context"
+MYTHIC_CONTAINER_PRINCIPAL_HEADER = "mythic-container-principal"
+MYTHIC_CONTAINER_TIMESTAMP_HEADER = "mythic-container-timestamp"
+MYTHIC_CONTAINER_NONCE_HEADER = "mythic-container-nonce"
+MYTHIC_CONTAINER_SIGNATURE_HEADER = "mythic-container-signature"
+_request_auth_contexts: dict[str, tuple[str, float, bool]] = {}
+_current_auth_context: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "mythic_rabbitmq_auth_context", default=None
+)
+AUTH_CONTEXT_CACHE_TTL = 24 * 60 * 60
+AUTH_CONTEXT_CACHE_LIMIT = 16384
+MYTHIC_RPC_REPLY_EXCHANGE = "mythic_rpc_reply_exchange"
+
+
+def _auth_context_keys(value, parent: str = "", depth: int = 0) -> set[str]:
+    if depth > 6:
+        return set()
+    result: set[str] = set()
+    if isinstance(value, dict):
+        for key, child in value.items():
+            normalized_key = f"{parent}_id" if key == "id" and parent in {"task", "callback"} else key
+            if normalized_key in {
+                "operation_id", "task_id", "callback_id", "agent_callback_id",
+                "eventstepinstance_id", "uuid", "payload_uuid", "build_uuid",
+            }:
+                if isinstance(child, int) and child > 0:
+                    result.add(f"{normalized_key}:{child}")
+                elif isinstance(child, str) and child:
+                    result.add(f"{normalized_key}:{child}")
+            result.update(_auth_context_keys(child, key, depth + 1))
+    elif isinstance(value, list):
+        for child in value:
+            result.update(_auth_context_keys(child, parent, depth + 1))
+    return result
+
+
+def _remember_auth_context(message: aio_pika.abc.AbstractIncomingMessage) -> None:
+    token = (message.headers or {}).get(MYTHIC_AUTH_CONTEXT_HEADER)
+    if not isinstance(token, str) or not token:
+        return
+    try:
+        keys = _auth_context_keys(ujson.loads(message.body))
+    except ValueError:
+        return
+    now = time.time()
+    for key, (_, expires, _) in list(_request_auth_contexts.items()):
+        if expires <= now:
+            _request_auth_contexts.pop(key, None)
+    route = getattr(message, "routing_key", "") or ""
+    for key in keys:
+        is_operation = key.startswith("operation_id:")
+        if is_operation and route != "container_on_start" and not route.endswith("_container_on_start"):
+            continue
+        existing = _request_auth_contexts.get(key)
+        if existing and existing[0] != token and not is_operation:
+            _request_auth_contexts[key] = (existing[0], now + AUTH_CONTEXT_CACHE_TTL, True)
+            continue
+        if existing is None and len(_request_auth_contexts) >= AUTH_CONTEXT_CACHE_LIMIT:
+            continue
+        _request_auth_contexts[key] = (token, now + AUTH_CONTEXT_CACHE_TTL, False)
+
+
+def _cached_auth_context(body: bytes) -> Optional[str]:
+    active = _current_auth_context.get()
+    if active:
+        return active
+    try:
+        keys = _auth_context_keys(ujson.loads(body))
+    except ValueError:
+        return None
+    now = time.time()
+    specific_keys = {key for key in keys if not key.startswith("operation_id:")}
+    selected_keys = specific_keys or {key for key in keys if key.startswith("operation_id:")}
+    context_tokens: set[str] = set()
+    for key in selected_keys:
+        entry = _request_auth_contexts.get(key)
+        if entry is None:
+            continue
+        token, expires, ambiguous = entry
+        if expires <= now:
+            _request_auth_contexts.pop(key, None)
+            continue
+        if ambiguous:
+            raise ValueError(f"message identifier {key} has ambiguous RabbitMQ auth contexts")
+        context_tokens.add(token)
+    if len(context_tokens) > 1:
+        raise ValueError("message identifiers resolve to different RabbitMQ auth contexts")
+    return next(iter(context_tokens), None)
+
+
+def _signed_message(queue: str, body: bytes, **kwargs) -> aio_pika.Message:
+    principal = settings.get("mythic_container_principal", "")
+    token_hex = settings.get("mythic_container_auth_token", "")
+    rabbitmq_user = settings.get("rabbitmq_user", "mythic_user")
+    if not isinstance(principal, str) or not principal or principal != principal.strip().lower():
+        raise ValueError("MYTHIC_CONTAINER_PRINCIPAL is missing or non-canonical")
+    try:
+        secret = bytes.fromhex(token_hex)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("MYTHIC_CONTAINER_AUTH_TOKEN is missing or invalid") from exc
+    if len(secret) != hashlib.sha256().digest_size:
+        raise ValueError("MYTHIC_CONTAINER_AUTH_TOKEN is missing or invalid")
+    timestamp = int(time.time())
+    nonce = secrets.token_hex(24)
+    body_hash = hashlib.sha256(body).hexdigest()
+    canonical = f"v1\n{principal}\n{queue}\n{timestamp}\n{nonce}\n{body_hash}"
+    signature = hmac.new(secret, canonical.encode(), hashlib.sha256).hexdigest()
+    headers = dict(kwargs.pop("headers", {}) or {})
+    headers.update({
+        MYTHIC_CONTAINER_PRINCIPAL_HEADER: principal,
+        MYTHIC_CONTAINER_TIMESTAMP_HEADER: timestamp,
+        MYTHIC_CONTAINER_NONCE_HEADER: nonce,
+        MYTHIC_CONTAINER_SIGNATURE_HEADER: signature,
+    })
+    auth_context = _cached_auth_context(body)
+    if auth_context:
+        headers[MYTHIC_AUTH_CONTEXT_HEADER] = auth_context
+    return aio_pika.Message(body=body, user_id=rabbitmq_user, headers=headers, **kwargs)
+
+
+def _container_reply_routing_key(correlation_id: str) -> str:
+    principal = settings.get("mythic_container_principal", "")
+    if not isinstance(principal, str) or not principal or principal != principal.strip().lower():
+        raise ValueError("MYTHIC_CONTAINER_PRINCIPAL is missing or non-canonical")
+    if not correlation_id:
+        raise ValueError("RabbitMQ reply correlation ID is empty")
+    return f"{principal}.reply.{correlation_id}"
+
+
+def _container_telemetry_routing_key(routing_key: str) -> str:
+    principal = settings.get("mythic_container_principal", "")
+    if not isinstance(principal, str) or not principal or principal != principal.strip().lower():
+        raise ValueError("MYTHIC_CONTAINER_PRINCIPAL is missing or non-canonical")
+    return f"{principal}.{routing_key}"
+
 
 async def messageProcessThread(message: aio_pika.abc.AbstractIncomingMessage,
                                trueFunction: Callable[[bytes], Awaitable[None]]) -> None:
     try:
+        _remember_auth_context(message)
+        incoming_token = (message.headers or {}).get(MYTHIC_AUTH_CONTEXT_HEADER)
+        context_token = _current_auth_context.set(incoming_token if isinstance(incoming_token, str) else None)
         logger.debug(f"Ack direct call to {message.routing_key}")
         await message.ack()
-        await trueFunction(message.body)
+        try:
+            await trueFunction(message.body)
+        finally:
+            _current_auth_context.reset(context_token)
     except Exception as d:
         logger.exception(f"inner error: {d}")
         await message.nack(requeue=True)
@@ -48,7 +194,13 @@ async def directExchangeCallback(message: aio_pika.abc.AbstractIncomingMessage,
 async def messageProcessRPCThread(message: aio_pika.abc.AbstractIncomingMessage,
                                   trueFunction: Callable[[bytes], Awaitable[bytes]]) -> bytes:
     try:
-        response = await trueFunction(message.body)
+        _remember_auth_context(message)
+        incoming_token = (message.headers or {}).get(MYTHIC_AUTH_CONTEXT_HEADER)
+        context_token = _current_auth_context.set(incoming_token if isinstance(incoming_token, str) else None)
+        try:
+            response = await trueFunction(message.body)
+        finally:
+            _current_auth_context.reset(context_token)
         #logger.info(f"rpc response: {response}\nrequest: {message.body}")
         return response
     except Exception as d:
@@ -95,7 +247,6 @@ class rabbitmqConnectionClass:
                                  + f", with user: {settings.get('rabbitmq_user', 'mythic_user')}"
                                  + f", with vhost: {settings.get('rabbitmq_vhost', 'mythic_vhost')}"
                                  )
-                    logger.debug(f"connecting with password: {settings.get('rabbitmq_password', 'rabbitmq_password')}...")
                     self.conn = await aio_pika.connect_robust(
                         host=settings.get("rabbitmq_host", "127.0.0.1"),
                         port=settings.get("rabbitmq_port", 5672),
@@ -120,11 +271,9 @@ class rabbitmqConnectionClass:
                 connection = await self.GetConnection()
                 async with connection.channel(publisher_confirms=True,
                                               on_return_raises=True) as chan:
-                    exchange = await chan.declare_exchange("mythic_exchange",
-                                                           durable=True,
-                                                           auto_delete=True)
-                    message = aio_pika.Message(body=body,
-                                               content_type="application/json")
+                    exchange = await chan.get_exchange("mythic_exchange", ensure=False)
+                    message = _signed_message(queue, body,
+                                              content_type="application/json")
                     await exchange.publish(
                         message=message,
                         routing_key=queue,
@@ -150,16 +299,19 @@ class rabbitmqConnectionClass:
                 logger.debug(f"Sending RPC message to {queue}, correlation_id: {correlation_id}")
                 connection = await self.GetConnection()
                 async with connection.channel(on_return_raises=True) as chan:
-                    exchange = await chan.declare_exchange("mythic_exchange",
-                                                           durable=True,
-                                                           auto_delete=True)
-                    callback_queue = await chan.declare_queue(name="amq.rabbitmq.reply-to",)
+                    exchange = await chan.get_exchange("mythic_exchange", ensure=False)
+                    reply_exchange = await chan.get_exchange(MYTHIC_RPC_REPLY_EXCHANGE, ensure=False)
+                    reply_routing_key = _container_reply_routing_key(correlation_id)
+                    callback_queue = await chan.declare_queue(
+                        name="", durable=False, auto_delete=True, exclusive=True
+                    )
+                    await callback_queue.bind(reply_exchange, routing_key=reply_routing_key)
                     await callback_queue.consume(self.on_response,
                                                  no_ack=True)
-                    message = aio_pika.Message(body=body,
-                                               content_type="application/json",
-                                               reply_to=callback_queue.name,
-                                               correlation_id=correlation_id)
+                    message = _signed_message(queue, body,
+                                              content_type="application/json",
+                                              reply_to=reply_routing_key,
+                                              correlation_id=correlation_id)
                     # make sure the queue exists first before we try to send to it
                     try:
                         await exchange.publish(
@@ -232,7 +384,7 @@ class rabbitmqConnectionClass:
         try:
             connection = await self.GetConnection()
             async with connection.channel(on_return_raises=True) as chan:
-                exchange = chan.default_exchange
+                exchange = await chan.get_exchange(MYTHIC_RPC_REPLY_EXCHANGE, ensure=False)
                 newMessage = aio_pika.Message(
                     body=response,
                     content_type="application/json",
@@ -240,7 +392,7 @@ class rabbitmqConnectionClass:
 
                 await exchange.publish(
                     newMessage,
-                    routing_key=message.reply_to,
+                    routing_key=_container_reply_routing_key(message.correlation_id),
                     mandatory=False
                 )
                 logger.debug(f"Send reply for correlation_id: {message.correlation_id}")
@@ -255,13 +407,7 @@ class rabbitmqConnectionClass:
             try:
                 connection = await self.GetConnection()
                 async with connection.channel() as chan:
-                    exchange = await chan.declare_exchange(
-                        name="mythic_exchange",
-                        type="direct",
-                        durable=True,
-                        auto_delete=True,
-                        internal=False,
-                    )
+                    exchange = await chan.get_exchange("mythic_exchange", ensure=False)
                     q = await chan.declare_queue(
                         name=queue,
                         durable=False,
@@ -293,14 +439,7 @@ class rabbitmqConnectionClass:
             try:
                 connection = await self.GetConnection()
                 async with connection.channel() as chan:
-                    exchange = await chan.declare_exchange(
-                        name="mythic_exchange",
-                        type="direct",
-                        durable=True,
-                        auto_delete=True,
-                        internal=False,
-
-                    )
+                    exchange = await chan.get_exchange("mythic_exchange", ensure=False)
                     q = await chan.declare_queue(
                         name=queue,
                         durable=False,
@@ -332,22 +471,17 @@ class rabbitmqConnectionClass:
             try:
                 connection = await self.GetConnection()
                 async with connection.channel() as chan:
-                    exchange = await chan.declare_exchange(
-                        name="mythic_topic_exchange",
-                        type="topic",
-                        durable=True,
-                        auto_delete=True,
-                        internal=False,
-                    )
+                    exchange = await chan.get_exchange("mythic_topic_exchange", ensure=False)
                     q = await chan.declare_queue(
                         name="",
                         durable=False,
                         auto_delete=True,
                         exclusive=False,
                     )
+                    scoped_routing_key = _container_telemetry_routing_key(routing_key)
                     await q.bind(
                         exchange=exchange,
-                        routing_key=queue,
+                        routing_key=scoped_routing_key,
                     )
                     await q.consume(
                         callback=partial(directExchangeCallback, trueFunction=handler)

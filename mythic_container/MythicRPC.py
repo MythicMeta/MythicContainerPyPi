@@ -217,6 +217,7 @@ async def legacyGetCallbackInfo(x: dict) -> RPCResponse:
 
 async def legacyCreateAgentStorage(x: dict) -> RPCResponse:
     resp = await SendMythicRPCAgentStorageCreate(MythicRPCAgentstorageCreateMessage(
+        OperationID=x.pop("operation_id", 0),
         UniqueID=x.pop("unique_id", None),
         DataToStore=x.pop("data", None)
     ))
@@ -228,6 +229,7 @@ async def legacyCreateAgentStorage(x: dict) -> RPCResponse:
 
 async def legacyGetAgentStorage(x: dict) -> RPCResponse:
     resp = await SendMythicRPCAgentStorageSearch(MythicRPCAgentStorageSearchMessage(
+        OperationID=x.pop("operation_id", 0),
         SearchUniqueID=x.pop("unique_id", None)
     ))
     return RPCResponse({
@@ -239,6 +241,7 @@ async def legacyGetAgentStorage(x: dict) -> RPCResponse:
 
 async def legacyDeleteAgentStorage(x: dict) -> RPCResponse:
     resp = await SendMythicRPCAgentStorageRemove(MythicRPCAgentStorageRemoveMessage(
+        OperationID=x.pop("operation_id", 0),
         UniqueID=x.pop("unique_id", None)
     ))
     return RPCResponse({

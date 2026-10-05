@@ -186,6 +186,7 @@ async def onStart(msg: bytes) -> None:
         for name, c2 in mythic_container.C2ProfileBase.c2Profiles.items():
             if c2.name == inputMsg.ContainerName:
                 response = await c2.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -196,6 +197,7 @@ async def onStart(msg: bytes) -> None:
         for name, pt in mythic_container.PayloadBuilder.payloadTypes.items():
             if pt.name == inputMsg.ContainerName:
                 response = await pt.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -204,6 +206,7 @@ async def onStart(msg: bytes) -> None:
         for name, tr in mythic_container.TranslationBase.translationServices.items():
             if tr.name == inputMsg.ContainerName:
                 response = await tr.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -212,6 +215,7 @@ async def onStart(msg: bytes) -> None:
         for name, lg in mythic_container.LoggingBase.loggers.items():
             if lg.name == inputMsg.ContainerName:
                 response = await lg.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -220,6 +224,7 @@ async def onStart(msg: bytes) -> None:
         for name, wb in mythic_container.WebhookBase.webhooks.items():
             if wb.name == inputMsg.ContainerName:
                 response = await wb.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -228,6 +233,7 @@ async def onStart(msg: bytes) -> None:
         for name, auth in mythic_container.AuthBase.authServices.items():
             if auth.name == inputMsg.ContainerName:
                 response = await auth.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -236,6 +242,7 @@ async def onStart(msg: bytes) -> None:
         for name, event in mythic_container.EventingBase.eventingServices.items():
             if event.name == inputMsg.ContainerName:
                 response = await event.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()
@@ -244,6 +251,7 @@ async def onStart(msg: bytes) -> None:
         for name, browser in mythic_container.CustomBrowserBase.custombrowsers.items():
             if browser.name == inputMsg.ContainerName:
                 response = await browser.on_container_start(inputMsg)
+                response.OperationID = inputMsg.OperationID
                 await mythic_container.RabbitmqConnection.SendDictDirectMessage(
                     queue=mythic_container.CONTAINER_ON_START_RESPONSE,
                     body=response.to_json()

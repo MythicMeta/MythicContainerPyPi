@@ -7,14 +7,17 @@ MYTHIC_RPC_AGENTSTORAGE_SEARCH = "mythic_rpc_agentstorage_search"
 
 class MythicRPCAgentStorageSearchMessage:
     def __init__(self,
+                 OperationID: int,
                  SearchUniqueID: str,
                  **kwargs):
+        self.OperationID = OperationID
         self.SearchUniqueID = SearchUniqueID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
+            "operation_id": self.OperationID,
             "unique_id": self.SearchUniqueID
         }
 

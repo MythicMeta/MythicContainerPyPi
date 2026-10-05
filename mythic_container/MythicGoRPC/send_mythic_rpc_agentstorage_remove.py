@@ -6,14 +6,17 @@ MYTHIC_RPC_AGENTSTORAGE_REMOVE = "mythic_rpc_agentstorage_remove"
 
 class MythicRPCAgentStorageRemoveMessage:
     def __init__(self,
+                 OperationID: int,
                  UniqueID: str,
                  **kwargs):
+        self.OperationID = OperationID
         self.UniqueID = UniqueID
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
+            "operation_id": self.OperationID,
             "unique_id": self.UniqueID,
         }
 

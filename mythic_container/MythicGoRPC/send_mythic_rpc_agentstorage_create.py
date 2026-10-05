@@ -7,9 +7,11 @@ MYTHIC_RPC_AGENTSTORAGE_CREATE = "mythic_rpc_agentstorage_create"
 
 class MythicRPCAgentstorageCreateMessage:
     def __init__(self,
+                 OperationID: int,
                  UniqueID: str,
                  DataToStore: bytes,
                  **kwargs):
+        self.OperationID = OperationID
         self.UniqueID = UniqueID
         self.DataToStore = DataToStore
         for k, v in kwargs.items():
@@ -17,6 +19,7 @@ class MythicRPCAgentstorageCreateMessage:
 
     def to_json(self):
         return {
+            "operation_id": self.OperationID,
             "unique_id": self.UniqueID,
             "data": base64.b64encode(self.DataToStore).decode()
         }
