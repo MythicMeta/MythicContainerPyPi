@@ -141,7 +141,7 @@ class rabbitmqConnectionClass:
         #logger.debug(f"Sending Direct msg to {queue}: {body}")
         return await self.SendMessage(queue=queue, body=ujson.dumps(body).encode())
 
-    async def SendRPCMessage(self, queue: str, body: bytes) -> dict:
+    async def SendRPCMessage(self, queue: str, body: bytes, response_timeout: float = 10) -> dict:
         try:
             while True:
                 correlation_id = str(uuid.uuid4())
@@ -183,12 +183,13 @@ class rabbitmqConnectionClass:
                         continue
                     logger.debug(f"published RPC message to {queue}, correlation id: {message.correlation_id}")
                     try:
-                        result = await asyncio.wait_for(future, timeout=10)
+                        result = await asyncio.wait_for(future, timeout=response_timeout)
                         logger.debug(f"got RPC result to {queue}, correlation id: {message.correlation_id}")
                         return result
                     except asyncio.TimeoutError:
                         # cancel the current future and move on to try again
                         future.cancel()
+                        self.futures.pop(message.correlation_id, None)
                         logger.error(f"hit timeout waiting for RPC response on {queue} for correlation_id {message.correlation_id}, retrying...")
                     except Exception as sendError:
                         logger.error(f"got error on {queue} for correlation_id {message.correlation_id}:\n{sendError}")
@@ -224,9 +225,13 @@ class rabbitmqConnectionClass:
             logger.exception(
                 f"Failed to handle response: {e}\nmessage: {message}\nbody:{message.body}\nfutures:{self.futures}")
 
-    async def SendRPCDictMessage(self, queue: str, body: dict) -> dict:
+    async def SendRPCDictMessage(self, queue: str, body: dict, response_timeout: float = 10) -> dict:
         #logger.debug(f"Sending RPC msg: {body}")
-        return await self.SendRPCMessage(queue=queue, body=ujson.dumps(body).encode())
+        return await self.SendRPCMessage(
+            queue=queue,
+            body=ujson.dumps(body).encode(),
+            response_timeout=response_timeout,
+        )
 
     async def ReplyMessage(self, response: bytes, message: aio_pika.abc.AbstractIncomingMessage):
         try:
