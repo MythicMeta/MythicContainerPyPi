@@ -388,7 +388,8 @@ async def syncPayloadData(pt: PayloadBuilder.PayloadType, explicitCommands: list
     while True:
         response = await mythic_container.RabbitmqConnection.SendRPCDictMessage(
             queue=mythic_container.PT_SYNC_ROUTING_KEY,
-            body=syncMessage)
+            body=syncMessage,
+            response_timeout=600)
         if response is None:
             logger.error("[-] Failed to get a response back from syncing RPC message, trying again...")
             await asyncio.sleep(failedConnectRetryDelay)
