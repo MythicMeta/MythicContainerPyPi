@@ -40,6 +40,7 @@ def load_rpc_module(name):
 
 callback_create = load_rpc_module("send_mythic_rpc_callback_create")
 callback_update = load_rpc_module("send_mythic_rpc_callback_update")
+chat_channel_metadata_update = load_rpc_module("send_mythic_rpc_chat_channel_metadata_update")
 file_update = load_rpc_module("send_mythic_rpc_file_update")
 proxy_start = load_rpc_module("send_mythic_rpc_proxy_start")
 task_create = load_rpc_module("send_mythic_rpc_task_create")
@@ -48,6 +49,18 @@ task_create_subtask_group = load_rpc_module("send_mythic_rpc_task_create_subtask
 
 
 class MythicGoRPCContractTests(unittest.TestCase):
+    def test_chat_channel_metadata_update_serializes_only_update_fields(self):
+        message = chat_channel_metadata_update.MythicRPCChatChannelMetadataUpdateMessage(
+            ChannelConfig={},
+            ChannelModel="example-model",
+        )
+
+        self.assertEqual(message.to_json(), {
+            "channel_metadata": None,
+            "channel_config": {},
+            "channel_model": "example-model",
+        })
+
     def test_callback_create_serializes_current_fields(self):
         message = callback_create.MythicRPCCallbackCreateMessage(
             PayloadUUID="payload-uuid",

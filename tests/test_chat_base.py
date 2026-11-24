@@ -59,6 +59,8 @@ class ChatBaseTests(unittest.TestCase):
     def test_request_preserves_slash_command(self):
         request = ChatRequest(
             container_name="helper_chat",
+            operator_id=17,
+            operator_username="alice",
             prompt="run it",
             slash_command={
                 "name": "explain",
@@ -70,6 +72,10 @@ class ChatBaseTests(unittest.TestCase):
 
         self.assertEqual(request.SlashCommand.Name, "explain")
         self.assertEqual(request.to_json()["slash_command"]["argument"], "callbacks")
+        self.assertEqual(request.OperatorID, 17)
+        self.assertEqual(request.OperatorUsername, "alice")
+        self.assertEqual(request.to_json()["operator_id"], 17)
+        self.assertEqual(request.to_json()["operator_username"], "alice")
 
     def test_request_preserves_input_response(self):
         request = ChatRequest(
@@ -123,21 +129,20 @@ class ChatBaseTests(unittest.TestCase):
 
     def test_chat_channel_metadata_update_shape(self):
         update = ChatChannelMetadataUpdate(
-            OperationID=1,
-            ChannelID=2,
-            ContainerName="basic_chat",
             ChannelMetadata={
                 "items": [
                     {"key": "total_cost", "value": 1.25, "format": "currency"},
                 ],
             },
+            ChannelConfig={"temperature": 0.5},
+            ChannelModel="example-model",
         )
 
         serialized = update.to_json()
-        self.assertEqual(serialized["operation_id"], 1)
-        self.assertEqual(serialized["channel_id"], 2)
-        self.assertEqual(serialized["container_name"], "basic_chat")
+        self.assertEqual(set(serialized), {"channel_metadata", "channel_config", "channel_model"})
         self.assertEqual(serialized["channel_metadata"]["items"][0]["key"], "total_cost")
+        self.assertEqual(serialized["channel_config"], {"temperature": 0.5})
+        self.assertEqual(serialized["channel_model"], "example-model")
 
     def test_chat_channel_metadata_update_preserves_color_shapes(self):
         update = ChatChannelMetadataUpdate(
@@ -381,7 +386,7 @@ class ChatBaseTests(unittest.TestCase):
         self.assertEqual(captured[0]["metadata"]["subagent"]["tool_total"], 13)
         self.assertEqual(captured[0]["metadata"]["subagent"]["icon"], "BH")
 
-    def test_update_channel_metadata_helper_uses_current_request(self):
+    def test_update_channel_metadata_helpers_send_partial_updates(self):
         async def run_check():
             captured = []
             original = ChatBase.SendMythicRPCChatChannelMetadataUpdate
@@ -401,16 +406,22 @@ class ChatBaseTests(unittest.TestCase):
                 response = await chat.update_channel_metadata(request, {
                     "items": [{"key": "weekly_tokens", "value": 12}],
                 })
+                turn = chat.turn_context(request, response_key="assistant:test")
+                await turn.update_channel_metadata(channel_config={}, channel_model="example-model")
             finally:
                 ChatBase.SendMythicRPCChatChannelMetadataUpdate = original
             return captured, response
 
         captured, response = asyncio.run(run_check())
         self.assertTrue(response.Success)
-        self.assertEqual(captured[0]["operation_id"], 1)
-        self.assertEqual(captured[0]["channel_id"], 2)
-        self.assertEqual(captured[0]["container_name"], "helper_chat")
         self.assertEqual(captured[0]["channel_metadata"]["items"][0]["key"], "weekly_tokens")
+        self.assertIsNone(captured[0]["channel_config"])
+        self.assertEqual(captured[0]["channel_model"], "")
+        self.assertEqual(captured[1], {
+            "channel_metadata": None,
+            "channel_config": {},
+            "channel_model": "example-model",
+        })
 
     def test_run_chat_turn_wraps_streaming_completion_and_errors(self):
         async def run_check():

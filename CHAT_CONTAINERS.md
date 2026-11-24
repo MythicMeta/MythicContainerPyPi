@@ -258,6 +258,12 @@ A `ChatTurnContext` has the same helper:
 await turn.update_channel_metadata({"items": [{"key": "weekly_tokens", "value": 12}]})
 ```
 
+Both helpers target the channel identified by the chat request's RabbitMQ auth
+context. They can also update `channel_config` and `channel_model` when the
+request comes from the channel creator, an operation lead, or a Mythic admin.
+Any metadata, configuration, or model omitted from the call keeps its current
+value. Pass an empty dictionary as `channel_config` to clear the configuration.
+
 Operator display strings use this shape:
 
 ```text

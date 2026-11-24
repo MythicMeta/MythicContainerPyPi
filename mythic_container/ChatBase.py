@@ -104,9 +104,13 @@ class ChatRequest:
             input_response: dict = None,
             delegation_id: str = "",
             delegation_name: str = "",
+            operator_id: int = 0,
+            operator_username: str = "",
             **kwargs):
         self.ContainerName = container_name
         self.OperationID = operation_id
+        self.OperatorID = operator_id
+        self.OperatorUsername = operator_username
         self.ChannelID = channel_id
         self.APITokenID = apitokens_id
         self.ChannelName = channel_name
@@ -127,6 +131,8 @@ class ChatRequest:
         return {
             "container_name": self.ContainerName,
             "operation_id": self.OperationID,
+            "operator_id": self.OperatorID,
+            "operator_username": self.OperatorUsername,
             "channel_id": self.ChannelID,
             "apitokens_id": self.APITokenID,
             "channel_name": self.ChannelName,
@@ -287,22 +293,19 @@ class ChatResponse:
 class ChatChannelMetadataUpdate:
     def __init__(
             self,
-            OperationID: int = 0,
-            ChannelID: int = 0,
-            ContainerName: str = "",
             ChannelMetadata: dict[str, Any] | None = None,
+            ChannelConfig: dict[str, Any] | None = None,
+            ChannelModel: str = "",
             **kwargs):
-        self.OperationID = OperationID
-        self.ChannelID = ChannelID
-        self.ContainerName = ContainerName
-        self.ChannelMetadata = ChannelMetadata if ChannelMetadata is not None else {}
+        self.ChannelMetadata = ChannelMetadata
+        self.ChannelConfig = ChannelConfig
+        self.ChannelModel = ChannelModel
 
     def to_json(self):
         return {
-            "operation_id": self.OperationID,
-            "channel_id": self.ChannelID,
-            "container_name": self.ContainerName,
             "channel_metadata": _to_json_value(self.ChannelMetadata),
+            "channel_config": _to_json_value(self.ChannelConfig),
+            "channel_model": self.ChannelModel,
         }
 
     def __str__(self):
@@ -840,8 +843,20 @@ class ChatTurnContext:
             metadata=self._metadata(metadata),
         )
 
-    async def update_channel_metadata(self, channel_metadata: dict[str, Any]) -> ChatChannelMetadataUpdateResponse:
-        return await self.chat.update_channel_metadata(self.request, channel_metadata)
+    async def update_channel_metadata(
+            self,
+            channel_metadata: dict[str, Any] | None = None,
+            *,
+            channel_config: dict[str, Any] | None = None,
+            channel_model: str = "") -> ChatChannelMetadataUpdateResponse:
+        if channel_config is None and not channel_model:
+            return await self.chat.update_channel_metadata(self.request, channel_metadata)
+        return await self.chat.update_channel_metadata(
+            self.request,
+            channel_metadata,
+            channel_config=channel_config,
+            channel_model=channel_model,
+        )
 
     def _metadata(self, extra: dict[str, Any] | None = None) -> dict[str, Any]:
         """Merge turn metadata and propagate delegated side-pane metadata."""
@@ -973,12 +988,15 @@ class Chat:
     async def update_channel_metadata(
             self,
             request: ChatRequest,
-            channel_metadata: dict[str, Any]) -> ChatChannelMetadataUpdateResponse:
+            channel_metadata: dict[str, Any] | None = None,
+            *,
+            channel_config: dict[str, Any] | None = None,
+            channel_model: str = "") -> ChatChannelMetadataUpdateResponse:
+        """Update the channel identified by the current chat request's auth context."""
         return await SendMythicRPCChatChannelMetadataUpdate(ChatChannelMetadataUpdate(
-            OperationID=request.OperationID,
-            ChannelID=request.ChannelID,
-            ContainerName=self.name or request.ContainerName,
             ChannelMetadata=channel_metadata,
+            ChannelConfig=channel_config,
+            ChannelModel=channel_model,
         ))
 
     async def send_streaming(

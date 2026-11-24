@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="mythic_container",
-    version="0.7.0-rc10",
+    version="0.7.0-rc11",
     description="Functionality for Mythic Services",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -27,8 +27,8 @@ setup(
     include_package_data=True,
     install_requires=[
         "aio_pika==9.4.1",
-        "dynaconf==3.2.5",
-        "ujson==5.9.0",
+        "dynaconf==3.2.13",
+        "ujson==5.13.0",
         "aiohttp",
         "psutil==5.9.8",
         "grpcio>=1.78.0",

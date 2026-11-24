@@ -7,24 +7,21 @@ MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE = "mythic_rpc_chat_channel_metadata_upda
 class MythicRPCChatChannelMetadataUpdateMessage:
     def __init__(
             self,
-            OperationID: int = 0,
-            ChannelID: int = 0,
-            ContainerName: str = "",
-            ChannelMetadata: dict = None,
+            ChannelMetadata: dict | None = None,
+            ChannelConfig: dict | None = None,
+            ChannelModel: str = "",
             **kwargs):
-        self.OperationID = OperationID
-        self.ChannelID = ChannelID
-        self.ContainerName = ContainerName
-        self.ChannelMetadata = ChannelMetadata if ChannelMetadata is not None else {}
+        self.ChannelMetadata = ChannelMetadata
+        self.ChannelConfig = ChannelConfig
+        self.ChannelModel = ChannelModel
         for k, v in kwargs.items():
             logger.info(f"Unknown kwarg {k} - {v}")
 
     def to_json(self):
         return {
-            "operation_id": self.OperationID,
-            "channel_id": self.ChannelID,
-            "container_name": self.ContainerName,
             "channel_metadata": self.ChannelMetadata,
+            "channel_config": self.ChannelConfig,
+            "channel_model": self.ChannelModel,
         }
 
 
